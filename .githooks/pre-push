@@ -1,0 +1,16 @@
+#!/bin/sh
+. "$(dirname "$0")/blocked-identity.sh"
+zero=0000000000000000000000000000000000000000
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then range="$local_sha --not --remotes=origin"; else range="$remote_sha..$local_sha"; fi
+  for c in $(git rev-list $range); do
+    if git log -1 --format='%an <%ae>%n%cn <%ce>' "$c" | grep -Eiq "$BLOCKED_IDENT" \
+      || git log -1 --format='%B' "$c" | grep -Eiq "$BLOCKED_MSG"; then
+      echo "ERROR: commit $c has Anthropic/Claude authorship or attribution. Push blocked." >&2
+      status=1
+    fi
+  done
+done
+exit $status

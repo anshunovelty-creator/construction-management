@@ -1,0 +1,8 @@
+#!/bin/sh
+. "$(dirname "$0")/blocked-identity.sh"
+for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
+  if printf '%s\n' "$ident" | grep -Eiq "$BLOCKED_IDENT"; then
+    echo "ERROR: commit identity '$ident' is an Anthropic/Claude account. Commit as yourself." >&2
+    exit 1
+  fi
+done
