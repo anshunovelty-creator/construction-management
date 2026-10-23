@@ -1,0 +1,128 @@
+{
+  "app": {
+    "name": "निर्माण खाता"
+  },
+  "nav": {
+    "home": "होम",
+    "masters": "मास्टर",
+    "users": "उपयोगकर्ता",
+    "history": "बदलाव का इतिहास",
+    "settings": "सेटिंग्स",
+    "signOut": "लॉग आउट"
+  },
+  "login": {
+    "title": "लॉग इन",
+    "submit": "लॉग इन करें"
+  },
+  "home": {
+    "welcome": "नमस्ते, {name}",
+    "signedInAs": "भूमिका: {role}",
+    "comingNext": "पैसे की एंट्री के फ़ॉर्म अगले अपडेट में आएँगे। अभी नीचे मास्टर तैयार करें।"
+  },
+  "masters": {
+    "firms": "फ़र्म",
+    "sites": "साइट",
+    "parties": "पार्टी (वेंडर, क्लाइंट, मज़दूर)",
+    "work-orders": "वर्क ऑर्डर",
+    "money-accounts": "बैंक और नकद खाते",
+    "add": "नया जोड़ें",
+    "edit": "बदलें",
+    "save": "सेव करें",
+    "empty": "अभी यहाँ कुछ नहीं है।",
+    "readOnly": "इन्हें सिर्फ़ मालिक बदल सकते हैं।"
+  },
+  "fields": {
+    "code": "छोटा कोड (2–4 बड़े अक्षर)",
+    "name": "नाम",
+    "location": "जगह",
+    "is_active": "चालू",
+    "kind": "प्रकार",
+    "phone": "फ़ोन",
+    "firm_id": "फ़र्म",
+    "client_id": "क्लाइंट",
+    "site_id": "साइट",
+    "ref": "वर्क ऑर्डर नंबर",
+    "contract_type": "कॉन्ट्रैक्ट का प्रकार",
+    "contract_value_paise": "कॉन्ट्रैक्ट की रकम (₹)",
+    "tds_bp": "TDS %",
+    "retention_bp": "रिटेंशन %",
+    "security_deposit_bp": "सिक्योरिटी डिपॉज़िट %",
+    "start_date": "शुरू होने की तारीख",
+    "holder_user_id": "सुपरवाइज़र (सुपरवाइज़र नकद के लिए)",
+    "email": "ईमेल",
+    "password": "पासवर्ड (कम से कम 8 अक्षर)",
+    "full_name": "पूरा नाम",
+    "role": "भूमिका",
+    "language": "भाषा",
+    "firms": "फ़र्म (ऑफ़िस स्टाफ़)",
+    "sites": "साइट (सुपरवाइज़र)"
+  },
+  "options": {
+    "party_kind": {
+      "vendor": "वेंडर",
+      "client": "क्लाइंट",
+      "worker": "मज़दूर",
+      "staff": "स्टाफ़",
+      "other": "अन्य"
+    },
+    "contract_type": {
+      "item_rate": "आइटम रेट",
+      "fixed": "तय रकम"
+    },
+    "money_account_kind": {
+      "bank": "बैंक",
+      "owner_cash": "मालिक का नकद",
+      "supervisor_cash": "सुपरवाइज़र का नकद"
+    },
+    "role": {
+      "owner": "मालिक",
+      "office": "ऑफ़िस स्टाफ़",
+      "supervisor": "सुपरवाइज़र"
+    },
+    "language": {
+      "en": "English",
+      "hi": "हिन्दी"
+    }
+  },
+  "users": {
+    "title": "उपयोगकर्ता",
+    "add": "उपयोगकर्ता जोड़ें",
+    "keepPassword": "पासवर्ड न बदलना हो तो खाली छोड़ें।"
+  },
+  "history": {
+    "title": "बदलाव का इतिहास",
+    "when": "कब",
+    "who": "किसने",
+    "what": "क्या",
+    "changes": "बदलाव",
+    "system": "सिस्टम (इम्पोर्ट)",
+    "action": {
+      "insert": "जोड़ा",
+      "update": "बदला",
+      "delete": "हटाया"
+    }
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "save": "सेव करें"
+  },
+  "errors": {
+    "required": "ज़रूरी है।",
+    "invalid_email": "सही ईमेल डालें।",
+    "password_short": "कम से कम 8 अक्षर।",
+    "invalid_amount": "53118.72 जैसी रकम डालें।",
+    "invalid_percent": "0 से 100 के बीच प्रतिशत डालें।",
+    "invalid_date": "सही तारीख डालें।",
+    "invalid_choice": "दिए गए विकल्पों में से चुनें।",
+    "duplicate": "यह पहले से मौजूद है।",
+    "not_allowed": "आपको यह करने की अनुमति नहीं है।",
+    "save_failed": "सेव नहीं हो सका।",
+    "invalid_login": "ईमेल या पासवर्ड गलत है।",
+    "inactive": "यह खाता बंद है। मालिक से पूछें।"
+  },
+  "common": {
+    "yes": "हाँ",
+    "no": "नहीं",
+    "none": "—"
+  }
+}

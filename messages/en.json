@@ -1,0 +1,128 @@
+{
+  "app": {
+    "name": "Construction Ledger"
+  },
+  "nav": {
+    "home": "Home",
+    "masters": "Masters",
+    "users": "Users",
+    "history": "Change history",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "login": {
+    "title": "Sign in",
+    "submit": "Sign in"
+  },
+  "home": {
+    "welcome": "Welcome, {name}",
+    "signedInAs": "Signed in as {role}",
+    "comingNext": "Money entry forms arrive in the next update. For now, set up the masters below."
+  },
+  "masters": {
+    "firms": "Firms",
+    "sites": "Sites",
+    "parties": "Parties (vendors, clients, workers)",
+    "work-orders": "Work orders",
+    "money-accounts": "Bank and cash accounts",
+    "add": "Add new",
+    "edit": "Edit",
+    "save": "Save",
+    "empty": "Nothing here yet.",
+    "readOnly": "Only the owner can change these."
+  },
+  "fields": {
+    "code": "Short code (2–4 capital letters)",
+    "name": "Name",
+    "location": "Location",
+    "is_active": "Active",
+    "kind": "Type",
+    "phone": "Phone",
+    "firm_id": "Firm",
+    "client_id": "Client",
+    "site_id": "Site",
+    "ref": "Work order number",
+    "contract_type": "Contract type",
+    "contract_value_paise": "Contract value (₹)",
+    "tds_bp": "TDS %",
+    "retention_bp": "Retention %",
+    "security_deposit_bp": "Security deposit %",
+    "start_date": "Start date",
+    "holder_user_id": "Supervisor (for supervisor cash)",
+    "email": "Email",
+    "password": "Password (at least 8 characters)",
+    "full_name": "Full name",
+    "role": "Role",
+    "language": "Language",
+    "firms": "Firms (office staff)",
+    "sites": "Sites (supervisors)"
+  },
+  "options": {
+    "party_kind": {
+      "vendor": "Vendor",
+      "client": "Client",
+      "worker": "Worker",
+      "staff": "Staff",
+      "other": "Other"
+    },
+    "contract_type": {
+      "item_rate": "Item rate",
+      "fixed": "Fixed value"
+    },
+    "money_account_kind": {
+      "bank": "Bank",
+      "owner_cash": "Owner cash",
+      "supervisor_cash": "Supervisor cash"
+    },
+    "role": {
+      "owner": "Owner",
+      "office": "Office staff",
+      "supervisor": "Supervisor"
+    },
+    "language": {
+      "en": "English",
+      "hi": "हिन्दी"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "add": "Add user",
+    "keepPassword": "Leave the password empty to keep it."
+  },
+  "history": {
+    "title": "Change history",
+    "when": "When",
+    "who": "Who",
+    "what": "What",
+    "changes": "Changes",
+    "system": "System (import)",
+    "action": {
+      "insert": "added",
+      "update": "changed",
+      "delete": "removed"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "save": "Save"
+  },
+  "errors": {
+    "required": "Required.",
+    "invalid_email": "Enter a valid email.",
+    "password_short": "At least 8 characters.",
+    "invalid_amount": "Enter an amount like 53118.72.",
+    "invalid_percent": "Enter a percentage from 0 to 100.",
+    "invalid_date": "Enter a real date.",
+    "invalid_choice": "Pick one of the choices.",
+    "duplicate": "This already exists.",
+    "not_allowed": "You are not allowed to do this.",
+    "save_failed": "Could not save.",
+    "invalid_login": "Wrong email or password.",
+    "inactive": "This account is switched off. Ask the owner."
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "none": "—"
+  }
+}
