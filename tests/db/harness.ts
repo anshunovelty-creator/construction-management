@@ -1,13 +1,15 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PGlite, type PGliteInterface } from '@electric-sql/pglite';
+import { PGlite, type PGliteInterface, type Transaction } from '@electric-sql/pglite';
 import type { EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
 
 const MIGRATIONS_DIR = join(import.meta.dirname, '..', '..', 'supabase', 'migrations');
+const SUPABASE_STUB = join(import.meta.dirname, 'supabase-stub.sql');
 
-/** A fresh in-process Postgres with every migration applied, in file-name order. */
+/** A fresh in-process Postgres with Supabase's basics and every migration applied, in file-name order. */
 export async function createMigratedDb(): Promise<PGlite> {
   const db = new PGlite();
+  await db.exec(readFileSync(SUPABASE_STUB, 'utf8'));
   const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
   for (const file of files) {
     await db.exec(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
@@ -116,4 +118,39 @@ export async function balanceOf(
     params,
   );
   return rows[0]!.total;
+}
+
+export type AppRole = 'owner' | 'office' | 'supervisor';
+
+/** An app user: a Supabase Auth login plus a profile with a role and assignments. */
+export async function createUser(
+  db: PGliteInterface,
+  role: AppRole,
+  name: string,
+  assigned: { firms?: string[]; sites?: string[] } = {},
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const email = `${name.toLowerCase()}@example.test`;
+  await db.query('insert into auth.users (id, email) values ($1, $2)', [id, email]);
+  await db.query('insert into profiles (user_id, email, full_name, role) values ($1, $2, $3, $4)', [id, email, name, role]);
+  for (const firmId of assigned.firms ?? []) {
+    await db.query('insert into user_firms (user_id, firm_id) values ($1, $2)', [id, firmId]);
+  }
+  for (const siteId of assigned.sites ?? []) {
+    await db.query('insert into user_sites (user_id, site_id) values ($1, $2)', [id, siteId]);
+  }
+  return id;
+}
+
+/** Runs `fn` the way a Supabase API request from this user runs: role `authenticated`, the user's JWT claims. */
+export async function asUser<T>(
+  db: PGliteInterface,
+  userId: string,
+  fn: (tx: Transaction) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: userId, role: 'authenticated' })]);
+    await tx.exec('set local role authenticated');
+    return fn(tx);
+  });
 }
