@@ -40,7 +40,7 @@ Gaps found: vendor balances aren't linked to sites; there's no bill-level detail
 
 Rules: **nobody verifies their own entry**. **Supervisors enter quantities, never rates.** Rates come from the work order or worker record.
 
-Login: the owner creates every account (no self sign-up). Users log in with mobile number + password. Each user picks English or Hindi.
+Login: the owner creates every account (no self sign-up) and gives staff their login. Users log in with **email + password** (owner decision 2026-10-23; replaces mobile number + password, which needed a paid SMS provider). Each user picks English or Hindi.
 
 ## 5. Building blocks
 
@@ -152,7 +152,7 @@ Every number drills down to the entries behind it.
 | App | **Next.js (App Router) + TypeScript**, Tailwind CSS + shadcn/ui, React Hook Form + Zod |
 | Phone | **Installable PWA** (Android): service worker (Serwist), IndexedDB via Dexie for the offline queue |
 | Language | next-intl, English + Hindi |
-| Database | **PostgreSQL on Supabase** (Mumbai region): Auth (mobile + password), Row Level Security, Storage (reserved for photos) |
+| Database | **PostgreSQL on Supabase** (Mumbai region): Auth (email + password), Row Level Security, Storage (reserved for photos) |
 | Schema | SQL migrations in the repo via Supabase CLI |
 | Posting logic | TypeScript posting module (form → lines; pure, unit-tested) + one database function `post_entry` that atomically checks balance, period lock and permissions, assigns the serial number and inserts |
 | Excel import | One-time Node script for the two outstanding workbooks |

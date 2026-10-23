@@ -21,7 +21,8 @@ GitHub: https://github.com/anshunovelty-creator/construction-management (remote 
 - **What this is:** a construction expense ledger for one owner running two firms (AB Infra, Jayraj Infra) across client sites, so that no rupee goes unaccounted for. Full requirements and every decision made so far are in the approved design spec: `docs/superpowers/specs/2026-10-22-construction-ledger-design.md`.
 - **Stack (approved):** Next.js + TypeScript installable web app (PWA, Android), PostgreSQL on Supabase, Vercel. Bill photos are deferred until the owner raises them again.
 - **Build plan:** Phase 1 is split into 5 plans. **Plan 1 (ledger core) is done** (2026-10-23) on branch `feat/ledger-core`: `docs/superpowers/plans/2026-10-22-phase1-plan1-ledger-core.md`. 61 tests pass on PGlite (Node 22 works; no Docker needed).
-- **Next step:** merge `feat/ledger-core` into `main`, then write Plan 2.
+- **Plan 2 (app shell, users, masters, opening import) is written but not started:** `docs/superpowers/plans/2026-10-23-phase1-plan2-app-shell.md`. Its code was pre-validated (101 tests pass, `next build` passes). Login is email + password (owner decision 2026-10-23).
+- **Next step:** execute Plan 2. Tasks 10–11 need the owner: a Supabase account, and the two Excel files copied into `data/private/` (git-ignored; the repo is public).
 - Source data the owner shared (not in the repo; on the first computer's Desktop): `AB_Infra_Outstanding.xlsx`, `Jayraj_Infra_Outstanding.xlsx`, `SVG SITE WORK REPORT (18-10-2026)1.pdf`. Plan 2's opening-balance import needs the two Excel files, so ask the user to copy them over when that plan starts.
 
 ## Commands
