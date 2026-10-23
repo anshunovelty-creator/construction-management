@@ -23,3 +23,9 @@ GitHub: https://github.com/anshunovelty-creator/construction-management (remote 
 - **Build plan:** Phase 1 is split into 5 plans. **Plan 1 (ledger core) is written but not started:** `docs/superpowers/plans/2026-10-22-phase1-plan1-ledger-core.md`. Its code was pre-validated (61 tests pass on PGlite; no Docker needed).
 - **Next step:** execute Plan 1. Ask the user to choose subagent-driven execution (recommended; superpowers:subagent-driven-development) or inline (superpowers:executing-plans). Then write Plan 2.
 - Source data the owner shared (not in the repo; on the first computer's Desktop): `AB_Infra_Outstanding.xlsx`, `Jayraj_Infra_Outstanding.xlsx`, `SVG SITE WORK REPORT (18-10-2026)1.pdf`. Plan 2's opening-balance import needs the two Excel files, so ask the user to copy them over when that plan starts.
+
+## Commands
+
+- `npm test`: all tests (pure posting rules + database tests on in-process PGlite; no Docker needed)
+- `npm run typecheck`: TypeScript check
+- Database schema: `supabase/migrations/`, applied in file-name order. Ledger tables are append-only by design; never write a migration that updates or deletes ledger rows.
