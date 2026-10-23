@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+@layer base {
+  input:not([type='checkbox']),
+  select {
+    @apply w-full rounded border border-gray-400 bg-white px-3 py-2 text-base;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-700;
+  }
+  button[type='submit'] {
+    @apply rounded bg-blue-700 px-4 py-2 font-medium text-white disabled:opacity-50;
+  }
+  table {
+    @apply w-full border-collapse text-sm;
+  }
+  th,
+  td {
+    @apply border-b border-gray-200 px-2 py-2 text-left align-top;
+  }
+  h1 {
+    @apply mb-4 text-2xl font-semibold;
+  }
+  h2 {
+    @apply mt-8 mb-3 text-lg font-semibold;
+  }
+}
