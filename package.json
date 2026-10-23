@@ -6,12 +6,38 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "openings:dump": "tsx scripts/dump-workbook.ts",
+    "openings:extract": "tsx scripts/openings-extract.ts",
+    "openings:import": "tsx --env-file=.env.local scripts/openings-import.ts",
+    "create-owner": "tsx --env-file=.env.local scripts/create-owner.ts",
+    "db:push": "supabase db push"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "exceljs": "4.4.0",
+    "supabase": "2.121.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.118.0",
+    "next": "16.4.2",
+    "next-intl": "4.14.9",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
   }
 }
