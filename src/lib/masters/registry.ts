@@ -1,3 +1,6 @@
+import type { AppRole } from '@/lib/auth';
+import { COST_HEADS } from '@/lib/ledger/types';
+
 /** Choices for enum fields. Mirrors the Postgres enums in supabase/migrations. Keep both in sync. */
 export const ENUMS = {
   party_kind: ['vendor', 'client', 'worker', 'staff', 'other'],
@@ -5,14 +8,18 @@ export const ENUMS = {
   money_account_kind: ['bank', 'owner_cash', 'supervisor_cash'],
   role: ['owner', 'office', 'supervisor'],
   language: ['en', 'hi'],
+  cost_head: COST_HEADS,
+  /** Not a database enum: whether the owner puts money in or takes it out. */
+  owner_money: ['in', 'out'],
 } as const;
 export type EnumName = keyof typeof ENUMS;
 
 /** Where a reference field's choices come from. */
-export type RefSource = 'firms' | 'sites' | 'clients' | 'supervisors';
+export type RefSource = 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'moneyAccounts' | 'workOrders';
 
 export type Field =
-  | { name: string; kind: 'text' | 'email' | 'password' | 'rupees' | 'percent' | 'date' | 'checkbox'; required?: boolean }
+  | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
+  | { name: string; kind: 'rupees'; required?: boolean; allowZero?: boolean }
   | { name: string; kind: 'enum'; enum: EnumName; required?: boolean }
   | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean };
 
@@ -114,3 +121,97 @@ export const NEW_USER_FIELDS: Field[] = [
 export const EDIT_USER_FIELDS: Field[] = [...userFields, active, { name: 'password', kind: 'password' }];
 
 export const LANGUAGE_FIELDS: Field[] = [{ name: 'language', kind: 'enum', enum: 'language', required: true }];
+
+const amount: Field = { name: 'amount', kind: 'rupees', required: true };
+const date: Field = { name: 'entry_date', kind: 'date', required: true };
+const note: Field = { name: 'narration', kind: 'text' };
+const reference: Field = { name: 'reference', kind: 'text' };
+const from: Field = { name: 'from_account_id', kind: 'ref', ref: 'moneyAccounts', required: true };
+const to: Field = { name: 'to_account_id', kind: 'ref', ref: 'moneyAccounts', required: true };
+const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', required: true };
+const workOrder: Field = { name: 'work_order_id', kind: 'ref', ref: 'workOrders', required: true };
+
+/**
+ * The money forms, keyed by URL slug (/entries/new/<slug>), in the order the "Add an entry" page shows them.
+ * `roles` mirrors what the database lets each role post (app_assert_can_post); the database has the final say.
+ */
+export const ENTRY_FORMS = {
+  'vendor-bill': {
+    icon: '🧾',
+    roles: ['owner', 'office'],
+    fields: [
+      { name: 'firm_id', kind: 'ref', ref: 'firms', required: true },
+      { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
+      { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
+      { name: 'bill_no', kind: 'text', required: true },
+      costHead, amount, date, note,
+    ],
+  },
+  'pay-vendor': {
+    icon: '💸',
+    roles: ['owner', 'office'],
+    fields: [
+      { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
+      { name: 'firm_id', kind: 'ref', ref: 'firms', required: true },
+      from, amount, date, reference, note,
+    ],
+  },
+  'client-bill': {
+    icon: '📄',
+    roles: ['owner', 'office'],
+    fields: [
+      workOrder,
+      { name: 'bill_no', kind: 'text', required: true },
+      { name: 'gross', kind: 'rupees', required: true },
+      { name: 'tds', kind: 'rupees', allowZero: true },
+      { name: 'retention', kind: 'rupees', allowZero: true },
+      { name: 'security_deposit', kind: 'rupees', allowZero: true },
+      date, note,
+    ],
+  },
+  'client-receipt': {
+    icon: '💰',
+    roles: ['owner', 'office'],
+    fields: [workOrder, to, amount, date, reference, note],
+  },
+  'move-money': {
+    icon: '🔁',
+    roles: ['owner', 'office'],
+    fields: [from, to, amount, date, reference, note],
+  },
+  'site-spend': {
+    icon: '🛠️',
+    roles: ['owner', 'supervisor'],
+    fields: [
+      from,
+      { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
+      costHead, amount,
+      { name: 'narration', kind: 'text', required: true },
+      { name: 'paid_to_id', kind: 'ref', ref: 'parties' },
+      date,
+    ],
+  },
+  'day-close': {
+    icon: '🧮',
+    roles: ['owner', 'supervisor'],
+    fields: [
+      { name: 'account_id', kind: 'ref', ref: 'moneyAccounts', required: true },
+      { name: 'counted', kind: 'rupees', required: true, allowZero: true },
+      date,
+    ],
+  },
+  'owner-money': {
+    icon: '🏦',
+    roles: ['owner'],
+    fields: [
+      { name: 'direction', kind: 'enum', enum: 'owner_money', required: true },
+      { name: 'account_id', kind: 'ref', ref: 'moneyAccounts', required: true },
+      amount, date, note,
+    ],
+  },
+} satisfies Record<string, { icon: string; roles: AppRole[]; fields: Field[] }>;
+export type EntryFormSlug = keyof typeof ENTRY_FORMS;
+
+export function getEntryForm(slug: string) {
+  return Object.hasOwn(ENTRY_FORMS, slug) ? ENTRY_FORMS[slug as EntryFormSlug] : undefined;
+}

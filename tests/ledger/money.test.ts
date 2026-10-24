@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPaise, percentOf, rupeesToPaise } from '@/lib/money';
+import { formatPaise, percentOf, rupeesToPaise, showPaise } from '@/lib/money';
 
 describe('rupeesToPaise', () => {
   it('parses plain, grouped and symbol-prefixed amounts', () => {
@@ -27,6 +27,12 @@ describe('formatPaise', () => {
 
   it('refuses fractional paise', () => {
     expect(() => formatPaise(10.5)).toThrow('whole number of paise');
+  });
+
+  it('shows paise on screens only when there are some', () => {
+    expect(showPaise(619_957_800)).toBe('₹61,99,578');
+    expect(showPaise(5_311_872)).toBe('₹53,118.72');
+    expect(showPaise(-20_000_00)).toBe('-₹20,000');
   });
 });
 

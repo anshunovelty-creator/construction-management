@@ -9,10 +9,16 @@ export default async function LoginPage() {
   if (await getProfile()) redirect('/');
   const t = await getTranslations();
   return (
-    <main className="mx-auto max-w-sm p-6">
-      <p className="mb-2 text-gray-600">{t('app.name')}</p>
-      <h1>{t('login.title')}</h1>
-      <Form fields={LOGIN_FIELDS} action={signIn} submitLabel={t('login.submit')} passwordAutoComplete="current-password" />
+    <main className="login">
+      <div className="card login-card">
+        <p className="brand">
+          <span className="brand-mark" aria-hidden="true">₹</span>
+          {t('app.name')}
+        </p>
+        <h1>{t('login.title')}</h1>
+        <p className="lede">{t('login.lede')}</p>
+        <Form fields={LOGIN_FIELDS} action={signIn} submitLabel={t('login.submit')} passwordAutoComplete="current-password" />
+      </div>
     </main>
   );
 }

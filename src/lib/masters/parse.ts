@@ -78,7 +78,7 @@ export function parseFields(fields: Field[], data: FormData): ParseResult {
       case 'rupees':
         try {
           const paise = rupeesToPaise(text);
-          if (paise <= 0) throw new Error('not positive');
+          if (paise < 0 || (paise === 0 && !field.allowZero)) throw new Error('not positive');
           values[field.name] = paise;
         } catch {
           errors[field.name] = 'invalid_amount';

@@ -26,6 +26,7 @@ export function Form({
   action,
   submitLabel,
   passwordAutoComplete = 'new-password',
+  hintPrefix,
 }: {
   fields: Field[];
   defaults?: Record<string, string | boolean | string[]>;
@@ -33,17 +34,23 @@ export function Form({
   action: FormAction;
   submitLabel: string;
   passwordAutoComplete?: 'current-password' | 'new-password';
+  /** Message prefix for optional plain-language hints under fields: `<prefix>.<field name>`. */
+  hintPrefix?: string;
 }) {
   const t = useTranslations();
   const [state, formAction, pending] = useActionState(action, {});
   const valueOf = (name: string) => state.values?.[name] ?? defaults[name];
 
   return (
-    <form action={formAction} className="grid max-w-lg gap-4">
+    // React resets a form after its action runs, and a <select> only reads defaultValue when it first
+    // appears. A new key per returned state rebuilds the fields so every choice the user made comes back.
+    <form key={JSON.stringify(state.values ?? null)} action={formAction} className="form">
       {fields.map((field) => {
         const id = `field-${field.name}`;
         const error = state.errors?.[field.name];
-        const errorId = error ? `${id}-error` : undefined;
+        const hintKey = hintPrefix ? `${hintPrefix}.${field.name}` : undefined;
+        const hint = hintKey && t.has(hintKey) ? t(hintKey) : undefined;
+        const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
         const value = valueOf(field.name);
         const label = t(`fields.${field.name}`);
         let control: React.ReactNode;
@@ -58,7 +65,7 @@ export function Form({
         } else if (field.kind === 'multi') {
           const chosen = Array.isArray(value) ? value : typeof value === 'string' && value ? [value] : [];
           control = (
-            <fieldset aria-describedby={errorId}>
+            <fieldset aria-describedby={describedBy}>
               <legend className="font-medium">{label}</legend>
               {(choices[field.ref] ?? []).map((choice) => (
                 <label key={choice.value} className="flex items-center gap-2">
@@ -75,16 +82,22 @@ export function Form({
             defaultValue: typeof value === 'string' ? value : '',
             required: field.required,
             'aria-invalid': error ? true : undefined,
-            'aria-describedby': errorId,
+            'aria-describedby': describedBy,
           };
           control = (
             <>
               <label htmlFor={id} className="font-medium">
                 {label}
+                {!field.required && <span className="optional"> {t('common.optional')}</span>}
               </label>
+              {hint && (
+                <p id={`${id}-hint`} className="hint">
+                  {hint}
+                </p>
+              )}
               {field.kind === 'enum' || field.kind === 'ref' ? (
                 <select {...shared}>
-                  <option value="">{t('common.none')}</option>
+                  <option value="">{t(field.required ? 'common.choose' : 'common.none')}</option>
                   {field.kind === 'enum'
                     ? ENUMS[field.enum].map((option) => (
                         <option key={option} value={option}>
@@ -110,10 +123,10 @@ export function Form({
         }
 
         return (
-          <div key={field.name} className="grid gap-1">
+          <div key={field.name} className="field">
             {control}
             {error && (
-              <p id={errorId} className="text-sm text-red-700">
+              <p id={`${id}-error`} className="error">
                 {t(`errors.${error}`)}
               </p>
             )}
@@ -121,13 +134,13 @@ export function Form({
         );
       })}
       {state.errors?._form && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="error form-error">
           {t(`errors.${state.errors._form}`)}
           {state.detail ? ` (${state.detail})` : ''}
         </p>
       )}
-      <button type="submit" disabled={pending}>
-        {submitLabel}
+      <button type="submit" className="btn" disabled={pending}>
+        {pending ? '…' : submitLabel}
       </button>
     </form>
   );

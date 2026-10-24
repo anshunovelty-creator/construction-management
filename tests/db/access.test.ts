@@ -132,6 +132,15 @@ describe('supervisor', () => {
       expect(await ids(tx, 'select id from entries')).toEqual([given.id, spent.id].sort());
       expect(await ids(tx, `select entry_id as id from entry_lines where account = 'contract_income'`)).toEqual([]);
       expect(await ids(tx, 'select entry_id as id from entry_status')).toEqual([given.id, spent.id].sort());
+      // Balances add up only what the supervisor can see: owner cash out, their cash in, their own spend.
+      const { rows } = await tx.query<{ account: string; amount_paise: number }>(
+        'select account, amount_paise from balances order by account, amount_paise',
+      );
+      expect(rows).toEqual([
+        { account: 'money', amount_paise: -2_000_000 },
+        { account: 'money', amount_paise: 1_950_000 },
+        { account: 'site_cost', amount_paise: 50_000 },
+      ]);
     });
   });
 });

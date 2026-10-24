@@ -30,6 +30,14 @@ export function formatPaise(paise: Paise): string {
   return INR.format(paise / 100);
 }
 
+const INR_WHOLE = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+
+/** For screens: 619957800 -> "₹61,99,578", and paise only when there are some: 5311872 -> "₹53,118.72". */
+export function showPaise(paise: Paise): string {
+  assertPaise(paise);
+  return paise % 100 === 0 ? INR_WHOLE.format(paise / 100) : INR.format(paise / 100);
+}
+
 /** Percentage given in basis points (1% = 100 bp), rounded half-up to the nearest paisa. */
 export function percentOf(amount: Paise, basisPoints: number): Paise {
   assertPaise(amount);

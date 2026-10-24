@@ -1,6 +1,6 @@
 import type { Choices } from '@/components/form';
 import type { Field, RefSource } from '@/lib/masters/registry';
-import { formatPaise } from '@/lib/money';
+import { showPaise } from '@/lib/money';
 import type { createClient } from '@/lib/supabase/server';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
@@ -24,6 +24,26 @@ async function load(db: Db, source: RefSource): Promise<Choice[]> {
       const { data } = await db.from('profiles').select('user_id, full_name').eq('role', 'supervisor').order('full_name');
       return (data ?? []).map((r) => ({ value: r.user_id, label: r.full_name }));
     }
+    case 'vendors':
+    case 'parties': {
+      let query = db.from('parties').select('id, name').eq('is_active', true);
+      if (source === 'vendors') query = query.eq('kind', 'vendor');
+      const { data } = await query.order('name');
+      return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
+    }
+    case 'moneyAccounts': {
+      const { data } = await db.from('money_accounts').select('id, name').eq('is_active', true).order('name');
+      return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
+    }
+    case 'workOrders': {
+      const { data } = await db
+        .from('work_orders')
+        .select('id, ref, client:parties!client_id(name), site:sites(name)')
+        .eq('is_active', true)
+        .order('ref')
+        .returns<{ id: string; ref: string; client: { name: string } | null; site: { name: string } | null }[]>();
+      return (data ?? []).map((r) => ({ value: r.id, label: `${r.ref} · ${r.client?.name} · ${r.site?.name}` }));
+    }
   }
 }
 
@@ -44,7 +64,7 @@ export function displayValue(field: Field, value: unknown, choices: Choices, t: 
     case 'ref':
       return choices[field.ref]?.find((c) => c.value === value)?.label ?? t('common.none');
     case 'rupees':
-      return formatPaise(Number(value));
+      return showPaise(Number(value));
     case 'percent':
       return `${Number(value) / 100}%`;
     default:

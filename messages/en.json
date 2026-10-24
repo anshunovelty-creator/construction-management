@@ -4,20 +4,31 @@
   },
   "nav": {
     "home": "Home",
-    "masters": "Masters",
-    "users": "Users",
-    "history": "Change history",
+    "masters": "Setup",
+    "users": "People",
+    "history": "Change log",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "label": "Main",
+    "add": "Add an entry",
+    "daybook": "Day book"
   },
   "login": {
     "title": "Sign in",
-    "submit": "Sign in"
+    "submit": "Sign in",
+    "lede": "Sign in with the email and password the owner gave you."
   },
   "home": {
-    "welcome": "Welcome, {name}",
-    "signedInAs": "Signed in as {role}",
-    "comingNext": "Money entry forms arrive in the next update. For now, set up the masters below."
+    "welcome": "Namaste, {name}",
+    "greeting": "Overview",
+    "lede": "This is where every rupee sits right now. Add an entry whenever money moves.",
+    "ledeSupervisor": "Record what you spend at the site, and count your cash at the end of the day.",
+    "addEntry": "Add an entry",
+    "waitingTitle": "entries waiting to be checked",
+    "waitingHint": "Someone other than the person who typed an entry should check it.",
+    "emptyTitle": "No entries yet",
+    "emptyHint": "Start in Setup: add your firms, sites, vendors, clients and bank accounts. Then add your first entry.",
+    "emptySupervisor": "Nothing here yet. When the office gives you cash, it shows up here."
   },
   "masters": {
     "firms": "Firms",
@@ -29,7 +40,8 @@
     "edit": "Edit",
     "save": "Save",
     "empty": "Nothing here yet.",
-    "readOnly": "Only the owner can change these."
+    "readOnly": "Only the owner can change these.",
+    "lede": "The lists the forms pick from: firms, sites, vendors and clients, contracts, and bank or cash accounts."
   },
   "fields": {
     "code": "Short code (2–4 capital letters)",
@@ -55,7 +67,25 @@
     "role": "Role",
     "language": "Language",
     "firms": "Firms (office staff)",
-    "sites": "Sites (supervisors)"
+    "sites": "Sites (supervisors)",
+    "vendor_id": "Vendor",
+    "bill_no": "Bill number",
+    "cost_head": "What for",
+    "amount": "Amount (₹)",
+    "entry_date": "Date",
+    "narration": "Note",
+    "reference": "UTR / cheque number",
+    "from_account_id": "Money came out of",
+    "to_account_id": "Money went into",
+    "work_order_id": "Work order (contract)",
+    "gross": "Value of work (₹)",
+    "tds": "TDS (₹)",
+    "retention": "Retention (₹)",
+    "security_deposit": "Security deposit (₹)",
+    "paid_to_id": "Paid to",
+    "counted": "Cash counted (₹)",
+    "account_id": "Bank or cash",
+    "direction": "In or out"
   },
   "options": {
     "party_kind": {
@@ -82,6 +112,20 @@
     "language": {
       "en": "English",
       "hi": "हिन्दी"
+    },
+    "cost_head": {
+      "material": "Material",
+      "labour": "Labour",
+      "staff": "Staff",
+      "machine_hire": "Machine hire",
+      "subcontract": "Subcontract",
+      "site_overhead": "Site running costs",
+      "transport": "Transport",
+      "other": "Other"
+    },
+    "owner_money": {
+      "in": "Owner puts money in",
+      "out": "Owner takes money out"
     }
   },
   "users": {
@@ -118,11 +162,257 @@
     "not_allowed": "You are not allowed to do this.",
     "save_failed": "Could not save.",
     "invalid_login": "Wrong email or password.",
-    "inactive": "This account is switched off. Ask the owner."
+    "inactive": "This account is switched off. Ask the owner.",
+    "cash_matches": "The cash matches the books exactly. Nothing to record — well done!",
+    "reason_required": "Write what is wrong first."
   },
   "common": {
     "yes": "Yes",
     "no": "No",
-    "none": "—"
+    "none": "—",
+    "choose": "Choose…",
+    "optional": "(optional)"
+  },
+  "plain": {
+    "vendorPayable": "{firm} owes {vendor}",
+    "clientReceivable": "{client} owes {firm}",
+    "tds": "TDS kept by {client}",
+    "retention": "Retention held by {client}",
+    "securityDeposit": "Security deposit held by {client}",
+    "interFirm": "{debtor} owes {creditor}",
+    "siteCost": "{site} · {head}",
+    "billed": "{site} · billed to client",
+    "capital": "Owner’s money in the business",
+    "opening": "Starting balances (old records)",
+    "short": "Cash short at day close",
+    "interFirmReceive": "{firm}’s books: to get from {other}",
+    "interFirmPay": "{firm}’s books: to pay {other}",
+    "vendorAdvance": "Advance with {vendor} · paid by {firm}",
+    "clientAdvance": "Advance from {client} to {firm} · work still owed",
+    "excess": "Extra cash found at day close"
+  },
+  "board": {
+    "title": "Where the money is now",
+    "balanced": "Every entry adds up to ₹0 ✓",
+    "unbalanced": "Out of balance by {amount}",
+    "showMore": "Show {count} more",
+    "yourCash": "Cash with you",
+    "money": {
+      "title": "Money we hold",
+      "hint": "Bank accounts and cash in hand."
+    },
+    "weOwe": {
+      "title": "We owe",
+      "hint": "Vendor bills not yet paid."
+    },
+    "owedToUs": {
+      "title": "Owed to us",
+      "hint": "Client bills not yet paid."
+    },
+    "betweenFirms": {
+      "title": "Between our firms",
+      "hint": "When one firm’s money paid for another firm."
+    },
+    "heldByClients": {
+      "title": "Held by clients",
+      "hint": "Still our money. It comes back later."
+    },
+    "owner": {
+      "title": "Owner",
+      "hint": "The owner’s own money, old balances and cash differences."
+    },
+    "sites": {
+      "title": "Sites",
+      "hint": "Profit = billed to the client − all costs, from every firm.",
+      "site": "Site",
+      "billed": "Billed",
+      "cost": "Costs",
+      "profit": "Profit"
+    }
+  },
+  "entries": {
+    "new": {
+      "eyebrow": "Add an entry",
+      "title": "What happened?",
+      "lede": "Pick what happened. You fill in a short form; the app does the accounting."
+    },
+    "save": "Save entry",
+    "whatHappens": "What happens when you save",
+    "saved": "Saved. Serial number {serial}.",
+    "serial": "Serial",
+    "typedBy": "Typed in by",
+    "ref": "Ref: {ref}",
+    "whatChanges": "What changes",
+    "up": "up {amount}",
+    "down": "down {amount}",
+    "linesCaption": "The entry as the app stores it. Every rupee is written twice: once as a plus, once as a minus.",
+    "line": "Line",
+    "together": "Plus and minus together",
+    "balanced": "= ₹0, balanced ✓",
+    "cancelledBy": "Cancelled by entry",
+    "seeOriginal": "See the entry this cancels",
+    "check": "Mark as checked",
+    "somethingWrong": "Something wrong?",
+    "cancelTitle": "Cancel this entry",
+    "reason": "What is wrong?",
+    "reject": "Reject",
+    "cancel": "Cancel entry",
+    "cancelHint": "Nothing is deleted. The app adds an exact opposite entry, so the history stays.",
+    "status": {
+      "unverified": "Waiting to be checked",
+      "verified": "Checked ✓",
+      "cancelled": "Cancelled",
+      "reversal": "Cancels another entry"
+    },
+    "event": {
+      "verified": "Checked by {who}",
+      "rejected": "Rejected by {who}",
+      "reversed": "Cancelled by {who}",
+      "replaced": "Replaced by {who}",
+      "lock_override": "Saved in locked books by {who}"
+    }
+  },
+  "daybook": {
+    "eyebrow": "Every entry",
+    "lede": "Everything typed into the app, newest first. Tap a serial number to see what it changed.",
+    "all": "All",
+    "waiting": "Waiting to be checked",
+    "onDate": "On date",
+    "show": "Show",
+    "serial": "Serial",
+    "date": "Date",
+    "what": "What",
+    "amount": "Amount",
+    "status": "Status",
+    "empty": "No entries here yet."
+  },
+  "entryForms": {
+    "vendor-bill": {
+      "title": "Bill from a vendor",
+      "when": "A vendor sent a bill for material, machines or work.",
+      "what": "The site’s cost goes up by the bill amount, and the firm now owes the vendor that much, even before anyone pays. Paying it later is a separate entry: “Pay a vendor”.",
+      "hints": {
+        "firm_id": "The firm named on the bill.",
+        "vendor_id": "Not in the list? Add them in Setup → Parties.",
+        "site_id": "Where the material or work was used.",
+        "bill_no": "The number printed on the vendor’s bill.",
+        "amount": "The bill total, for example 25000 or 25,000.50",
+        "narration": "Anything worth remembering, e.g. “40 bags cement”."
+      }
+    },
+    "pay-vendor": {
+      "title": "Pay a vendor",
+      "when": "Money went to a vendor by bank, UPI or cash.",
+      "what": "What the firm owes the vendor goes down, and the bank or cash goes down by the same amount. The site’s cost does not change: it was counted when the bill came. If one firm’s bank pays another firm’s bill, the app notes that the second firm now owes the first.",
+      "hints": {
+        "firm_id": "The firm whose bill this pays.",
+        "from_account_id": "The bank or cash the money left from.",
+        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash."
+      }
+    },
+    "client-bill": {
+      "title": "Bill to a client",
+      "when": "We sent a client a bill for work done.",
+      "what": "The full value of the work counts as the site’s income. The client owes us the rest after TDS, retention and security deposit. Those are still our money, just held for now.",
+      "hints": {
+        "work_order_id": "The contract this bill is for.",
+        "bill_no": "Your bill number, e.g. RA-3.",
+        "gross": "Value of the work in this bill, before any cuts.",
+        "tds": "Leave empty to use the work order’s TDS %.",
+        "retention": "Leave empty to use the work order’s retention %.",
+        "security_deposit": "Leave empty to use the work order’s security deposit %."
+      }
+    },
+    "client-receipt": {
+      "title": "Money from a client",
+      "when": "A client paid us.",
+      "what": "Money in the bank goes up, and what the client owes us goes down. Profit does not change: it was earned when the work was billed.",
+      "hints": {
+        "to_account_id": "Where the money arrived.",
+        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash."
+      }
+    },
+    "move-money": {
+      "title": "Move money",
+      "when": "Money moved between our own accounts: bank to cash, cash to a supervisor, one firm to another.",
+      "what": "This is not spending. The total stays the same; the money just sits somewhere else now. If it crosses from one firm to another, the app notes the due between the firms.",
+      "hints": {
+        "from_account_id": "Where the money came from.",
+        "to_account_id": "Where the money went."
+      }
+    },
+    "site-spend": {
+      "title": "Spent at a site",
+      "when": "Cash was spent at a site: labour, small material, diesel, tea…",
+      "what": "The site’s cost goes up and the cash in hand goes down by the same amount.",
+      "hints": {
+        "from_account_id": "Whose cash paid.",
+        "narration": "What was bought or paid for, e.g. “12 helpers, 1 day”.",
+        "paid_to_id": "Pick the person or shop if they are in the list."
+      }
+    },
+    "day-close": {
+      "title": "Count the cash",
+      "when": "At the end of the day, count the cash in hand.",
+      "what": "The app knows how much cash there should be. If what you count is different, the difference is recorded as cash short (or extra) and shows on the owner’s screen. It is never hidden inside another cost.",
+      "hints": {
+        "account_id": "Whose cash you are counting.",
+        "counted": "Exactly what is in hand now. Can be 0."
+      }
+    },
+    "owner-money": {
+      "title": "Owner’s money",
+      "when": "The owner put personal money into the business, or took some out.",
+      "what": "Money the owner puts in is not income, and money taken out is not a site cost. Both are recorded as the owner’s own money, so site profits stay true.",
+      "hints": {
+        "account_id": "Which bank or cash."
+      }
+    }
+  },
+  "entryTypes": {
+    "opening": {
+      "title": "Starting balance",
+      "why": "A balance carried over from the old Excel records, so the app starts where the books left off."
+    },
+    "vendor_bill": {
+      "title": "Bill from a vendor",
+      "why": "The firm owes the money from the moment the bill arrives, even before paying. The cost belongs to the site where it was used."
+    },
+    "vendor_payment": {
+      "title": "Paid a vendor",
+      "why": "Paying a bill does not change the site’s cost; it was counted when the bill came. Money just moves from our bank or cash to the vendor."
+    },
+    "site_cash_expense": {
+      "title": "Spent at a site",
+      "why": "This is real spending, so it goes onto the site’s cost. The cash in hand goes down by the same amount."
+    },
+    "client_bill": {
+      "title": "Bill to a client",
+      "why": "The full value is income. TDS, retention and security deposit are still our money, just held by others: TDS is claimed back in the tax return, retention comes back after the defect period."
+    },
+    "client_receipt": {
+      "title": "Money from a client",
+      "why": "Being paid does not change profit. It turns “the client owes us” into money in the bank."
+    },
+    "cash_transfer": {
+      "title": "Money moved",
+      "why": "Moving money between our own pockets is not spending. The total stays the same."
+    },
+    "cash_close_difference": {
+      "title": "Cash short or extra",
+      "why": "The counted cash did not match the books. The difference is recorded on its own, never slipped into another cost."
+    },
+    "owner_capital": {
+      "title": "Owner put money in",
+      "why": "Every rupee has to come from somewhere. Here it comes from the owner, so it is recorded as the owner’s money in the business."
+    },
+    "owner_drawing": {
+      "title": "Owner took money out",
+      "why": "Recorded as the owner’s own money going out, so it never looks like a site cost."
+    },
+    "reversal": {
+      "title": "Cancelling entry",
+      "why": "The exact opposite of an earlier entry, so the two add up to nothing. Nothing is ever deleted: the history stays."
+    }
   }
 }
