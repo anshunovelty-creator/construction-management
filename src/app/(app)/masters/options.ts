@@ -2,6 +2,7 @@ import type { Choices } from '@/components/form';
 import type { Field, RefSource } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 import type { createClient } from '@/lib/supabase/server';
+import { showDate } from '../entries/data';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 type Choice = { value: string; label: string };
@@ -67,6 +68,8 @@ export function displayValue(field: Field, value: unknown, choices: Choices, t: 
       return showPaise(Number(value));
     case 'percent':
       return `${Number(value) / 100}%`;
+    case 'date':
+      return showDate(String(value));
     default:
       return String(value);
   }

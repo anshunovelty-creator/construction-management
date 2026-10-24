@@ -20,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <nav aria-label={t('nav.label')} className="nav">
             <NavLink href="/" exact>{t('nav.home')}</NavLink>
             <NavLink href="/entries/new">{t('nav.add')}</NavLink>
+            {office && <NavLink href="/entries/sheet">{t('nav.sheet')}</NavLink>}
             <NavLink href="/entries" exact>{t('nav.daybook')}</NavLink>
             {office && <NavLink href="/masters/firms" section="/masters">{t('nav.masters')}</NavLink>}
             {owner && <NavLink href="/users">{t('nav.users')}</NavLink>}

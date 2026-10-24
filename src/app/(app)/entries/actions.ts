@@ -97,8 +97,14 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db)
   }
 }
 
-/** Saves one money form as the signed-in user. The database checks permissions, balance and locks again. */
-export async function postEntryForm(slug: string, _state: FormState, data: FormData): Promise<FormState> {
+export type Saved = { id: string; serial: string };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Saves one entry as the signed-in user. The database checks permissions, balance and locks again.
+ * `entryId` makes a retry safe: saving the same id twice returns the first entry instead of a copy.
+ */
+async function saveEntry(slug: string, data: FormData, db: Db, entryId?: string): Promise<Saved | FormState> {
   const form = getEntryForm(slug);
   const profile = await requireProfile();
   if (!form || !(form.roles as string[]).includes(profile.role)) return { errors: { _form: 'not_allowed' } };
@@ -107,7 +113,6 @@ export async function postEntryForm(slug: string, _state: FormState, data: FormD
   const parsed = parseFields(form.fields, data);
   if (!parsed.ok) return { errors: parsed.errors, values };
 
-  const db = await createClient();
   if (slug === 'day-close') {
     // ponytail: compares with today's balance, not the balance on the chosen date.
     const expected = await moneyBalance(db, parsed.values.account_id as string);
@@ -119,10 +124,34 @@ export async function postEntryForm(slug: string, _state: FormState, data: FormD
   } catch (error) {
     return { errors: { _form: 'save_failed' }, detail: (error as Error).message, values };
   }
+  if (entryId && UUID.test(entryId)) draft.id = entryId;
   const { data: result, error } = await db.rpc('app_post_entry', { p_entry: draft });
   if (error) return { errors: { _form: 'save_failed' }, detail: error.message, values };
+  return result as Saved;
+}
+
+/** Saves one money form, then opens the new entry. */
+export async function postEntryForm(slug: string, _state: FormState, data: FormData): Promise<FormState> {
+  const saved = await saveEntry(slug, data, await createClient());
+  if (!('id' in saved)) return saved;
   revalidatePath('/', 'layout');
-  redirect(`/entries/${(result as { id: string }).id}?saved=1`);
+  redirect(`/entries/${saved.id}?saved=1`);
+}
+
+/** Saves sheet rows one by one, each through the same checks as the form. Result per row id. */
+export async function postEntryRows(
+  slug: string,
+  rows: { id: string; cells: Record<string, string> }[],
+): Promise<Record<string, Saved | FormState>> {
+  const db = await createClient();
+  const results: Record<string, Saved | FormState> = {};
+  for (const row of rows) {
+    const data = new FormData();
+    for (const [name, value] of Object.entries(row.cells)) data.set(name, value);
+    results[row.id] = await saveEntry(slug, data, db, row.id);
+  }
+  revalidatePath('/', 'layout');
+  return results;
 }
 
 const backTo = (id: string, error?: { message: string } | null) =>

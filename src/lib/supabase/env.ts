@@ -1,3 +1,9 @@
+/**
+ * Testing only: lets the owner delete Setup records (firms, sites, ...) while the app is being built.
+ * Off unless ALLOW_DELETE=true. Leave it unset on the live app.
+ */
+export const allowDelete = () => process.env.ALLOW_DELETE === 'true';
+
 /** Reads a required setting from .env.local (or the hosting environment) and fails loudly if it is missing. */
 export function env(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY' | 'SUPABASE_SECRET_KEY'): string {
   // Written out in full so Next.js can inline the public values into browser code.

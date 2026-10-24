@@ -201,3 +201,37 @@ tfoot td { border-top: 1px solid var(--rule-strong); border-bottom: 0; font-weig
 .login-card .brand { margin-bottom: 20px; }
 
 @media (prefers-reduced-motion: reduce) { .tile, .btn, input, select { transition: none; } }
+
+/* ---------- Sheet (many entries at once) ---------- */
+.sheet-wrap { display: grid; gap: 14px; }
+.sheet-wrap .table-wrap { background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 10px; }
+table.sheet { border-collapse: collapse; width: max-content; min-width: 100%; }
+.sheet th, .sheet td { border: 1px solid var(--rule); padding: 0; }
+.sheet thead th { background: var(--paper); padding: 8px 10px; font-size: 12.5px; text-align: left; white-space: nowrap; position: sticky; top: 0; }
+.sheet .req { color: var(--minus); }
+.sheet .rownum { width: 2.5em; text-align: center; color: var(--muted); font-size: 12px; background: var(--paper); }
+.sheet input, .sheet select { width: 100%; min-width: 9rem; min-height: 36px; box-sizing: border-box; border: 0; border-radius: 0; background: transparent; padding: 6px 8px; font-size: 14px; }
+.sheet td.num input { text-align: right; font-family: var(--font-num); min-width: 7rem; }
+.sheet input:focus, .sheet select:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--sheet); }
+.sheet [aria-invalid='true'] { background: color-mix(in srgb, var(--minus) 10%, var(--sheet)); }
+.sheet tr.saved td { background: var(--accent-soft); }
+.sheet tr.saved input, .sheet tr.saved select { color: var(--muted); }
+.sheet td.status { padding: 6px 10px; font-size: 13px; min-width: 12rem; max-width: 22rem; }
+.sheet td.status .error { font-size: 13px; }
+.sheet-notice { margin: 0; align-self: center; color: var(--muted); }
+/* A sheet needs room: use the full screen width on that page. */
+.wrap:has(.sheet-wrap), body:has(.sheet-wrap) .topbar-inner { max-width: 1600px; }
+.sheet input, .sheet select { min-width: 8rem; }
+.sheet td.status { position: sticky; right: 0; background: var(--sheet); box-shadow: -1px 0 0 var(--rule); }
+.sheet tr.saved td.status { background: var(--accent-soft); }
+
+/* ---------- Day book by firm / site ---------- */
+.book-filter select { width: auto; min-height: 36px; padding: 5px 10px; }
+.book-filter input { width: auto; min-height: 36px; padding: 5px 10px; }
+.book-filter .btn { min-height: 36px; padding: 5px 14px; }
+.book-summary { display: grid; gap: 16px; margin-bottom: 20px; }
+.book-summary .row, .card > .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--rule); }
+.book-summary .row .val { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.firm-links { margin-top: 16px; }
+.delete-box { margin-top: 28px; display: grid; gap: 10px; }
+.delete-box[open] { border-color: color-mix(in srgb, var(--minus) 35%, var(--rule)); }

@@ -11,7 +11,8 @@
     "signOut": "Sign out",
     "label": "Main",
     "add": "Add an entry",
-    "daybook": "Day book"
+    "daybook": "Day book",
+    "sheet": "Sheet"
   },
   "login": {
     "title": "Sign in",
@@ -41,7 +42,22 @@
     "save": "Save",
     "empty": "Nothing here yet.",
     "readOnly": "Only the owner can change these.",
-    "lede": "The lists the forms pick from: firms, sites, vendors and clients, contracts, and bank or cash accounts."
+    "lede": "The lists the forms pick from: firms, sites, vendors and clients, contracts, and bank or cash accounts.",
+    "delete": {
+      "title": "Delete (testing only)",
+      "warning": "Only while the app is being built. Deleting is permanent. Anything that entries, work orders, bank accounts or staff logins still use cannot be deleted — switch it off instead.",
+      "confirm": "Yes, delete for good",
+      "inUse": "Can’t delete: it is still used by {what}. Switch it off instead.",
+      "usedBy": {
+        "entry_lines": "entries",
+        "entries": "entries",
+        "work_orders": "work orders",
+        "money_accounts": "bank or cash accounts",
+        "user_firms": "staff logins (remove it from the person in People first)",
+        "user_sites": "staff logins (remove it from the person in People first)",
+        "other": "other records"
+      }
+    }
   },
   "fields": {
     "code": "Short code (2–4 capital letters)",
@@ -134,16 +150,40 @@
     "keepPassword": "Leave the password empty to keep it."
   },
   "history": {
-    "title": "Change history",
+    "title": "Change log",
     "when": "When",
     "who": "Who",
     "what": "What",
     "changes": "Changes",
     "system": "System (import)",
     "action": {
-      "insert": "added",
-      "update": "changed",
-      "delete": "removed"
+      "insert": "Added",
+      "update": "Changed",
+      "delete": "Removed"
+    },
+    "lede": "Every change to Setup and People: who made it, when, and what it was before.",
+    "sentence": "{action} {thing} {name}",
+    "thing": {
+      "firms": "firm",
+      "sites": "site",
+      "work_orders": "work order",
+      "money_accounts": "bank or cash account",
+      "profiles": "login for",
+      "vendor": "vendor",
+      "client": "client",
+      "worker": "worker",
+      "staff": "staff member",
+      "other": "party"
+    },
+    "access": {
+      "user_firms": {
+        "insert": "Gave {person} access to {firm}",
+        "delete": "Took away {person}’s access to {firm}"
+      },
+      "user_sites": {
+        "insert": "Put {person} on site {site}",
+        "delete": "Took {person} off site {site}"
+      }
     }
   },
   "settings": {
@@ -228,7 +268,8 @@
       "billed": "Billed",
       "cost": "Costs",
       "profit": "Profit"
-    }
+    },
+    "firms": "See one firm’s books:"
   },
   "entries": {
     "new": {
@@ -278,13 +319,24 @@
     "all": "All",
     "waiting": "Waiting to be checked",
     "onDate": "On date",
-    "show": "Show",
     "serial": "Serial",
     "date": "Date",
     "what": "What",
     "amount": "Amount",
     "status": "Status",
-    "empty": "No entries here yet."
+    "empty": "No entries here yet.",
+    "firm": "Firm",
+    "site": "Site",
+    "allFirms": "All firms",
+    "allSites": "All sites",
+    "clear": "Clear",
+    "at": "{firm} at {site}",
+    "firmLede": "What this firm’s books show right now, and every entry in them.",
+    "siteLede": "What this site has billed and spent, and every entry for it.",
+    "sitesHintFirm": "Only this firm’s share. Profit = billed − costs.",
+    "costs": "Where the money went",
+    "costsHint": "Costs at this site, by kind of work.",
+    "count": "{count, plural, one {# entry} other {# entries}}"
   },
   "entryForms": {
     "vendor-bill": {
@@ -414,5 +466,18 @@
       "title": "Cancelling entry",
       "why": "The exact opposite of an earlier entry, so the two add up to nothing. Nothing is ever deleted: the history stays."
     }
+  },
+  "sheet": {
+    "eyebrow": "Type in a sheet",
+    "title": "Many entries at once",
+    "lede": "One row is one entry. Tab moves to the next box, Enter to the row below. You can paste rows copied from Excel. Nothing is saved until you press Save, and every row gets the same checks as the form.",
+    "status": "Saved?",
+    "save": "Save all rows",
+    "saving": "Saving…",
+    "addRows": "Add 5 more rows",
+    "clearSaved": "Remove saved rows",
+    "summary": "{saved} saved · {failed} need fixing",
+    "empty": "Fill in at least one row first.",
+    "fromNew": "Many entries at once? Type them in a sheet"
   }
 }

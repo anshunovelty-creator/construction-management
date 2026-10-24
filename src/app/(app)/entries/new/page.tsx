@@ -24,6 +24,9 @@ export default async function NewEntryPage() {
           </li>
         ))}
       </ul>
+      <p className="mt-6">
+        <Link href="/entries/sheet" className="btn ghost">▦ {t('sheet.fromNew')}</Link>
+      </p>
     </>
   );
 }
