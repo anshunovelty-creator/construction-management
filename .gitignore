@@ -9,3 +9,5 @@ next-env.d.ts
 .env
 data/private/
 .DS_Store
+.claude/proven-config.json
+.claude/.proven-config-version
