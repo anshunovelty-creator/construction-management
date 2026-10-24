@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { EntrySheet, type Column } from '@/components/entry-sheet';
+import { EntrySheet } from '@/components/entry-sheet';
 import { requireProfile } from '@/lib/auth';
-import { ENTRY_FORMS, ENUMS, getEntryForm } from '@/lib/masters/registry';
+import { ENTRY_FORMS, getEntryForm } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../../masters/options';
 import { postEntryRows } from '../actions';
 import { todayInIndia } from '../data';
+import { sheetColumns } from './columns';
 
 /** Many entries of one kind at once, typed into rows like a spreadsheet. ?type=<entry form slug>. */
 export default async function SheetPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
@@ -18,21 +19,7 @@ export default async function SheetPage({ searchParams }: { searchParams: Promis
   const db = await createClient();
   const [choices, t] = await Promise.all([loadChoices(db, form.fields), getTranslations()]);
 
-  const columns: Column[] = form.fields.map((field) => {
-    const hintKey = `entryForms.${slug}.hints.${field.name}`;
-    const base = {
-      name: field.name,
-      // Drop form hints such as "(₹)" from the short column heading; the full hint shows on hover.
-      label: t(`fields.${field.name}`).replace(/\s*\(.*\)$/, ''),
-      hint: t.has(hintKey) ? t(hintKey) : undefined,
-      required: Boolean(field.required),
-    };
-    if (field.kind === 'ref') return { ...base, kind: 'select', options: choices[field.ref] ?? [] };
-    if (field.kind === 'enum') {
-      return { ...base, kind: 'select', options: ENUMS[field.enum].map((v) => ({ value: v, label: t(`options.${field.enum}.${v}`) })) };
-    }
-    return { ...base, kind: field.kind === 'rupees' || field.kind === 'date' ? field.kind : 'text' };
-  });
+  const columns = sheetColumns(slug, form.fields, choices, t);
 
   return (
     <>

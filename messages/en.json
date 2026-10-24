@@ -12,7 +12,11 @@
     "label": "Main",
     "add": "Add an entry",
     "daybook": "Day book",
-    "sheet": "Sheet"
+    "sheet": "Sheet",
+    "parties": "Parties",
+    "dashboard": "Dashboard",
+    "more": "More",
+    "overview": "Overview"
   },
   "login": {
     "title": "Sign in",
@@ -42,7 +46,7 @@
     "save": "Save",
     "empty": "Nothing here yet.",
     "readOnly": "Only the owner can change these.",
-    "lede": "The lists the forms pick from: firms, sites, vendors and clients, contracts, and bank or cash accounts.",
+    "lede": "The lists the forms pick from: firms, sites, vendors and clients, contracts, bank or cash accounts, and materials.",
     "delete": {
       "title": "Delete (testing only)",
       "warning": "Only while the app is being built. Deleting is permanent. Anything that entries, work orders, bank accounts or staff logins still use cannot be deleted — switch it off instead.",
@@ -57,7 +61,8 @@
         "user_sites": "staff logins (remove it from the person in People first)",
         "other": "other records"
       }
-    }
+    },
+    "materials": "Materials"
   },
   "fields": {
     "code": "Short code (2–4 capital letters)",
@@ -101,7 +106,8 @@
     "paid_to_id": "Paid to",
     "counted": "Cash counted (₹)",
     "account_id": "Bank or cash",
-    "direction": "In or out"
+    "direction": "In or out",
+    "material_id": "Material"
   },
   "options": {
     "party_kind": {
@@ -173,7 +179,8 @@
       "client": "client",
       "worker": "worker",
       "staff": "staff member",
-      "other": "party"
+      "other": "party",
+      "materials": "material"
     },
     "access": {
       "user_firms": {
@@ -479,5 +486,84 @@
     "summary": "{saved} saved · {failed} need fixing",
     "empty": "Fill in at least one row first.",
     "fromNew": "Many entries at once? Type them in a sheet"
+  },
+  "party": {
+    "firms": "Firms",
+    "indexTitle": "{firm} – Parties",
+    "indexLede": "Every party this firm owes money to, just like the outstanding sheet.",
+    "sr": "Sr.",
+    "name": "Party name",
+    "opening": "Opening outstanding",
+    "bills": "New bills",
+    "total": "Total outstanding",
+    "paid": "Total paid",
+    "balance": "Balance",
+    "percentPaid": "% paid",
+    "status": "Status",
+    "lastPayment": "Last payment",
+    "open": "Open",
+    "grandTotal": "Grand total",
+    "empty": "No parties for this firm yet. Open a party below and add its first bill.",
+    "openOther": "Party not in this list?",
+    "openOtherHint": "Pick it to add its first bill or payment. A brand-new party?",
+    "addParty": "Add a new party",
+    "noFirm": "No firm is set up yet. Add one in Setup.",
+    "home": "All parties",
+    "statuses": {
+      "cleared": "Cleared",
+      "partPaid": "Part paid",
+      "pending": "Pending"
+    },
+    "openingAsOf": "{firm} · opening outstanding as on {date}",
+    "noOpening": "{firm} · no opening balance",
+    "billsTitle": "New bills",
+    "billsHint": "Bills from this party after the opening statement.",
+    "paymentsTitle": "Payments",
+    "paymentsHint": "Money paid to this party.",
+    "billDate": "Bill date",
+    "billNo": "Bill no.",
+    "amount": "Amount",
+    "site": "Site",
+    "remarks": "Remarks",
+    "payDate": "Payment date",
+    "paidFrom": "Paid from",
+    "reference": "Cheque / UTR",
+    "balanceAfter": "Balance after payment",
+    "entry": "Entry",
+    "noBills": "No new bills yet. Bills from after the opening statement will show here.",
+    "noPayments": "No payments yet. Money paid to this party will show here.",
+    "totalBills": "Total bills",
+    "addBills": "Add bills",
+    "addPayments": "Add payments",
+    "addHint": "Type in the rows like Excel: Tab and Enter move between boxes, and you can paste rows copied from Excel. Then press Save.",
+    "partyCount": "{count} parties",
+    "percentNote": "{percent}% of the total",
+    "balanceNote": "Still to pay",
+    "search": "Find a party",
+    "searchHint": "Type a name to find a party…",
+    "searchNone": "No party has that name.",
+    "clickHint": "Click any row to open that party.",
+    "summary": "Summary",
+    "lastOn": "Last paid on {date}",
+    "nothingPaid": "Nothing paid yet",
+    "costType": "Type",
+    "notChecked": "not checked",
+    "notCheckedHint": "Nobody has checked this entry yet. Click the entry number to check it, or to cancel it if it is wrong.",
+    "needSite": "Add your sites first: every bill needs the site it was for.",
+    "needAccount": "Add your bank and cash accounts first: every payment needs where the money came from.",
+    "goSetup": "Go to Setup →",
+    "material": "Material",
+    "noMaterials": "Your materials list is empty. Add cement, sand, steel and the rest once, and they show up here on every bill."
+  },
+  "dashboard": {
+    "title": "{firm} – Dashboard",
+    "lede": "How much this firm owes its parties, and how much is paid.",
+    "balance": "Balance outstanding",
+    "newBills": "New bills added",
+    "parties": "Total parties",
+    "top5": "Top 5 parties – highest balance",
+    "rank": "Rank",
+    "chart": "Each party: paid out of total",
+    "chartHint": "Bar length is what we owed in all. Green is paid, red is still to pay."
   }
 }

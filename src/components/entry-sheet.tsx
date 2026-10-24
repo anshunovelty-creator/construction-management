@@ -51,21 +51,28 @@ export function EntrySheet({
   columns,
   today,
   save,
+  start = 5,
+  defaults = {},
 }: {
   columns: Column[];
   today: string;
   save: (rows: { id: string; cells: Record<string, string> }[]) => Promise<Record<string, Saved | FormState>>;
+  /** How many empty rows to begin with. */
+  start?: number;
+  /** Values new rows begin with, e.g. the site of the party's last bill. */
+  defaults?: Record<string, string>;
 }) {
   const t = useTranslations();
   const blank = (): Row => ({
     id: crypto.randomUUID(),
-    cells: Object.fromEntries(columns.map((c) => [c.name, c.name === 'entry_date' ? today : ''])),
+    cells: Object.fromEntries(columns.map((c) => [c.name, c.name === 'entry_date' ? today : (defaults[c.name] ?? '')])),
   });
-  const [rows, setRows] = useState<Row[]>(() => Array.from({ length: 5 }, blank));
+  const [rows, setRows] = useState<Row[]>(() => Array.from({ length: start }, blank));
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState('');
 
-  const filled = (row: Row) => columns.some((c) => c.name !== 'entry_date' && (row.cells[c.name] ?? '').trim() !== '');
+  // A row only counts as typed in once something differs from how it began.
+  const filled = (row: Row) => columns.some((c) => c.name !== 'entry_date' && (row.cells[c.name] ?? '').trim() !== (defaults[c.name] ?? ''));
   // Warn before closing or refreshing the page while typed rows are not saved yet.
   const unsaved = rows.some((row) => !isSaved(row) && filled(row));
   useEffect(() => {

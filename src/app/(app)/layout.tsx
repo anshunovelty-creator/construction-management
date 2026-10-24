@@ -18,15 +18,32 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {t('app.name')}
           </Link>
           <nav aria-label={t('nav.label')} className="nav">
-            <NavLink href="/" exact>{t('nav.home')}</NavLink>
-            <NavLink href="/entries/new">{t('nav.add')}</NavLink>
-            {office && <NavLink href="/entries/sheet">{t('nav.sheet')}</NavLink>}
+            {office ? (
+              <>
+                <NavLink href="/" exact>{t('nav.parties')}</NavLink>
+                <NavLink href="/dashboard">{t('nav.dashboard')}</NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink href="/overview">{t('nav.home')}</NavLink>
+                <NavLink href="/entries/new">{t('nav.add')}</NavLink>
+              </>
+            )}
             <NavLink href="/entries" exact>{t('nav.daybook')}</NavLink>
             {office && <NavLink href="/masters/firms" section="/masters">{t('nav.masters')}</NavLink>}
-            {owner && <NavLink href="/users">{t('nav.users')}</NavLink>}
-            {owner && <NavLink href="/history">{t('nav.history')}</NavLink>}
-            <NavLink href="/settings">{t('nav.settings')}</NavLink>
           </nav>
+          {/* Screens used less often, out of the way so the bar stays simple. */}
+          <details className="more">
+            <summary className="nav-link">{t('nav.more')} ▾</summary>
+            <div className="more-menu card">
+              {office && <NavLink href="/entries/new">{t('nav.add')}</NavLink>}
+              {office && <NavLink href="/entries/sheet">{t('nav.sheet')}</NavLink>}
+              {office && <NavLink href="/overview">{t('nav.overview')}</NavLink>}
+              {owner && <NavLink href="/users">{t('nav.users')}</NavLink>}
+              {owner && <NavLink href="/history">{t('nav.history')}</NavLink>}
+              <NavLink href="/settings">{t('nav.settings')}</NavLink>
+            </div>
+          </details>
           <form action={signOut} className="signout">
             <span className="who">
               {profile.full_name} · {t(`options.role.${profile.role}`)}

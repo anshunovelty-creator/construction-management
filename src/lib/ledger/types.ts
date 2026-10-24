@@ -65,6 +65,8 @@ export interface EntryDraft {
   partyId?: string;
   reference?: string;
   narration?: string;
+  /** What a bill was for, from the materials list. */
+  materialId?: string;
   lines: LineDraft[];
 }
 

@@ -12,6 +12,7 @@ export interface VendorBillInput {
   billNo: string;
   items: { costHead: CostHead; amountPaise: Paise }[];
   narration?: string;
+  materialId?: string;
 }
 
 /** A vendor's bill: the site's cost goes up and the firm owes the vendor the total. */
@@ -43,6 +44,7 @@ export function vendorBill(input: VendorBillInput): EntryDraft {
     partyId: input.vendorId,
     reference: input.billNo.trim(),
     narration: input.narration ?? '',
+    materialId: input.materialId,
     lines: [
       ...costLines,
       { account: 'vendor_payable', amountPaise: -total, firmId: input.firmId, partyId: input.vendorId },

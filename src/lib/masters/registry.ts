@@ -15,7 +15,7 @@ export const ENUMS = {
 export type EnumName = keyof typeof ENUMS;
 
 /** Where a reference field's choices come from. */
-export type RefSource = 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'moneyAccounts' | 'workOrders';
+export type RefSource = 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'moneyAccounts' | 'workOrders' | 'materials';
 
 export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
@@ -92,6 +92,12 @@ export const MASTERS: Record<string, MasterDef> = {
       active,
     ],
   },
+  materials: {
+    table: 'materials',
+    ownerOnly: false,
+    list: ['name', 'is_active'],
+    fields: [{ name: 'name', kind: 'text', required: true }, active],
+  },
 };
 
 export function getMaster(slug: string): MasterDef | undefined {
@@ -144,7 +150,9 @@ export const ENTRY_FORMS = {
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
       { name: 'bill_no', kind: 'text', required: true },
-      costHead, amount, date, note,
+      { name: 'material_id', kind: 'ref', ref: 'materials' },
+      // Picking a material is enough: the type then defaults to material.
+      { ...costHead, required: false }, amount, date, note,
     ],
   },
   'pay-vendor': {

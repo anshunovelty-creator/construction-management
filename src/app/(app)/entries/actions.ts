@@ -44,11 +44,15 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db)
   const n = (name: string) => v[name] as number;
 
   switch (slug) {
-    case 'vendor-bill':
+    case 'vendor-bill': {
+      const materialId = s('material_id') || undefined;
+      const costHead = (s('cost_head') || (materialId ? 'material' : '')) as CostHead;
+      if (!costHead) throw new Error('choose a type, or a material');
       return vendorBill({
         firmId: s('firm_id'), vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
-        items: [{ costHead: s('cost_head') as CostHead, amountPaise: n('amount') }], narration: s('narration'),
+        items: [{ costHead, amountPaise: n('amount') }], narration: s('narration'), materialId,
       });
+    }
     case 'pay-vendor':
       return vendorPayment({
         billFirmId: s('firm_id'), vendorId: s('vendor_id'), from: await moneyAccount(db, s('from_account_id')),
@@ -152,6 +156,15 @@ export async function postEntryRows(
   }
   revalidatePath('/', 'layout');
   return results;
+}
+
+/** Sheet rows on a party's page: every row gets the same firm and vendor. */
+export async function postPartyRows(
+  slug: 'vendor-bill' | 'pay-vendor',
+  fixed: { firm_id: string; vendor_id: string },
+  rows: { id: string; cells: Record<string, string> }[],
+): Promise<Record<string, Saved | FormState>> {
+  return postEntryRows(slug, rows.map((row) => ({ ...row, cells: { ...row.cells, ...fixed } })));
 }
 
 const backTo = (id: string, error?: { message: string } | null) =>
