@@ -38,6 +38,14 @@ async function moneyBalance(db: Db, accountId: string): Promise<number> {
   return (data ?? []).reduce((sum, r) => sum + Number(r.amount_paise), 0);
 }
 
+/** The optional material and the type; picking a material is enough, the type then defaults to material. */
+function materialAndType(s: (name: string) => string): { materialId?: string; costHead: CostHead } {
+  const materialId = s('material_id') || undefined;
+  const costHead = (s('cost_head') || (materialId ? 'material' : '')) as CostHead;
+  if (!costHead) throw new Error('choose a type, or a material');
+  return { materialId, costHead };
+}
+
 /** Turns a submitted form into a balanced ledger entry, using the tested posting rules. */
 async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db): Promise<EntryDraft> {
   const s = (name: string) => v[name] as string;
@@ -45,9 +53,7 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db)
 
   switch (slug) {
     case 'vendor-bill': {
-      const materialId = s('material_id') || undefined;
-      const costHead = (s('cost_head') || (materialId ? 'material' : '')) as CostHead;
-      if (!costHead) throw new Error('choose a type, or a material');
+      const { materialId, costHead } = materialAndType(s);
       return vendorBill({
         firmId: s('firm_id'), vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
         items: [{ costHead, amountPaise: n('amount') }], narration: s('narration'), materialId,
@@ -82,12 +88,14 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db)
         from: await moneyAccount(db, s('from_account_id')), to: await moneyAccount(db, s('to_account_id')),
         amountPaise: n('amount'), transferDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
-    case 'site-spend':
+    case 'site-spend': {
+      const { materialId, costHead } = materialAndType(s);
       return siteCashExpense({
-        from: await moneyAccount(db, s('from_account_id')), siteId: s('site_id'), costHead: s('cost_head') as CostHead,
+        from: await moneyAccount(db, s('from_account_id')), siteId: s('site_id'), costHead,
         amountPaise: n('amount'), expenseDate: s('entry_date'), paidToPartyId: s('paid_to_id') || undefined,
-        narration: s('narration'),
+        narration: s('narration'), materialId,
       });
+    }
     case 'day-close': {
       const account = await moneyAccount(db, s('account_id'));
       return cashCloseDifference({

@@ -16,7 +16,8 @@
     "parties": "Parties",
     "dashboard": "Dashboard",
     "more": "More",
-    "overview": "Overview"
+    "overview": "Overview",
+    "clients": "Clients"
   },
   "login": {
     "title": "Sign in",
@@ -407,7 +408,8 @@
       "hints": {
         "from_account_id": "Whose cash paid.",
         "narration": "What was bought or paid for, e.g. “12 helpers, 1 day”.",
-        "paid_to_id": "Pick the person or shop if they are in the list."
+        "paid_to_id": "Pick the person or shop if they are in the list.",
+        "material_id": "If you bought a material (cement, sand…), pick it here. The type then fills in by itself."
       }
     },
     "day-close": {
@@ -565,5 +567,61 @@
     "rank": "Rank",
     "chart": "Each party: paid out of total",
     "chartHint": "Bar length is what we owed in all. Green is paid, red is still to pay."
+  },
+  "client": {
+    "indexTitle": "{firm} – Clients",
+    "indexLede": "Every client who owes this firm money: bills given and money received.",
+    "name": "Client name",
+    "opening": "Opening due",
+    "billsGiven": "Bills given",
+    "deductions": "Deductions",
+    "netBills": "New bills (net)",
+    "netNote": "{gross} billed, less {cuts} cut",
+    "total": "Total to receive",
+    "received": "Received",
+    "balance": "Balance to receive",
+    "balanceNote": "Still to come in",
+    "percentReceived": "% received",
+    "lastReceipt": "Last receipt",
+    "clientCount": "{count} clients",
+    "search": "Find a client",
+    "searchHint": "Type a name to find a client…",
+    "searchNone": "No client has that name.",
+    "clickHint": "Click any row to open that client.",
+    "empty": "No client bills or receipts for this firm yet. Open a client below and add their first bill.",
+    "openOther": "Client not in this list?",
+    "openOtherHint": "Pick them to add their first bill or receipt. A brand-new client?",
+    "addClient": "Add a new client",
+    "home": "All clients",
+    "statuses": {
+      "cleared": "Fully received",
+      "partPaid": "Part received",
+      "pending": "Pending"
+    },
+    "openingAsOf": "{firm} · opening due as on {date}",
+    "noOpening": "{firm} · no opening amount",
+    "lastOn": "Last received on {date}",
+    "nothingReceived": "Nothing received yet",
+    "billsTitle": "Bills given",
+    "billsHint": "Running and stage bills given to this client. The client cuts TDS, retention and deposit; the rest is what they owe.",
+    "receiptsTitle": "Money received",
+    "receiptsHint": "Payments that came in from this client.",
+    "noBills": "No bills given yet.",
+    "noReceipts": "No money received yet.",
+    "workOrder": "Work order · site",
+    "gross": "Bill amount",
+    "tds": "TDS",
+    "retention": "Retention",
+    "deposit": "Security deposit",
+    "otherCuts": "Other cuts",
+    "net": "Net to receive",
+    "totalBills": "Total bills",
+    "receiptDate": "Date received",
+    "receivedIn": "Received in",
+    "balanceAfter": "Balance after receipt",
+    "addBills": "Add bills given",
+    "addReceipts": "Add money received",
+    "addBillsHint": "Type in the rows like Excel. Leave TDS, retention or deposit empty to use the work order's %, or type 0 if none was cut. Then press Save.",
+    "needWorkOrder": "This client has no work order for this firm yet. A work order says which site the bills are for."
   }
 }

@@ -21,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {office ? (
               <>
                 <NavLink href="/" exact>{t('nav.parties')}</NavLink>
+                <NavLink href="/clients" section="/client">{t('nav.clients')}</NavLink>
                 <NavLink href="/dashboard">{t('nav.dashboard')}</NavLink>
               </>
             ) : (

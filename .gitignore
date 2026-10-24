@@ -8,3 +8,4 @@ next-env.d.ts
 .env*.local
 .env
 data/private/
+.DS_Store

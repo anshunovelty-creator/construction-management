@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { partyFigures, sumFigures } from '@/lib/ledger/party';
+import { clientFigures, partyFigures, sumFigures } from '@/lib/ledger/party';
 
 const row = (opening: number, bills: number, paid: number) =>
   partyFigures({ opening_paise: opening, bills_paise: String(bills), paid_paise: paid, last_payment: null });
@@ -13,4 +13,11 @@ it('follows the workbook: total = opening + bills, balance = total - paid, and i
   expect(sumFigures([row(1000, 500, 600), row(1000, 0, 1000)])).toEqual({
     opening: 2000, bills: 500, total: 2500, paid: 1600, balance: 900, percentPaid: 64,
   });
+});
+
+it('counts a client bill net of its deductions', () => {
+  const f = clientFigures({
+    firm_id: 'f', party_id: 'p', opening_paise: 2000, gross_paise: 10000, deductions_paise: 850, received_paise: 4000, last_receipt: null,
+  });
+  expect(f).toMatchObject({ opening: 2000, gross: 10000, deductions: 850, bills: 9150, total: 11150, paid: 4000, balance: 7150, status: 'partPaid' });
 });

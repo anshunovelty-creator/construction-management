@@ -49,3 +49,27 @@ export function sumFigures(all: PartyFigures[]): Omit<PartyFigures, 'status' | '
     percentPaid: total <= 0 ? 0 : Math.floor((paid * 100) / total),
   };
 }
+
+/** A row of the client_totals view: one firm and client. */
+export interface ClientTotalRow {
+  firm_id: string;
+  party_id: string;
+  opening_paise: number | string;
+  gross_paise: number | string;
+  deductions_paise: number | string;
+  received_paise: number | string;
+  last_receipt: string | null;
+}
+
+/**
+ * The same sums as a vendor, from our side: bills count net of the client's deductions
+ * (TDS, retention, deposit, recoveries), "paid" is what we received.
+ */
+export function clientFigures(row: ClientTotalRow): PartyFigures & { gross: Paise; deductions: Paise } {
+  const gross = Number(row.gross_paise);
+  const deductions = Number(row.deductions_paise);
+  return {
+    ...partyFigures({ opening_paise: row.opening_paise, bills_paise: gross - deductions, paid_paise: row.received_paise, last_payment: row.last_receipt }),
+    gross, deductions,
+  };
+}

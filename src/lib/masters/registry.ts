@@ -193,7 +193,8 @@ export const ENTRY_FORMS = {
     fields: [
       from,
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
-      costHead, amount,
+      { name: 'material_id', kind: 'ref', ref: 'materials' },
+      { ...costHead, required: false }, amount,
       { name: 'narration', kind: 'text', required: true },
       { name: 'paid_to_id', kind: 'ref', ref: 'parties' },
       date,

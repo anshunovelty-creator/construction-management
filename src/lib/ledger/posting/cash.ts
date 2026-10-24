@@ -13,6 +13,7 @@ export interface SiteCashExpenseInput {
   /** Vendor/worker party if known; small items can leave it out and use the narration. */
   paidToPartyId?: string;
   narration: string;
+  materialId?: string;
 }
 
 /** Money spent directly on a site (usually by a supervisor from their cash). */
@@ -29,6 +30,7 @@ export function siteCashExpense(input: SiteCashExpenseInput): EntryDraft {
     firmId: input.from.firmId,
     ...(input.paidToPartyId ? { partyId: input.paidToPartyId } : {}),
     narration: input.narration.trim(),
+    materialId: input.materialId,
     lines: [
       {
         account: 'site_cost',
