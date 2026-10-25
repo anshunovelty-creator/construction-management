@@ -73,7 +73,7 @@ The between-firm dues come from the posting rules that already exist (`interFirm
 
 ### 4.2 Reading the working firm
 
-A server helper in `src/lib/firm.ts`, cached once per request like `getProfile`:
+A server helper, `getWorkingFirm()` in `src/lib/auth.ts`, is cached once per request like `getProfile`. Its rules are pure functions in `src/lib/firm.ts`, so they can be tested without Next.js. It works like this:
 
 1. **Supervisor →** no working firm.
 2. Otherwise it loads the firms the person may use, A to Z by name, and their saved row.
@@ -86,7 +86,7 @@ The top-bar menu is a small form posting to a server action. The action calls `a
 
 ### 4.4 Saving entries
 
-- Each form carries the working firm as a hidden value, set when the page is rendered. The entry is made for **that** firm, even if the person switched on another device or tab before pressing Save.
+- Each form carries the working firm, bound into its save action when the page is rendered. The entry is made for **that** firm, even if the person switched on another device or tab before pressing Save.
 - **Server checks** (save actions), before posting:
   - The person may use the form's firm.
   - The work order belongs to the form's firm.
@@ -98,12 +98,12 @@ The top-bar menu is a small form posting to a server action. The action calls `a
 | Piece | Where | What it does |
 |---|---|---|
 | Migration | `supabase/migrations/20261025120000_working_firm.sql` | `working_firms`, RLS, `app_set_my_firm`, grants |
-| Working-firm helper | `src/lib/firm.ts` | Allowed firms and the working firm, per request (4.2) |
+| Working-firm helper | `src/lib/auth.ts` (`getWorkingFirm`), `src/lib/firm.ts` (rules) | Allowed firms and the working firm, per request (4.2); list and save rules |
 | Switcher and action | `src/app/(app)/layout.tsx` + a `switchFirm` server action | Top-bar button and menu (3.1, 4.3) |
 | Firm pages | `page.tsx` (Parties), `clients`, `client`, `dashboard`, `party`, `entries` | Read the helper instead of `?firm=`; `FirmTabs` removed; Common tag in the day book |
 | Form lists | `src/app/(app)/masters/options.ts` | Work orders narrowed to the firm; money accounts ordered and grouped per section 3.3 |
 | Grouped dropdowns | `src/components/form.tsx`, `src/components/entry-sheet.tsx` | Optional `group` on a choice, shown as an `<optgroup>` |
-| Entry forms | `src/lib/masters/registry.ts`, `entries/new/[slug]/page.tsx`, `entries/actions.ts` | Firm field becomes the hidden working firm; "For …" / "Working in …" heading; server checks (4.4) |
+| Entry forms | `src/lib/masters/registry.ts`, `entries/new/[slug]/page.tsx`, `entries/actions.ts` | Firm field removed, the working firm bound into the save action; "For …" / "Working in …" heading; server checks (4.4) |
 | Words | `messages/` (English and Hindi) | Switcher, "For …", "Working in …", "Other firm: …", "Common" |
 
 ## 6. Testing
