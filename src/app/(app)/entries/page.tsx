@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { AutoForm } from '@/components/auto-form';
 import { GroupCards, GROUPS, SitesTable } from '@/components/board';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
+import { isCommonEntry } from '@/lib/firm';
 import { describeAll, type LineRow } from '@/lib/ledger/plain';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
@@ -15,64 +16,78 @@ interface Row {
   entry_date: string;
   party_id: string | null;
   narration: string;
-  lines: { account: string; amount_paise: number }[];
+  created_at: string;
+  lines: { account: string; amount_paise: number; firm_id: string | null }[];
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// ponytail: latest 200 only; add paging when the books outgrow it.
+const LIMIT = 200;
 
-type Params = { waiting?: string; date?: string; firm?: string; site?: string };
+type Params = { waiting?: string; date?: string; site?: string };
 
 /**
- * Every entry, newest first. Filters: ?waiting=1 (not yet checked), ?date=YYYY-MM-DD, ?firm=<id>, ?site=<id>.
- * Firm and site work together ("Firm A at Site 1"); either one adds a summary of what its books show now.
+ * Every entry, newest first. Owner and office staff see the working firm's entries plus the Common ones (no firm on
+ * any line, e.g. cash handed to a supervisor), which carry a tag. Supervisors see the entries they may see.
+ * Filters: ?waiting=1 (not yet checked), ?date=YYYY-MM-DD, ?site=<id>. A firm or site adds a summary of its books.
  */
 export default async function DayBookPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const { waiting } = params;
   const date = params.date && DATE.test(params.date) ? params.date : undefined;
-  const firm = params.firm && UUID.test(params.firm) ? params.firm : undefined;
   const site = params.site && UUID.test(params.site) ? params.site : undefined;
   const profile = await requireProfile();
+  const working = await getWorkingFirm();
+  const firm = working?.firm.id;
   const db = await createClient();
 
   const { data: statuses } = await db.from('entry_status').select('entry_id, status');
   const statusOf = new Map((statuses ?? []).map((s) => [s.entry_id as string, s.status as string]));
   const waitingIds = [...statusOf].filter(([, s]) => s === 'unverified').map(([id]) => id);
 
-  // `lines` sizes the entry; `match` (an inner join on the same lines) keeps only entries touching the firm/site.
-  // ponytail: latest 200 only; add paging when the books outgrow it.
-  let query = db
-    .from('entries')
-    .select(`id, serial, entry_type, entry_date, party_id, narration, lines:entry_lines(account, amount_paise)${firm || site ? ', match:entry_lines!inner(firm_id, site_id)' : ''}`)
-    .order('created_at', { ascending: false })
-    .limit(200);
-  if (date) query = query.eq('entry_date', date);
-  if (waiting) query = query.in('id', waitingIds);
-  if (firm) query = query.eq('match.firm_id', firm);
-  if (site) query = query.eq('match.site_id', site);
+  // `lines` sizes the entry and shows whether it names a firm; `match` (an inner join on the same lines) keeps only
+  // entries touching the firm/site. Common entries all have the CM serial (no entry firm); `lines` tells which of those
+  // name no firm at all, since a firm's bill paid from owner cash is CM too.
+  const list = (only?: 'firm' | 'common') => {
+    let query = db
+      .from('entries')
+      .select(`id, serial, entry_type, entry_date, party_id, narration, created_at, lines:entry_lines(account, amount_paise, firm_id)${only === 'firm' || site ? ', match:entry_lines!inner(firm_id, site_id)' : ''}`)
+      .order('created_at', { ascending: false })
+      .limit(LIMIT);
+    if (date) query = query.eq('entry_date', date);
+    if (waiting) query = query.in('id', waitingIds);
+    if (only === 'firm') query = query.eq('match.firm_id', firm!);
+    if (only === 'common') query = query.is('firm_id', null);
+    if (site) query = query.eq('match.site_id', site);
+    return query.returns<Row[]>();
+  };
 
   // What the books show now for this firm and/or site. A firm also sees the between-firm amounts other firms hold against it.
   let balances = db.from('balances').select('*');
   if (site) balances = balances.eq('site_id', site);
   if (firm) balances = site ? balances.eq('firm_id', firm) : balances.or(`firm_id.eq.${firm},counter_firm_id.eq.${firm}`);
 
-  const [{ data: rows }, { data: summary }, names, t] = await Promise.all([
-    query.returns<Row[]>(),
+  const [{ data: own }, { data: cm }, { data: summary }, names, t] = await Promise.all([
+    firm ? list('firm') : list(),
+    firm ? list('common') : Promise.resolve({ data: [] as Row[] }),
     // Supervisors see their entries but not profits, as on the home page.
     (firm || site) && profile.role !== 'supervisor' ? balances.returns<LineRow[]>() : Promise.resolve({ data: null }),
     loadNames(db),
     getTranslations(),
   ]);
+  const common = (cm ?? []).filter((r) => isCommonEntry(r.lines));
+  const commonIds = new Set(common.map((r) => r.id));
+  const rows = [...(own ?? []), ...common].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, LIMIT);
 
   // The size of an entry: its plus lines, leaving out the automatic between-firm pair.
   const amountOf = (r: Row) =>
     r.lines.filter((l) => l.account !== 'inter_firm' && l.amount_paise > 0).reduce((s, l) => s + Number(l.amount_paise), 0);
   const href = (change: Partial<Params>) => {
-    const next = new URLSearchParams(Object.entries({ firm, site, date, waiting, ...change }).filter(([, v]) => v) as [string, string][]);
+    const next = new URLSearchParams(Object.entries({ site, date, waiting, ...change }).filter(([, v]) => v) as [string, string][]);
     return `/entries${next.size ? `?${next}` : ''}`;
   };
-  const firmName = firm && names.firms.get(firm);
+  const firmName = working?.firm.name;
   const siteName = site && names.sites.get(site);
   const title = firmName && siteName ? t('daybook.at', { firm: firmName, site: siteName }) : (firmName || siteName || t('nav.daybook'));
 
@@ -87,11 +102,6 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
       <p className="lede">{t(site ? 'daybook.siteLede' : firm ? 'daybook.firmLede' : 'daybook.lede')}</p>
 
       <AutoForm action="/entries" className="filters book-filter">
-        <label className="sr-only" htmlFor="firm">{t('daybook.firm')}</label>
-        <select id="firm" name="firm" defaultValue={firm ?? ''}>
-          <option value="">{t('daybook.allFirms')}</option>
-          {[...names.firms].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-        </select>
         <label className="sr-only" htmlFor="site">{t('daybook.site')}</label>
         <select id="site" name="site" defaultValue={site ?? ''}>
           <option value="">{t('daybook.allSites')}</option>
@@ -100,12 +110,12 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
         <label htmlFor="date" className="sr-only">{t('daybook.onDate')}</label>
         <input id="date" type="date" name="date" defaultValue={date ?? ''} />
         {waiting && <input type="hidden" name="waiting" value="1" />}
-        {(firm || site || date || waiting) && <Link href="/entries" className="chip">{t('daybook.clear')}</Link>}
+        {(site || date || waiting) && <Link href="/entries" className="chip">{t('daybook.clear')}</Link>}
       </AutoForm>
 
       {summary && (
         <div className="book-summary">
-          <SitesTable rows={summary} names={names} t={t} hint={t(firm ? 'daybook.sitesHintFirm' : 'board.sites.hint')} firmId={firm} />
+          <SitesTable rows={summary} names={names} t={t} hint={t(firm ? 'daybook.sitesHintFirm' : 'board.sites.hint')} />
           {costs.size > 0 && (
             <section className="card">
               <h2 className="eyebrow">{t('daybook.costs')}</h2>
@@ -128,11 +138,11 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
         <Link href={href({ waiting: undefined })} className={`chip ${!waiting ? 'on' : ''}`}>{t('daybook.all')}</Link>
         <Link href={href({ waiting: '1' })} className={`chip ${waiting ? 'on' : ''}`}>
           {t('daybook.waiting')}{' '}
-          <b>{firm || site || date ? (rows ?? []).filter((r) => statusOf.get(r.id) === 'unverified').length : waitingIds.length}</b>
+          <b>{firm || site || date ? rows.filter((r) => statusOf.get(r.id) === 'unverified').length : waitingIds.length}</b>
         </Link>
-        <span className="muted">{t('daybook.count', { count: rows?.length ?? 0 })}</span>
+        <span className="muted">{t('daybook.count', { count: rows.length })}</span>
       </div>
-      {rows && rows.length > 0 ? (
+      {rows.length > 0 ? (
         <div className="card table-wrap">
           <table>
             <thead>
@@ -155,6 +165,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
                     <td className="nowrap">{showDate(r.entry_date)}</td>
                     <td>
                       <b>{t(`entryTypes.${r.entry_type}.title`)}</b>
+                      {commonIds.has(r.id) && <span className="pill common" title={t('firm.commonHint')}>{t('firm.common')}</span>}
                       {(r.party_id || r.narration) && (
                         <span className="muted block">
                           {[r.party_id && names.parties.get(r.party_id), r.narration].filter(Boolean).join(' · ')}

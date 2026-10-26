@@ -56,8 +56,8 @@ export function siteTotals(rows: LineRow[]) {
   return sites;
 }
 
-/** Billed, costs and profit per site; each site name opens that site's entries (for `firmId` only, if given). */
-export function SitesTable({ rows, names, t, hint, firmId }: { rows: LineRow[]; names: Names; t: T; hint: string; firmId?: string }) {
+/** Billed, costs and profit per site; each site name opens that site's entries in the working firm. */
+export function SitesTable({ rows, names, t, hint }: { rows: LineRow[]; names: Names; t: T; hint: string }) {
   const sites = siteTotals(rows);
   if (sites.size === 0) return null;
   return (
@@ -80,7 +80,7 @@ export function SitesTable({ rows, names, t, hint, firmId }: { rows: LineRow[]; 
               return (
                 <tr key={id}>
                   <td>
-                    <Link href={`/entries?site=${id}${firmId ? `&firm=${firmId}` : ''}`} className="underline">{names.sites.get(id)}</Link>
+                    <Link href={`/entries?site=${id}`} className="underline">{names.sites.get(id)}</Link>
                   </td>
                   <td className="num">{showPaise(s.billed)}</td>
                   <td className="num">{showPaise(s.cost)}</td>
