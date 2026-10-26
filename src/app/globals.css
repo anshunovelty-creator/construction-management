@@ -320,3 +320,17 @@ tr:hover .party-link { color: var(--accent); }
 .firm-switch .more-menu .error { padding: 4px 12px; font-size: 13px; }
 .firm-line { display: inline-block; margin: 0 0 12px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13.5px; }
 .pill.common { background: var(--paper); color: var(--muted); margin-left: 8px; }
+
+/* ---------- Quick bill / payment ---------- */
+.quick-add { margin: 18px 0 8px; }
+.quick-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.quick-buttons .btn { min-width: 150px; font-size: 16px; }
+.quick-card { margin-top: 12px; padding: 18px 20px; max-width: 600px; }
+.quick-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.quick-card-head h2 { margin: 0; font-size: 18px; }
+.quick-card .form { margin-top: 12px; }
+/* The amount said back in words, so a missing or extra zero shows before saving. */
+.amount-words { margin: 0; font-size: 13.5px; color: var(--muted); }
+.amount-words b { color: var(--ink); font-weight: 600; }
+.owed { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--paper); font-size: 14px; }
+.owed > span:first-child:not(.muted) { font-weight: 500; }

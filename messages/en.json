@@ -532,8 +532,8 @@
     "noBills": "No new bills yet. Bills from after the opening statement will show here.",
     "noPayments": "No payments yet. Money paid to this party will show here.",
     "totalBills": "Total bills",
-    "addBills": "Add bills",
-    "addPayments": "Add payments",
+    "addBills": "Add many bills at once",
+    "addPayments": "Add many payments at once",
     "addHint": "Type in the rows like Excel: Tab and Enter move between boxes, and you can paste rows copied from Excel. Then press Save.",
     "partyCount": "{count} parties",
     "percentNote": "{percent}% of the total",
@@ -620,6 +620,16 @@
     "addReceipts": "Add money received",
     "addBillsHint": "Type in the rows like Excel. Leave TDS, retention or deposit empty to use the work order's %, or type 0 if none was cut. Then press Save.",
     "needWorkOrder": "This client has no work order for this firm yet. A work order says which site the bills are for."
+  },
+  "quick": {
+    "addBill": "Add bill",
+    "pay": "Pay",
+    "billTitle": "New bill from {name}",
+    "payTitle": "Pay {name}",
+    "close": "Close",
+    "owe": "Still to pay {name}: {amount}",
+    "payFull": "Pay full {amount}",
+    "nothingOwed": "Nothing is due to {name} right now."
   },
   "firm": {
     "switchLabel": "Working in {firm}. Tap to switch firm.",

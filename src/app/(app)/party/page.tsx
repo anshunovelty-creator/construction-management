@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
+import { Form } from '@/components/form';
+import { QuickAdd } from '@/components/quick-add';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { partyFigures } from '@/lib/ledger/party';
 import { getEntryForm } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../masters/options';
-import { postPartyRows } from '../entries/actions';
+import { postPartyEntry, postPartyRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
 import { MoneyCell, Stat, StatusPill } from './shared';
@@ -32,6 +34,9 @@ type Slug = 'vendor-bill' | 'pay-vendor';
 /** Sheet columns in the workbook's order. */
 const BILL_COLUMNS = ['entry_date', 'bill_no', 'material_id', 'amount', 'site_id', 'cost_head', 'narration'];
 const PAY_COLUMNS = ['entry_date', 'amount', 'from_account_id', 'reference', 'narration'];
+/** The quick card's questions: the amount first, the rest as on the sheet. */
+const BILL_QUICK = ['amount', 'bill_no', 'site_id', 'material_id', 'cost_head', 'entry_date', 'narration'];
+const PAY_QUICK = ['amount', 'from_account_id', 'entry_date', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them (party.* keys). */
 const LABELS: Record<string, string> = {
@@ -126,6 +131,32 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
         <Stat label={t('dashboard.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'owe' : 'done'} note={t('party.balanceNote')} />
       </div>
 
+      <QuickAdd
+        name={party.name}
+        bill={
+          <Form
+            fields={fieldsOf('vendor-bill', BILL_QUICK)}
+            defaults={{ entry_date: todayInIndia(), site_id: lastBill?.site_id ?? '', cost_head: lastBill?.cost_head ?? '' }}
+            choices={choices}
+            action={postPartyEntry.bind(null, 'vendor-bill', firm.id, party.id)}
+            submitLabel={t('entries.save')}
+            hintPrefix="entryForms.vendor-bill.hints"
+          />
+        }
+        pay={
+          <Form
+            fields={fieldsOf('pay-vendor', PAY_QUICK)}
+            defaults={{ entry_date: todayInIndia(), from_account_id: lastFrom ?? '' }}
+            choices={choices}
+            action={postPartyEntry.bind(null, 'pay-vendor', firm.id, party.id)}
+            submitLabel={t('entries.save')}
+            hintPrefix="entryForms.pay-vendor.hints"
+            owed={{ [party.id]: { name: party.name, paise: f.balance } }}
+            vendorId={party.id}
+          />
+        }
+      />
+
       <section className="ledger-section">
         <div className="section-head">
           <h2>{t('party.billsTitle')} <span className="count">{bills.length}</span></h2>
@@ -172,7 +203,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
           </div>
         )}
         <details className="add-rows">
-          <summary className="btn">＋ {t('party.addBills')}</summary>
+          <summary className="btn ghost">▦ {t('party.addBills')}</summary>
           {missing('sites', 'sites', 'needSite')}
           {(choices.materials ?? []).length === 0 && (
             <p className="hint">
@@ -233,7 +264,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
           </div>
         )}
         <details className="add-rows">
-          <summary className="btn">＋ {t('party.addPayments')}</summary>
+          <summary className="btn ghost">▦ {t('party.addPayments')}</summary>
           {missing('moneyAccountsWeOwe', 'money-accounts', 'needAccount')}
           <p className="hint">{t('party.addHint')}</p>
           <EntrySheet

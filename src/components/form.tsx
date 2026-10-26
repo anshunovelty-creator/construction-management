@@ -1,9 +1,12 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { useActionState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useActionState, useState } from 'react';
 import { ChoiceOptions } from '@/components/choice-options';
+import { toLocale } from '@/i18n/locale';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
+import { rupeesToPaise, showPaise } from '@/lib/money';
+import { rupeesInWords } from '@/lib/words';
 
 export interface FormState {
   /** Field name -> message key under `errors.*`; `_form` for the whole form. */
@@ -12,12 +15,62 @@ export interface FormState {
   detail?: string;
   /** What the user typed, so the form keeps it when it comes back with errors. */
   values?: Record<string, string | string[]>;
+  /** Serial of the entry just saved, when the form stays open for the next one. */
+  saved?: string;
 }
+
+/** What a vendor is still owed, for the "Pay full" button on a payment. */
+export type Owed = { name: string; paise: number };
 
 export type FormAction = (state: FormState, data: FormData) => Promise<FormState>;
 export type Choices = Partial<Record<RefSource, Choice[]>>;
 
-const INPUT_TYPES = { text: 'text', email: 'email', password: 'password', rupees: 'text', percent: 'text', date: 'date' } as const;
+const INPUT_TYPES = { text: 'text', email: 'email', password: 'password', percent: 'text', date: 'date' } as const;
+
+const toPaise = (text: string) => {
+  try {
+    return rupeesToPaise(text);
+  } catch {
+    return 0;
+  }
+};
+const asRupees = (paise: number) => (paise % 100 ? (paise / 100).toFixed(2) : String(paise / 100));
+
+/**
+ * A rupee box that says the amount back as it is typed ("₹1,25,000 · one lakh twenty-five thousand rupees"),
+ * so an extra zero shows before saving. With `owed`, it also offers to fill in the full amount still due.
+ */
+function RupeesInput({ input, owed }: { input: React.InputHTMLAttributes<HTMLInputElement> & { id: string }; owed?: Owed }) {
+  const t = useTranslations();
+  const locale = toLocale(useLocale());
+  const [text, setText] = useState(String(input.defaultValue ?? ''));
+  const paise = toPaise(text);
+  const { defaultValue: _, ...rest } = input;
+  return (
+    <>
+      {owed && (
+        <p className="owed">
+          {owed.paise > 0 ? (
+            <>
+              <span>{t('quick.owe', { name: owed.name, amount: showPaise(owed.paise) })}</span>
+              <button type="button" className="btn ghost small" onClick={() => setText(asRupees(owed.paise))}>
+                {t('quick.payFull', { amount: showPaise(owed.paise) })}
+              </button>
+            </>
+          ) : (
+            <span className="muted">{t('quick.nothingOwed', { name: owed.name })}</span>
+          )}
+        </p>
+      )}
+      <input {...rest} type="text" inputMode="decimal" autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} />
+      {paise > 0 && (
+        <p className="amount-words">
+          <b>{showPaise(paise)}</b> · {rupeesInWords(paise, locale)}
+        </p>
+      )}
+    </>
+  );
+}
 
 /** One form for every screen: renders `fields`, posts to a server action, shows its errors. */
 export function Form({
@@ -28,6 +81,8 @@ export function Form({
   submitLabel,
   passwordAutoComplete = 'new-password',
   hintPrefix,
+  owed,
+  vendorId,
 }: {
   fields: Field[];
   defaults?: Record<string, string | boolean | string[]>;
@@ -37,15 +92,72 @@ export function Form({
   passwordAutoComplete?: 'current-password' | 'new-password';
   /** Message prefix for optional plain-language hints under fields: `<prefix>.<field name>`. */
   hintPrefix?: string;
+  /** What each vendor is still owed (by vendor id), shown above the amount on a payment. */
+  owed?: Record<string, Owed>;
+  /** The vendor, when the form is for one vendor and has no vendor box. */
+  vendorId?: string;
 }) {
-  const t = useTranslations();
   const [state, formAction, pending] = useActionState(action, {});
-  const valueOf = (name: string) => state.values?.[name] ?? defaults[name];
+  const t = useTranslations();
 
   return (
-    // React resets a form after its action runs, and a <select> only reads defaultValue when it first
-    // appears. A new key per returned state rebuilds the fields so every choice the user made comes back.
-    <form key={JSON.stringify(state.values ?? null)} action={formAction} className="form">
+    <form action={formAction} className="form">
+      {state.saved && (
+        <p role="status" className="banner">✓ {t('entries.saved', { serial: state.saved })}</p>
+      )}
+      {/* React resets a form after its action runs, and a <select> only reads defaultValue when it first
+          appears. A new key per returned state rebuilds the fields so every choice the user made comes back,
+          or, after a save, starts the next entry afresh. */}
+      <Fields
+        key={JSON.stringify([state.values ?? null, state.saved ?? null])}
+        fields={fields}
+        state={state}
+        defaults={defaults}
+        choices={choices}
+        passwordAutoComplete={passwordAutoComplete}
+        hintPrefix={hintPrefix}
+        owed={owed}
+        vendorId={vendorId}
+      />
+      {state.errors?._form && (
+        <p role="alert" className="error form-error">
+          {t(`errors.${state.errors._form}`)}
+          {state.detail ? ` (${state.detail})` : ''}
+        </p>
+      )}
+      <button type="submit" className="btn" disabled={pending}>
+        {pending ? '…' : submitLabel}
+      </button>
+    </form>
+  );
+}
+
+function Fields({
+  fields,
+  state,
+  defaults,
+  choices,
+  passwordAutoComplete,
+  hintPrefix,
+  owed,
+  vendorId,
+}: {
+  fields: Field[];
+  state: FormState;
+  defaults: Record<string, string | boolean | string[]>;
+  choices: Choices;
+  passwordAutoComplete: 'current-password' | 'new-password';
+  hintPrefix?: string;
+  owed?: Record<string, Owed>;
+  vendorId?: string;
+}) {
+  const t = useTranslations();
+  const valueOf = (name: string) => state.values?.[name] ?? defaults[name];
+  // The vendor picked so far, so the amount box can say what they are still owed.
+  const [vendor, setVendor] = useState(vendorId ?? String(valueOf('vendor_id') ?? ''));
+
+  return (
+    <>
       {fields.map((field) => {
         const id = `field-${field.name}`;
         const error = state.errors?.[field.name];
@@ -97,7 +209,7 @@ export function Form({
                 </p>
               )}
               {field.kind === 'enum' || field.kind === 'ref' ? (
-                <select {...shared}>
+                <select {...shared} onChange={field.name === 'vendor_id' ? (e) => setVendor(e.target.value) : undefined}>
                   <option value="">{t(field.required ? 'common.choose' : 'common.none')}</option>
                   {field.kind === 'enum'
                     ? ENUMS[field.enum].map((option) => (
@@ -107,11 +219,13 @@ export function Form({
                       ))
                     : <ChoiceOptions choices={choices[field.ref] ?? []} />}
                 </select>
+              ) : field.kind === 'rupees' ? (
+                <RupeesInput input={shared} owed={field.name === 'amount' && owed ? owed[vendor] : undefined} />
               ) : (
                 <input
                   {...shared}
                   type={INPUT_TYPES[field.kind]}
-                  inputMode={field.kind === 'rupees' || field.kind === 'percent' ? 'decimal' : undefined}
+                  inputMode={field.kind === 'percent' ? 'decimal' : undefined}
                   autoComplete={field.kind === 'password' ? passwordAutoComplete : field.kind === 'email' ? 'username' : 'off'}
                 />
               )}
@@ -130,15 +244,6 @@ export function Form({
           </div>
         );
       })}
-      {state.errors?._form && (
-        <p role="alert" className="error form-error">
-          {t(`errors.${state.errors._form}`)}
-          {state.detail ? ` (${state.detail})` : ''}
-        </p>
-      )}
-      <button type="submit" className="btn" disabled={pending}>
-        {pending ? '…' : submitLabel}
-      </button>
-    </form>
+    </>
   );
 }

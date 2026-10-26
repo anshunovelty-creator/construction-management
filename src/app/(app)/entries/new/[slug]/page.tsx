@@ -7,6 +7,7 @@ import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { getEntryForm } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../../../masters/options';
+import { loadFirmParties } from '../../../party/shared';
 import { postEntryForm } from '../../actions';
 import { todayInIndia } from '../../data';
 
@@ -18,7 +19,13 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
   if (!(form.roles as string[]).includes(profile.role)) redirect('/entries/new');
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working && profile.role !== 'supervisor') return <p className="empty">{t('party.noFirm')}</p>;
-  const choices = await loadChoices(await createClient(), form.fields, working ? { working, t } : undefined);
+  const db = await createClient();
+  const [choices, parties] = await Promise.all([
+    loadChoices(db, form.fields, working ? { working, t } : undefined),
+    // A payment shows what the chosen vendor is still owed in this firm.
+    slug === 'pay-vendor' && working ? loadFirmParties(db, working.firm.id) : [],
+  ]);
+  const owed = Object.fromEntries(parties.map((p) => [p.id, { name: p.name, paise: p.f.balance }]));
 
   return (
     <>
@@ -40,6 +47,7 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
             action={postEntryForm.bind(null, slug, working?.firm.id ?? null)}
             submitLabel={t('entries.save')}
             hintPrefix={`entryForms.${slug}.hints`}
+            owed={slug === 'pay-vendor' ? owed : undefined}
           />
         </section>
         <aside className="why">

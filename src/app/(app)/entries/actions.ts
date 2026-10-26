@@ -191,6 +191,21 @@ export async function postEntryRows(
   return results;
 }
 
+/** One bill or payment from the quick card on a party's page. Stays on the page, which then shows the new totals. */
+export async function postPartyEntry(
+  slug: 'vendor-bill' | 'pay-vendor',
+  firmId: string,
+  vendorId: string,
+  _state: FormState,
+  data: FormData,
+): Promise<FormState> {
+  data.set('vendor_id', vendorId);
+  const saved = await saveEntry(slug, firmId, data, await createClient());
+  if (!('id' in saved)) return saved;
+  revalidatePath('/', 'layout');
+  return { saved: saved.serial };
+}
+
 /** Sheet rows on a party's page: every row is for the same firm and vendor. */
 export async function postPartyRows(
   slug: 'vendor-bill' | 'pay-vendor',
