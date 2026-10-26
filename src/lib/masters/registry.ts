@@ -14,8 +14,16 @@ export const ENUMS = {
 } as const;
 export type EnumName = keyof typeof ENUMS;
 
-/** Where a reference field's choices come from. */
-export type RefSource = 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'moneyAccounts' | 'workOrders' | 'materials';
+/**
+ * Where a reference field's choices come from. In a working firm, `moneyAccounts` lists that firm's banks
+ * and common cash; the `WeOwe` / `TheyOwe` lists add the other firms' banks, for forms where money may cross.
+ */
+export type RefSource =
+  | 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'workOrders' | 'materials'
+  | 'moneyAccounts' | 'moneyAccountsWeOwe' | 'moneyAccountsTheyOwe';
+
+/** One choice in a dropdown. Choices with a `group` come last, under that heading. */
+export type Choice = { value: string; label: string; group?: string };
 
 export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
