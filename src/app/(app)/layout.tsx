@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { FirmSwitch } from '@/components/firm-switch';
 import { NavLink } from '@/components/nav-link';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { signOut } from '../login/actions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireProfile();
-  const t = await getTranslations();
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   const office = profile.role !== 'supervisor';
   const owner = profile.role === 'owner';
   return (
@@ -45,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <NavLink href="/settings">{t('nav.settings')}</NavLink>
             </div>
           </details>
+          {working && <FirmSwitch firms={working.firms} firm={working.firm} />}
           <form action={signOut} className="signout">
             <span className="who">
               {profile.full_name} · {t(`options.role.${profile.role}`)}

@@ -308,3 +308,16 @@ tr:hover .party-link { color: var(--accent); }
 .more summary { list-style: none; cursor: pointer; }
 .more summary::-webkit-details-marker { display: none; }
 .more-menu { position: absolute; right: 0; top: calc(100% + 6px); display: grid; min-width: 180px; padding: 6px; z-index: 20; }
+
+/* ---------- Working firm ---------- */
+/* Always in sight at the top right, so nobody types into the wrong firm's books. */
+.firm-switch { margin-left: auto; }
+.firm-switch + .signout { margin-left: 0; }
+.firm-switch summary, .firm-name { font-weight: 600; }
+.firm-name { font-size: 14px; }
+.firm-switch .more-menu .eyebrow { padding: 4px 12px 2px; }
+.firm-switch .more-menu button { background: none; border: 0; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.firm-switch .more-menu button[aria-current='true'] { color: var(--ink); background: var(--paper); font-weight: 500; }
+.firm-switch .more-menu .error { padding: 4px 12px; font-size: 13px; }
+.firm-line { display: inline-block; margin: 0 0 12px; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13.5px; }
+.pill.common { background: var(--paper); color: var(--muted); margin-left: 8px; }
