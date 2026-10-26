@@ -623,5 +623,16 @@
     "addReceipts": "Add money received",
     "addBillsHint": "Type in the rows like Excel. Leave TDS, retention or deposit empty to use the work order's %, or type 0 if none was cut. Then press Save.",
     "needWorkOrder": "This client has no work order for this firm yet. A work order says which site the bills are for."
+  },
+  "firm": {
+    "switchLabel": "Working in {firm}. Tap to switch firm.",
+    "menuTitle": "Work in",
+    "switchFailed": "Could not switch firm. Try again.",
+    "for": "For {firm}",
+    "workingIn": "Working in {firm}",
+    "otherWeOwe": "Other firm: {us} will owe {them}",
+    "otherTheyOwe": "Other firm: {them} will owe {us}",
+    "common": "Common",
+    "commonHint": "Owner or supervisor cash: belongs to no firm."
   }
 }

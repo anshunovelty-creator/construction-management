@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState } from 'react';
-import { ENUMS, type Field, type RefSource } from '@/lib/masters/registry';
+import { ChoiceOptions } from '@/components/choice-options';
+import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 
 export interface FormState {
   /** Field name -> message key under `errors.*`; `_form` for the whole form. */
@@ -14,7 +15,7 @@ export interface FormState {
 }
 
 export type FormAction = (state: FormState, data: FormData) => Promise<FormState>;
-export type Choices = Partial<Record<RefSource, { value: string; label: string }[]>>;
+export type Choices = Partial<Record<RefSource, Choice[]>>;
 
 const INPUT_TYPES = { text: 'text', email: 'email', password: 'password', rupees: 'text', percent: 'text', date: 'date' } as const;
 
@@ -104,11 +105,7 @@ export function Form({
                           {t(`options.${field.enum}.${option}`)}
                         </option>
                       ))
-                    : (choices[field.ref] ?? []).map((choice) => (
-                        <option key={choice.value} value={choice.value}>
-                          {choice.label}
-                        </option>
-                      ))}
+                    : <ChoiceOptions choices={choices[field.ref] ?? []} />}
                 </select>
               ) : (
                 <input

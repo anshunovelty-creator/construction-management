@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition, type ClipboardEvent, type KeyboardEvent } from 'react';
+import { ChoiceOptions } from '@/components/choice-options';
 import type { FormState } from '@/components/form';
+import type { Choice } from '@/lib/masters/registry';
 
 export interface Column {
   name: string;
@@ -11,7 +13,7 @@ export interface Column {
   hint?: string;
   kind: 'text' | 'rupees' | 'date' | 'select';
   required: boolean;
-  options?: { value: string; label: string }[];
+  options?: Choice[];
 }
 
 type Saved = { id: string; serial: string };
@@ -202,9 +204,7 @@ export function EntrySheet({
                         {col.kind === 'select' ? (
                           <select {...common} onChange={(e) => setCell(r, col.name, e.target.value)}>
                             <option value="" />
-                            {col.options?.map((o) => (
-                              <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
+                            <ChoiceOptions choices={col.options ?? []} />
                           </select>
                         ) : (
                           <input
