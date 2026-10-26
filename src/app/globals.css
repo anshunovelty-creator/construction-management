@@ -232,7 +232,6 @@ table.sheet { border-collapse: collapse; width: max-content; min-width: 100%; }
 .book-summary { display: grid; gap: 16px; margin-bottom: 20px; }
 .book-summary .row, .card > .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--rule); }
 .book-summary .row .val { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
-.firm-links { margin-top: 16px; }
 .delete-box { margin-top: 28px; display: grid; gap: 10px; }
 .delete-box[open] { border-color: color-mix(in srgb, var(--minus) 35%, var(--rule)); }
 

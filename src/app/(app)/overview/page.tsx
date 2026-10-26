@@ -74,17 +74,7 @@ export default async function HomePage() {
             )}
           </div>
           <GroupCards plain={plain} groups={supervisor ? ['money'] : GROUPS} t={t} supervisor={supervisor} />
-          {!supervisor && (
-            <>
-              <nav className="filters firm-links" aria-label={t('board.firms')}>
-                <span className="muted">{t('board.firms')}</span>
-                {[...names.firms].map(([id, name]) => (
-                  <Link key={id} href={`/entries?firm=${id}`} className="chip">{name} →</Link>
-                ))}
-              </nav>
-              <SitesTable rows={balances} names={names} t={t} hint={t('board.sites.hint')} />
-            </>
-          )}
+          {!supervisor && <SitesTable rows={balances} names={names} t={t} hint={t('board.sites.hint')} />}
         </>
       )}
     </>
