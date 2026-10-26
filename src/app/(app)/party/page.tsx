@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { partyFigures } from '@/lib/ledger/party';
 import { getEntryForm } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
@@ -39,25 +39,24 @@ const LABELS: Record<string, string> = {
   from_account_id: 'paidFrom', reference: 'reference',
 };
 
-/** One party's page for one firm, like a vendor sheet of the outstanding workbook. ?firm=&id= */
-export default async function PartyPage({ searchParams }: { searchParams: Promise<{ firm?: string; id?: string }> }) {
+/** One party's page in the working firm, like a vendor sheet of the outstanding workbook. ?id= */
+export default async function PartyPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   await requireProfile('owner', 'office');
-  const { firm: firmId = '', id = '' } = await searchParams;
+  const { id = '' } = await searchParams;
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  if (!working) return <p className="empty">{t('party.noFirm')}</p>;
+  const { firm } = working;
   const db = await createClient();
-  const [{ data: firm }, { data: party }] = await Promise.all([
-    db.from('firms').select('id, name').eq('id', firmId).maybeSingle(),
-    db.from('parties').select('id, name').eq('id', id).maybeSingle(),
-  ]);
-  if (!firm || !party) notFound();
+  const { data: party } = await db.from('parties').select('id, name').eq('id', id).maybeSingle();
+  if (!party) notFound();
 
   const billFields = fieldsOf('vendor-bill', BILL_COLUMNS);
   const payFields = fieldsOf('pay-vendor', PAY_COLUMNS);
-  const [{ data }, names, choices, t, { data: materials }] = await Promise.all([
+  const [{ data }, names, choices, { data: materials }] = await Promise.all([
     db.from('party_rows').select('*').eq('firm_id', firm.id).eq('party_id', party.id)
       .order('entry_date').order('serial').returns<PartyRow[]>(),
     loadNames(db),
-    loadChoices(db, [...billFields, ...payFields]),
-    getTranslations(),
+    loadChoices(db, [...billFields, ...payFields], { working, t }),
     db.from('materials').select('id, name'),
   ]);
   const materialOf = new Map((materials ?? []).map((m) => [m.id as string, m.name as string]));
@@ -102,7 +101,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <Link href={`/?firm=${firm.id}`} className="back">◄ {t('party.home')}</Link>
+      <Link href="/" className="back">◄ {t('party.home')}</Link>
       <div className="party-head">
         <h1>{party.name}</h1>
         <StatusPill status={f.status} t={t} />

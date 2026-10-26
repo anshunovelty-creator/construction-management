@@ -491,7 +491,6 @@
     "fromNew": "Many entries at once? Type them in a sheet"
   },
   "party": {
-    "firms": "Firms",
     "indexTitle": "{firm} – Parties",
     "indexLede": "Every party this firm owes money to, just like the outstanding sheet.",
     "sr": "Sr.",

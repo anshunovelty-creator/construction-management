@@ -1,17 +1,18 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { FirmTabs, loadFirmParties, MoneyCell, Stat } from '../party/shared';
+import { loadFirmParties, MoneyCell, Stat } from '../party/shared';
 
-/** The workbook's Dashboard sheet: big totals, counts by status, the top 5 and a bar per party. */
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ firm?: string }> }) {
+/** The workbook's Dashboard sheet for the working firm: big totals, counts by status, the top 5 and a bar per party. */
+export default async function DashboardPage() {
   await requireProfile('owner', 'office');
-  const { firm: want } = await searchParams;
-  const [{ firms, firm, parties }, t] = await Promise.all([loadFirmParties(await createClient(), want), getTranslations()]);
-  if (!firm) return <p className="empty">{t('party.noFirm')}</p>;
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  if (!working) return <p className="empty">{t('party.noFirm')}</p>;
+  const { firm } = working;
+  const parties = await loadFirmParties(await createClient(), firm.id);
   const sum = sumFigures(parties.map((p) => p.f));
   const count = (status: string) => parties.filter((p) => p.f.status === status).length;
   const top = [...parties].sort((a, b) => b.f.balance - a.f.balance).slice(0, 5);
@@ -24,9 +25,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <h1>{t('dashboard.title', { firm: firm.name })}</h1>
           <p className="lede">{t('dashboard.lede')}</p>
         </div>
-        <Link href={`/?firm=${firm.id}`} className="btn ghost">◄ {t('party.home')}</Link>
+        <Link href="/" className="btn ghost">◄ {t('party.home')}</Link>
       </div>
-      <FirmTabs firms={firms} firm={firm} path="/dashboard" t={t} />
 
       <div className="stats big">
         <Stat label={t('party.total')} value={showPaise(sum.total)} />
@@ -61,7 +61,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               {top.map(({ id, name, f }, i) => (
                 <tr key={id}>
                   <td className="num muted">{i + 1}</td>
-                  <td><Link href={`/party?firm=${firm.id}&id=${id}`} className="party-link">{name}</Link></td>
+                  <td><Link href={`/party?id=${id}`} className="party-link">{name}</Link></td>
                   <MoneyCell paise={f.total} />
                   <MoneyCell paise={f.paid} />
                   <MoneyCell paise={f.balance} strong />

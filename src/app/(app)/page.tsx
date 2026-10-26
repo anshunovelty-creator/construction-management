@@ -2,25 +2,25 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { RowFilter } from '@/components/row-filter';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { showDate } from './entries/data';
-import { FirmTabs, loadFirmParties, MoneyCell, Stat, StatusPill } from './party/shared';
+import { loadFirmParties, MoneyCell, Stat, StatusPill } from './party/shared';
 
-/** Home: every party a firm owes, one line each, like the Index sheet of the outstanding workbook. */
-export default async function PartyIndexPage({ searchParams }: { searchParams: Promise<{ firm?: string }> }) {
+/** Home: every party the working firm owes, one line each, like the Index sheet of the outstanding workbook. */
+export default async function PartyIndexPage() {
   const profile = await requireProfile();
   if (profile.role === 'supervisor') redirect('/overview');
-  const { firm: want } = await searchParams;
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  if (!working) return <p className="empty">{t('party.noFirm')}</p>;
+  const { firm } = working;
   const db = await createClient();
-  const [{ firms, firm, parties }, { data: vendors }, t] = await Promise.all([
-    loadFirmParties(db, want),
+  const [parties, { data: vendors }] = await Promise.all([
+    loadFirmParties(db, firm.id),
     db.from('parties').select('id, name').eq('kind', 'vendor').eq('is_active', true).order('name'),
-    getTranslations(),
   ]);
-  if (!firm) return <p className="empty">{t('party.noFirm')}</p>;
   const sum = sumFigures(parties.map((p) => p.f));
 
   return (
@@ -30,9 +30,8 @@ export default async function PartyIndexPage({ searchParams }: { searchParams: P
           <h1>{t('party.indexTitle', { firm: firm.name })}</h1>
           <p className="lede">{t('party.indexLede')}</p>
         </div>
-        <Link href={`/dashboard?firm=${firm.id}`} className="btn ghost">{t('nav.dashboard')} ►</Link>
+        <Link href="/dashboard" className="btn ghost">{t('nav.dashboard')} ►</Link>
       </div>
-      <FirmTabs firms={firms} firm={firm} path="/" t={t} />
 
       {parties.length === 0 ? (
         <p className="card empty">{t('party.empty')}</p>
@@ -69,7 +68,7 @@ export default async function PartyIndexPage({ searchParams }: { searchParams: P
                   <tr key={id} data-name={name}>
                     <td className="num muted">{i + 1}</td>
                     {/* The name's link stretches over the whole row, so a click anywhere opens the party. */}
-                    <td><Link href={`/party?firm=${firm.id}&id=${id}`} className="party-link">{name}</Link></td>
+                    <td><Link href={`/party?id=${id}`} className="party-link">{name}</Link></td>
                     <MoneyCell paise={f.opening} />
                     <MoneyCell paise={f.bills} />
                     <MoneyCell paise={f.total} />
@@ -100,7 +99,6 @@ export default async function PartyIndexPage({ searchParams }: { searchParams: P
       )}
 
       <form action="/party" className="open-other card">
-        <input type="hidden" name="firm" value={firm.id} />
         <label htmlFor="open-id">{t('party.openOther')}</label>
         <select id="open-id" name="id" required defaultValue="">
           <option value="" disabled>{t('common.choose')}</option>

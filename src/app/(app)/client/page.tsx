@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { clientFigures } from '@/lib/ledger/party';
 import { getEntryForm } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
@@ -44,27 +44,26 @@ const LABELS: Record<string, string> = {
   amount: 'party.amount', to_account_id: 'client.receivedIn', reference: 'party.reference',
 };
 
-/** One client's page for one firm: bills given and money received. ?firm=&id= */
-export default async function ClientPage({ searchParams }: { searchParams: Promise<{ firm?: string; id?: string }> }) {
+/** One client's page in the working firm: bills given and money received. ?id= */
+export default async function ClientPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   await requireProfile('owner', 'office');
-  const { firm: firmId = '', id = '' } = await searchParams;
+  const { id = '' } = await searchParams;
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  if (!working) return <p className="empty">{t('party.noFirm')}</p>;
+  const { firm } = working;
   const db = await createClient();
-  const [{ data: firm }, { data: client }] = await Promise.all([
-    db.from('firms').select('id, name').eq('id', firmId).maybeSingle(),
-    db.from('parties').select('id, name').eq('id', id).eq('kind', 'client').maybeSingle(),
-  ]);
-  if (!firm || !client) notFound();
+  const { data: client } = await db.from('parties').select('id, name').eq('id', id).eq('kind', 'client').maybeSingle();
+  if (!client) notFound();
 
   const billFields = fieldsOf('client-bill', BILL_COLUMNS);
   const receiptFields = fieldsOf('client-receipt', RECEIPT_COLUMNS);
-  const [{ data }, { data: orders }, names, choices, t] = await Promise.all([
+  const [{ data }, { data: orders }, names, choices] = await Promise.all([
     db.from('client_rows').select('*').eq('firm_id', firm.id).eq('party_id', client.id)
       .order('entry_date').order('serial').returns<ClientRow[]>(),
     db.from('work_orders').select('id, ref, is_active, site:sites(name)').eq('firm_id', firm.id).eq('client_id', client.id)
       .order('ref').returns<{ id: string; ref: string; is_active: boolean; site: { name: string } | null }[]>(),
     loadNames(db),
-    loadChoices(db, [...billFields, ...receiptFields]),
-    getTranslations(),
+    loadChoices(db, [...billFields, ...receiptFields], { working, t }),
   ]);
   // Only this client's own work orders for this firm, named by their site.
   const orderLabel = new Map((orders ?? []).map((o) => [o.id, `${o.ref} · ${o.site?.name ?? ''}`]));
@@ -117,7 +116,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <Link href={`/clients?firm=${firm.id}`} className="back">◄ {t('client.home')}</Link>
+      <Link href="/clients" className="back">◄ {t('client.home')}</Link>
       <div className="party-head">
         <h1>{client.name}</h1>
         <StatusPill status={f.status} t={t} side="client" />

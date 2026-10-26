@@ -1,24 +1,24 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { RowFilter } from '@/components/row-filter';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { showDate } from '../entries/data';
-import { FirmTabs, loadFirmClients, MoneyCell, Stat, StatusPill } from '../party/shared';
+import { loadFirmClients, MoneyCell, Stat, StatusPill } from '../party/shared';
 
-/** Every client who owes a firm, one line each: the client side of the party list. */
-export default async function ClientIndexPage({ searchParams }: { searchParams: Promise<{ firm?: string }> }) {
+/** Every client who owes the working firm, one line each: the client side of the party list. */
+export default async function ClientIndexPage() {
   await requireProfile('owner', 'office');
-  const { firm: want } = await searchParams;
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  if (!working) return <p className="empty">{t('party.noFirm')}</p>;
+  const { firm } = working;
   const db = await createClient();
-  const [{ firms, firm, clients }, { data: all }, t] = await Promise.all([
-    loadFirmClients(db, want),
+  const [clients, { data: all }] = await Promise.all([
+    loadFirmClients(db, firm.id),
     db.from('parties').select('id, name').eq('kind', 'client').eq('is_active', true).order('name'),
-    getTranslations(),
   ]);
-  if (!firm) return <p className="empty">{t('party.noFirm')}</p>;
   const sum = sumFigures(clients.map((c) => c.f));
   const gross = clients.reduce((s, c) => s + c.f.gross, 0);
   const deductions = clients.reduce((s, c) => s + c.f.deductions, 0);
@@ -31,7 +31,6 @@ export default async function ClientIndexPage({ searchParams }: { searchParams: 
           <p className="lede">{t('client.indexLede')}</p>
         </div>
       </div>
-      <FirmTabs firms={firms} firm={firm} path="/clients" t={t} />
 
       {clients.length === 0 ? (
         <p className="card empty">{t('client.empty')}</p>
@@ -68,7 +67,7 @@ export default async function ClientIndexPage({ searchParams }: { searchParams: 
                 {clients.map(({ id, name, f }, i) => (
                   <tr key={id} data-name={name}>
                     <td className="num muted">{i + 1}</td>
-                    <td><Link href={`/client?firm=${firm.id}&id=${id}`} className="party-link">{name}</Link></td>
+                    <td><Link href={`/client?id=${id}`} className="party-link">{name}</Link></td>
                     <MoneyCell paise={f.opening} />
                     <MoneyCell paise={f.gross} />
                     <MoneyCell paise={f.deductions} />
@@ -101,7 +100,6 @@ export default async function ClientIndexPage({ searchParams }: { searchParams: 
       )}
 
       <form action="/client" className="open-other card">
-        <input type="hidden" name="firm" value={firm.id} />
         <label htmlFor="open-id">{t('client.openOther')}</label>
         <select id="open-id" name="id" required defaultValue="">
           <option value="" disabled>{t('common.choose')}</option>
