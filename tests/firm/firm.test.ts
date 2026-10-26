@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { accountChoices, accountScope, allowedFirms, inScope, isCommonEntry, pickWorkingFirm, type AccountRow } from '@/lib/firm';
+import {
+  accountChoices, accountScope, allowedFirms, firmErrors, inScope, isCommonEntry, pickWorkingFirm, type AccountRow,
+} from '@/lib/firm';
 import { cashTransfer, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { vendorPayment } from '@/lib/ledger/posting/vendor';
 import type { EntryDraft } from '@/lib/ledger/types';
+import { getEntryForm } from '@/lib/masters/registry';
 import { AB, AB_BANK, JI, JI_BANK, OWNER_CASH, RAMESH, SVG, VENDOR } from '../ledger/fixtures';
 
 const ab = { id: AB, name: 'AB Infra' };
@@ -65,6 +68,39 @@ describe('money account lists', () => {
     expect(inScope('own', JI, AB)).toBe(false);
     expect(inScope('weOwe', JI, AB)).toBe(true);
     expect(inScope('theyOwe', JI, AB)).toBe(true);
+  });
+});
+
+describe('firmErrors (checked on save)', () => {
+  const fields = (slug: string) => getEntryForm(slug)!.fields;
+
+  it('saves for the firm the form was opened in, even after a switch to the other firm', () => {
+    // Opened in AB Infra, saved after switching to Jayraj: AB is still a firm this person may use.
+    expect(firmErrors('vendor-bill', fields('vendor-bill'), AB, [AB, JI], {})).toBeNull();
+  });
+
+  it('refuses a firm the person may not use, or no firm on a firm’s form', () => {
+    expect(firmErrors('vendor-bill', fields('vendor-bill'), JI, [AB], {})).toEqual({ _form: 'not_allowed' });
+    expect(firmErrors('vendor-bill', fields('vendor-bill'), null, [AB], {})).toEqual({ _form: 'not_allowed' });
+  });
+
+  it('lets supervisors post without a firm, but not a firm’s form', () => {
+    expect(firmErrors('site-spend', fields('site-spend'), null, null, {})).toBeNull();
+    expect(firmErrors('vendor-bill', fields('vendor-bill'), null, null, {})).toEqual({ _form: 'not_allowed' });
+    expect(firmErrors('site-spend', fields('site-spend'), AB, null, {})).toEqual({ _form: 'not_allowed' });
+  });
+
+  it('refuses the other firm’s work order', () => {
+    expect(firmErrors('client-bill', fields('client-bill'), AB, [AB, JI], { work_order_id: JI })).toEqual({ work_order_id: 'other_firm' });
+    expect(firmErrors('client-bill', fields('client-bill'), JI, [AB, JI], { work_order_id: JI })).toBeNull();
+  });
+
+  it('allows the other firm’s bank only where the form offers it', () => {
+    const move = fields('move-money');
+    expect(firmErrors('move-money', move, AB, [AB, JI], { from_account_id: JI, to_account_id: AB })).toEqual({ from_account_id: 'other_firm' });
+    expect(firmErrors('move-money', move, AB, [AB, JI], { from_account_id: null, to_account_id: JI })).toBeNull();
+    expect(firmErrors('pay-vendor', fields('pay-vendor'), AB, [AB, JI], { from_account_id: JI })).toBeNull();
+    expect(firmErrors('site-spend', fields('site-spend'), AB, [AB, JI], { from_account_id: JI })).toEqual({ from_account_id: 'other_firm' });
   });
 });
 

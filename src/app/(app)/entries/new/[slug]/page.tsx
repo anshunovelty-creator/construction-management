@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { FirmLine } from '@/components/firm-line';
 import { Form } from '@/components/form';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { getEntryForm } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../../../masters/options';
@@ -15,8 +16,9 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
   if (!form) notFound();
   const profile = await requireProfile();
   if (!(form.roles as string[]).includes(profile.role)) redirect('/entries/new');
-  const db = await createClient();
-  const [choices, t] = await Promise.all([loadChoices(db, form.fields), getTranslations()]);
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  if (!working && profile.role !== 'supervisor') return <p className="empty">{t('party.noFirm')}</p>;
+  const choices = await loadChoices(await createClient(), form.fields, working ? { working, t } : undefined);
 
   return (
     <>
@@ -30,11 +32,12 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
           </p>
           <h1>{t(`entryForms.${slug}.title`)}</h1>
           <p className="lede">{t(`entryForms.${slug}.when`)}</p>
+          {working && <FirmLine slug={slug} firm={working.firm} t={t} />}
           <Form
             fields={form.fields}
             defaults={{ entry_date: todayInIndia() }}
             choices={choices}
-            action={postEntryForm.bind(null, slug)}
+            action={postEntryForm.bind(null, slug, working?.firm.id ?? null)}
             submitLabel={t('entries.save')}
             hintPrefix={`entryForms.${slug}.hints`}
           />

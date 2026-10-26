@@ -3,14 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/components/form';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
+import { accountScope, firmErrors } from '@/lib/firm';
 import { cashCloseDifference, cashTransfer, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import type { CostHead, EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
 import { showPaise, percentOf } from '@/lib/money';
 import { parseFields, submittedValues, type Value } from '@/lib/masters/parse';
-import { getEntryForm, type EntryFormSlug } from '@/lib/masters/registry';
+import { getEntryForm, type EntryFormSlug, type Field } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
@@ -46,8 +47,25 @@ function materialAndType(s: (name: string) => string): { materialId?: string; co
   return { materialId, costHead };
 }
 
-/** Turns a submitted form into a balanced ledger entry, using the tested posting rules. */
-async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db): Promise<EntryDraft> {
+/**
+ * For each work order or bank/cash field filled in, the firm of the row picked (null = common cash).
+ * Rows the person may not see are left out; buildDraft then reports them as not found.
+ */
+async function firmsPicked(fields: Field[], v: Record<string, Value>, db: Db): Promise<Record<string, string | null>> {
+  const picked: Record<string, string | null> = {};
+  for (const field of fields) {
+    const id = v[field.name];
+    if (field.kind !== 'ref' || typeof id !== 'string') continue;
+    const table = field.ref === 'workOrders' ? 'work_orders' : accountScope(field.ref) ? 'money_accounts' : null;
+    if (!table) continue;
+    const { data } = await db.from(table).select('firm_id').eq('id', id).maybeSingle();
+    if (data) picked[field.name] = data.firm_id as string | null;
+  }
+  return picked;
+}
+
+/** Turns a submitted form into a balanced ledger entry, using the tested posting rules. `firmId` is the form's firm. */
+async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId: string | null, db: Db): Promise<EntryDraft> {
   const s = (name: string) => v[name] as string;
   const n = (name: string) => v[name] as number;
 
@@ -55,13 +73,13 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, db: Db)
     case 'vendor-bill': {
       const { materialId, costHead } = materialAndType(s);
       return vendorBill({
-        firmId: s('firm_id'), vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
+        firmId: firmId!, vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
         items: [{ costHead, amountPaise: n('amount') }], narration: s('narration'), materialId,
       });
     }
     case 'pay-vendor':
       return vendorPayment({
-        billFirmId: s('firm_id'), vendorId: s('vendor_id'), from: await moneyAccount(db, s('from_account_id')),
+        billFirmId: firmId!, vendorId: s('vendor_id'), from: await moneyAccount(db, s('from_account_id')),
         amountPaise: n('amount'), paymentDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
     case 'client-bill': {
@@ -114,9 +132,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Saves one entry as the signed-in user. The database checks permissions, balance and locks again.
- * `entryId` makes a retry safe: saving the same id twice returns the first entry instead of a copy.
+ * `firmId` is the firm the form was opened in (null for supervisors): the entry is made for that firm,
+ * even if the person has switched firm since. `entryId` makes a retry safe: saving the same id twice
+ * returns the first entry instead of a copy.
  */
-async function saveEntry(slug: string, data: FormData, db: Db, entryId?: string): Promise<Saved | FormState> {
+async function saveEntry(slug: string, firmId: string | null, data: FormData, db: Db, entryId?: string): Promise<Saved | FormState> {
   const form = getEntryForm(slug);
   const profile = await requireProfile();
   if (!form || !(form.roles as string[]).includes(profile.role)) return { errors: { _form: 'not_allowed' } };
@@ -124,6 +144,10 @@ async function saveEntry(slug: string, data: FormData, db: Db, entryId?: string)
   const values = submittedValues(data);
   const parsed = parseFields(form.fields, data);
   if (!parsed.ok) return { errors: parsed.errors, values };
+  const working = await getWorkingFirm();
+  const picked = working ? await firmsPicked(form.fields, parsed.values, db) : {};
+  const wrong = firmErrors(slug, form.fields, firmId, working ? working.firms.map((f) => f.id) : null, picked);
+  if (wrong) return { errors: wrong, values };
 
   if (slug === 'day-close') {
     // ponytail: compares with today's balance, not the balance on the chosen date.
@@ -132,7 +156,7 @@ async function saveEntry(slug: string, data: FormData, db: Db, entryId?: string)
   }
   let draft: EntryDraft;
   try {
-    draft = await buildDraft(slug as EntryFormSlug, parsed.values, db);
+    draft = await buildDraft(slug as EntryFormSlug, parsed.values, firmId, db);
   } catch (error) {
     return { errors: { _form: 'save_failed' }, detail: (error as Error).message, values };
   }
@@ -142,9 +166,9 @@ async function saveEntry(slug: string, data: FormData, db: Db, entryId?: string)
   return result as Saved;
 }
 
-/** Saves one money form, then opens the new entry. */
-export async function postEntryForm(slug: string, _state: FormState, data: FormData): Promise<FormState> {
-  const saved = await saveEntry(slug, data, await createClient());
+/** Saves one money form, then opens the new entry. `firmId`: the firm the form was opened in. */
+export async function postEntryForm(slug: string, firmId: string | null, _state: FormState, data: FormData): Promise<FormState> {
+  const saved = await saveEntry(slug, firmId, data, await createClient());
   if (!('id' in saved)) return saved;
   revalidatePath('/', 'layout');
   redirect(`/entries/${saved.id}?saved=1`);
@@ -153,6 +177,7 @@ export async function postEntryForm(slug: string, _state: FormState, data: FormD
 /** Saves sheet rows one by one, each through the same checks as the form. Result per row id. */
 export async function postEntryRows(
   slug: string,
+  firmId: string | null,
   rows: { id: string; cells: Record<string, string> }[],
 ): Promise<Record<string, Saved | FormState>> {
   const db = await createClient();
@@ -160,19 +185,20 @@ export async function postEntryRows(
   for (const row of rows) {
     const data = new FormData();
     for (const [name, value] of Object.entries(row.cells)) data.set(name, value);
-    results[row.id] = await saveEntry(slug, data, db, row.id);
+    results[row.id] = await saveEntry(slug, firmId, data, db, row.id);
   }
   revalidatePath('/', 'layout');
   return results;
 }
 
-/** Sheet rows on a party's page: every row gets the same firm and vendor. */
+/** Sheet rows on a party's page: every row is for the same firm and vendor. */
 export async function postPartyRows(
   slug: 'vendor-bill' | 'pay-vendor',
-  fixed: { firm_id: string; vendor_id: string },
+  firmId: string,
+  vendorId: string,
   rows: { id: string; cells: Record<string, string> }[],
 ): Promise<Record<string, Saved | FormState>> {
-  return postEntryRows(slug, rows.map((row) => ({ ...row, cells: { ...row.cells, ...fixed } })));
+  return postEntryRows(slug, firmId, rows.map((row) => ({ ...row, cells: { ...row.cells, vendor_id: vendorId } })));
 }
 
 const backTo = (id: string, error?: { message: string } | null) =>

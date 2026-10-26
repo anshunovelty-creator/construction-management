@@ -82,7 +82,6 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
 
   const lastBill = bills.at(-1);
   const lastFrom = payments.at(-1)?.money_account_id;
-  const fixed = { firm_id: firm.id, vendor_id: party.id };
   const columns = (slug: Slug, fields: typeof billFields, dateKey: string) =>
     sheetColumns(slug, fields, choices, t).map((c) => ({
       ...c, label: t(`party.${c.name === 'entry_date' ? dateKey : LABELS[c.name] ?? c.name}`),
@@ -94,7 +93,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
     </>
   );
   // Without a site or a bank/cash account the sheet cannot save, so say where to add one.
-  const missing = (source: 'sites' | 'moneyAccounts', slug: string, key: string) =>
+  const missing = (source: 'sites' | 'moneyAccountsWeOwe', slug: string, key: string) =>
     (choices[source] ?? []).length === 0 && (
       <p className="banner bad">
         {t(`party.${key}`)} <Link href={`/masters/${slug}`} className="underline">{t('party.goSetup')}</Link>
@@ -187,7 +186,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
             today={todayInIndia()}
             start={3}
             defaults={lastBill ? { site_id: lastBill.site_id ?? '', cost_head: lastBill.cost_head ?? '' } : {}}
-            save={postPartyRows.bind(null, 'vendor-bill', fixed)}
+            save={postPartyRows.bind(null, 'vendor-bill', firm.id, party.id)}
           />
         </details>
       </section>
@@ -236,14 +235,14 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
         )}
         <details className="add-rows">
           <summary className="btn">＋ {t('party.addPayments')}</summary>
-          {missing('moneyAccounts', 'money-accounts', 'needAccount')}
+          {missing('moneyAccountsWeOwe', 'money-accounts', 'needAccount')}
           <p className="hint">{t('party.addHint')}</p>
           <EntrySheet
             columns={columns('pay-vendor', payFields, 'payDate')}
             today={todayInIndia()}
             start={3}
             defaults={lastFrom ? { from_account_id: lastFrom } : {}}
-            save={postPartyRows.bind(null, 'pay-vendor', fixed)}
+            save={postPartyRows.bind(null, 'pay-vendor', firm.id, party.id)}
           />
         </details>
       </section>

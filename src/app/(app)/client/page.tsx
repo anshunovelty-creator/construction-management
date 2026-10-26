@@ -208,7 +208,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             today={todayInIndia()}
             start={3}
             defaults={onlyOrder}
-            save={postEntryRows.bind(null, 'client-bill')}
+            save={postEntryRows.bind(null, 'client-bill', firm.id)}
           />
         </details>
       </section>
@@ -258,7 +258,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
         <details className="add-rows">
           <summary className="btn">＋ {t('client.addReceipts')}</summary>
           {noOrders}
-          {(choices.moneyAccounts ?? []).length === 0 && (
+          {(choices.moneyAccountsTheyOwe ?? []).length === 0 && (
             <p className="banner bad">
               {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
             </p>
@@ -269,7 +269,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             today={todayInIndia()}
             start={3}
             defaults={lastTo ? { ...onlyOrder, to_account_id: lastTo } : onlyOrder}
-            save={postEntryRows.bind(null, 'client-receipt')}
+            save={postEntryRows.bind(null, 'client-receipt', firm.id)}
           />
         </details>
       </section>

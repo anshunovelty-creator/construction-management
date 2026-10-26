@@ -140,21 +140,22 @@ const amount: Field = { name: 'amount', kind: 'rupees', required: true };
 const date: Field = { name: 'entry_date', kind: 'date', required: true };
 const note: Field = { name: 'narration', kind: 'text' };
 const reference: Field = { name: 'reference', kind: 'text' };
-const from: Field = { name: 'from_account_id', kind: 'ref', ref: 'moneyAccounts', required: true };
-const to: Field = { name: 'to_account_id', kind: 'ref', ref: 'moneyAccounts', required: true };
+/** A bank or cash account field; `ref` says whether the other firm's banks are offered too (see RefSource). */
+const account = (name: string, ref: RefSource = 'moneyAccounts'): Field => ({ name, kind: 'ref', ref, required: true });
+const from = account('from_account_id');
 const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', required: true };
 const workOrder: Field = { name: 'work_order_id', kind: 'ref', ref: 'workOrders', required: true };
 
 /**
  * The money forms, keyed by URL slug (/entries/new/<slug>), in the order the "Add an entry" page shows them.
  * `roles` mirrors what the database lets each role post (app_assert_can_post); the database has the final say.
+ * None asks for the firm: forms are filled in the working firm, the one chosen at the top right.
  */
 export const ENTRY_FORMS = {
   'vendor-bill': {
     icon: '🧾',
     roles: ['owner', 'office'],
     fields: [
-      { name: 'firm_id', kind: 'ref', ref: 'firms', required: true },
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
       { name: 'bill_no', kind: 'text', required: true },
@@ -168,8 +169,8 @@ export const ENTRY_FORMS = {
     roles: ['owner', 'office'],
     fields: [
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
-      { name: 'firm_id', kind: 'ref', ref: 'firms', required: true },
-      from, amount, date, reference, note,
+      // Another firm's bank may pay this firm's bill: this firm then owes that one.
+      account('from_account_id', 'moneyAccountsWeOwe'), amount, date, reference, note,
     ],
   },
   'client-bill': {
@@ -188,12 +189,14 @@ export const ENTRY_FORMS = {
   'client-receipt': {
     icon: '💰',
     roles: ['owner', 'office'],
-    fields: [workOrder, to, amount, date, reference, note],
+    // The client's money may land in another firm's bank: that firm then owes this one.
+    fields: [workOrder, account('to_account_id', 'moneyAccountsTheyOwe'), amount, date, reference, note],
   },
   'move-money': {
     icon: '🔁',
     roles: ['owner', 'office'],
-    fields: [from, to, amount, date, reference, note],
+    // Money leaves this firm's banks or common cash; it may go to another firm's bank, which then owes this firm.
+    fields: [from, account('to_account_id', 'moneyAccountsTheyOwe'), amount, date, reference, note],
   },
   'site-spend': {
     icon: '🛠️',
@@ -228,6 +231,12 @@ export const ENTRY_FORMS = {
   },
 } satisfies Record<string, { icon: string; roles: AppRole[]; fields: Field[] }>;
 export type EntryFormSlug = keyof typeof ENTRY_FORMS;
+
+/**
+ * Forms made for the working firm's own vendor or client. The others take their firm from the bank picked
+ * (cash makes them common), as the posting rules always have.
+ */
+export const FIRM_FORMS: ReadonlySet<string> = new Set<EntryFormSlug>(['vendor-bill', 'pay-vendor', 'client-bill', 'client-receipt']);
 
 export function getEntryForm(slug: string) {
   return Object.hasOwn(ENTRY_FORMS, slug) ? ENTRY_FORMS[slug as EntryFormSlug] : undefined;

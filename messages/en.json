@@ -212,7 +212,8 @@
     "invalid_login": "Wrong email or password.",
     "inactive": "This account is switched off. Ask the owner.",
     "cash_matches": "The cash matches the books exactly. Nothing to record — well done!",
-    "reason_required": "Write what is wrong first."
+    "reason_required": "Write what is wrong first.",
+    "other_firm": "This belongs to the other firm. Switch firm at the top right first."
   },
   "common": {
     "yes": "Yes",
