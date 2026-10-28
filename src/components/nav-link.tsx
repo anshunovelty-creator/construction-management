@@ -16,7 +16,7 @@ export function NavLink({
   children: React.ReactNode;
 }) {
   const path = usePathname();
-  const current = path === section || (!exact && path.startsWith(`${section}/`));
+  const current = path === href || path === section || (!exact && path.startsWith(`${section}/`));
   return (
     <Link href={href} className="nav-link" aria-current={current ? 'page' : undefined}>
       {children}

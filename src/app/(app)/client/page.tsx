@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
+import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { clientFigures } from '@/lib/ledger/party';
 import { getEntryForm } from '@/lib/masters/registry';
@@ -45,9 +46,9 @@ const LABELS: Record<string, string> = {
 };
 
 /** One client's page in the working firm: bills given and money received. ?id= */
-export default async function ClientPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+export default async function ClientPage({ searchParams }: { searchParams: Promise<{ id?: string; tab?: string }> }) {
   await requireProfile('owner', 'office');
-  const { id = '' } = await searchParams;
+  const { id = '', tab = 'bills' } = await searchParams;
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
   const { firm } = working;
@@ -79,6 +80,8 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
   const bills = of('client_bill');
   const receipts = of('client_receipt');
   const opening = of('opening')[0];
+  // The opening due is listed as the first bill, so the bills add up to the total to receive.
+  const billRows = [...of('opening').map((r) => ({ ...r, gross: r.receivable, cuts: 0 })), ...bills];
   const f = clientFigures({
     firm_id: firm.id, party_id: client.id,
     opening_paise: of('opening').reduce((s, r) => s + r.receivable, 0),
@@ -127,13 +130,9 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
           : t('client.noOpening', { firm: firm.name })}
       </p>
 
-      <div className="calc" aria-label={t('party.summary')}>
-        <Stat label={t('client.opening')} value={showPaise(f.opening)} />
-        <span className="op" aria-hidden="true">+</span>
-        <Stat label={t('client.netBills')} value={showPaise(f.bills)}
-          note={f.deductions ? t('client.netNote', { gross: showPaise(f.gross), cuts: showPaise(f.deductions) }) : undefined} />
-        <span className="op" aria-hidden="true">=</span>
-        <Stat label={t('client.total')} value={showPaise(f.total)} />
+      <div className="calc three" aria-label={t('party.summary')}>
+        <Stat label={t('client.total')} value={showPaise(f.total)}
+          note={t('client.includesOpening', { amount: showPaise(f.opening) })} />
         <span className="op" aria-hidden="true">−</span>
         <Stat label={t('client.received')} value={showPaise(f.paid)} tone="done"
           note={f.lastPayment ? t('client.lastOn', { date: showDate(f.lastPayment) }) : t('client.nothingReceived')} />
@@ -141,137 +140,136 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
         <Stat label={t('client.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'due' : 'done'} note={t('client.balanceNote')} />
       </div>
 
-      <section className="ledger-section">
-        <div className="section-head">
-          <h2>{t('client.billsTitle')} <span className="count">{bills.length}</span></h2>
-          <p className="hint">{t('client.billsHint')}</p>
-        </div>
-        {bills.length === 0 ? (
-          <p className="card empty">{t('client.noBills')}</p>
-        ) : (
-          <div className="card table-wrap flush">
-            <table className="ledger">
-              <thead>
-                <tr>
-                  <th className="num">{t('party.sr')}</th>
-                  <th>{t('party.billDate')}</th>
-                  <th>{t('party.billNo')}</th>
-                  <th>{t('client.workOrder')}</th>
-                  <th className="num">{t('client.gross')}</th>
-                  <th className="num">{t('client.tds')}</th>
-                  <th className="num">{t('client.retention')}</th>
-                  <th className="num">{t('client.deposit')}</th>
-                  <th className="num">{t('client.otherCuts')}</th>
-                  <th className="num">{t('client.net')}</th>
-                  <th>{t('party.entry')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bills.map((r, i) => (
-                  <tr key={r.entry_id}>
-                    <td className="num muted">{i + 1}</td>
-                    <td className="nowrap">{showDate(r.entry_date)}</td>
-                    <td>{r.reference}</td>
-                    <td>{orderLabel.get(r.work_order_id) ?? names.sites.get(r.site_id)}</td>
-                    <MoneyCell paise={r.gross} />
-                    <MoneyCell paise={Number(r.tds_paise)} />
-                    <MoneyCell paise={Number(r.retention_paise)} />
-                    <MoneyCell paise={Number(r.deposit_paise)} />
-                    <MoneyCell paise={Number(r.other_cut_paise)} />
-                    <MoneyCell paise={r.gross - r.cuts} strong />
-                    <td className="nowrap">{entryLink(r)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td /><td colSpan={3}>{t('client.totalBills')}</td>
-                  <MoneyCell paise={f.gross} />
-                  <MoneyCell paise={sum('tds_paise')} />
-                  <MoneyCell paise={sum('retention_paise')} />
-                  <MoneyCell paise={sum('deposit_paise')} />
-                  <MoneyCell paise={sum('other_cut_paise')} />
-                  <MoneyCell paise={f.bills} strong />
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-        <details className="add-rows">
-          <summary className="btn">＋ {t('client.addBills')}</summary>
-          {noOrders}
-          <p className="hint">{t('client.addBillsHint')}</p>
-          <EntrySheet
-            columns={columns('client-bill', billFields, 'party.billDate')}
-            today={todayInIndia()}
-            start={3}
-            defaults={onlyOrder}
-            save={postEntryRows.bind(null, 'client-bill', firm.id)}
-          />
-        </details>
-      </section>
-
-      <section className="ledger-section">
-        <div className="section-head">
-          <h2>{t('client.receiptsTitle')} <span className="count">{receipts.length}</span></h2>
-          <p className="hint">{t('client.receiptsHint')}</p>
-        </div>
-        {receipts.length === 0 ? (
-          <p className="card empty">{t('client.noReceipts')}</p>
-        ) : (
-          <div className="card table-wrap flush">
-            <table className="ledger">
-              <thead>
-                <tr>
-                  <th className="num">{t('party.sr')}</th>
-                  <th>{t('client.receiptDate')}</th>
-                  <th className="num">{t('party.amount')}</th>
-                  <th>{t('client.receivedIn')}</th>
-                  <th>{t('party.reference')}</th>
-                  <th>{t('party.remarks')}</th>
-                  <th className="num">{t('client.balanceAfter')}</th>
-                  <th>{t('party.entry')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {receipts.map((r, i) => (
-                  <tr key={r.entry_id}>
-                    <td className="num muted">{i + 1}</td>
-                    <td className="nowrap">{showDate(r.entry_date)}</td>
-                    <MoneyCell paise={-r.receivable} />
-                    <td>{r.money_account_id ? names.accounts.get(r.money_account_id) : ''}</td>
-                    <td>{r.reference}</td>
-                    <td>{r.narration}</td>
-                    <MoneyCell paise={balanceAfter.get(r.entry_id)!} strong />
-                    <td className="nowrap">{entryLink(r)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr><td /><td>{t('client.received')}</td><MoneyCell paise={f.paid} /><td colSpan={5} /></tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-        <details className="add-rows">
-          <summary className="btn">＋ {t('client.addReceipts')}</summary>
-          {noOrders}
-          {(choices.moneyAccountsTheyOwe ?? []).length === 0 && (
-            <p className="banner bad">
-              {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
-            </p>
-          )}
-          <p className="hint">{t('party.addHint')}</p>
-          <EntrySheet
-            columns={columns('client-receipt', receiptFields, 'client.receiptDate')}
-            today={todayInIndia()}
-            start={3}
-            defaults={lastTo ? { ...onlyOrder, to_account_id: lastTo } : onlyOrder}
-            save={postEntryRows.bind(null, 'client-receipt', firm.id)}
-          />
-        </details>
-      </section>
+      <Tabs initial={tab} tabs={[
+        { key: 'bills', label: t('client.billsTitle'), count: billRows.length, panel: (
+          <>
+            <p className="hint tab-hint">{t('client.billsHint')}</p>
+            {billRows.length === 0 ? (
+              <p className="card empty">{t('client.noBills')}</p>
+            ) : (
+              <div className="card table-wrap flush">
+                <table className="ledger">
+                  <thead>
+                    <tr>
+                      <th className="num">{t('party.sr')}</th>
+                      <th>{t('party.billDate')}</th>
+                      <th>{t('party.billNo')}</th>
+                      <th>{t('client.workOrder')}</th>
+                      <th className="num">{t('client.gross')}</th>
+                      <th className="num">{t('client.tds')}</th>
+                      <th className="num">{t('client.retention')}</th>
+                      <th className="num">{t('client.deposit')}</th>
+                      <th className="num">{t('client.otherCuts')}</th>
+                      <th className="num">{t('client.net')}</th>
+                      <th>{t('party.entry')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {billRows.map((r, i) => (
+                      <tr key={r.entry_id}>
+                        <td className="num muted">{i + 1}</td>
+                        <td className="nowrap">{showDate(r.entry_date)}</td>
+                        <td>{r.entry_type === 'opening' ? <strong>{t('client.opening')}</strong> : r.reference}</td>
+                        <td>{orderLabel.get(r.work_order_id) ?? names.sites.get(r.site_id)}</td>
+                        <MoneyCell paise={r.gross} />
+                        <MoneyCell paise={Number(r.tds_paise)} />
+                        <MoneyCell paise={Number(r.retention_paise)} />
+                        <MoneyCell paise={Number(r.deposit_paise)} />
+                        <MoneyCell paise={Number(r.other_cut_paise)} />
+                        <MoneyCell paise={r.gross - r.cuts} strong />
+                        <td className="nowrap">{entryLink(r)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td /><td colSpan={3}>{t('client.total')}</td>
+                      <MoneyCell paise={f.opening + f.gross} />
+                      <MoneyCell paise={sum('tds_paise')} />
+                      <MoneyCell paise={sum('retention_paise')} />
+                      <MoneyCell paise={sum('deposit_paise')} />
+                      <MoneyCell paise={sum('other_cut_paise')} />
+                      <MoneyCell paise={f.total} strong />
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+            <details className="add-rows">
+              <summary className="btn">＋ {t('client.addBills')}</summary>
+              {noOrders}
+              <p className="hint">{t('client.addBillsHint')}</p>
+              <EntrySheet
+                columns={columns('client-bill', billFields, 'party.billDate')}
+                today={todayInIndia()}
+                start={3}
+                defaults={onlyOrder}
+                save={postEntryRows.bind(null, 'client-bill', firm.id)}
+              />
+            </details>
+          </>
+        ) },
+        { key: 'payments', label: t('client.receiptsTitle'), count: receipts.length, panel: (
+          <>
+            <p className="hint tab-hint">{t('client.receiptsHint')}</p>
+            {receipts.length === 0 ? (
+              <p className="card empty">{t('client.noReceipts')}</p>
+            ) : (
+              <div className="card table-wrap flush">
+                <table className="ledger">
+                  <thead>
+                    <tr>
+                      <th className="num">{t('party.sr')}</th>
+                      <th>{t('client.receiptDate')}</th>
+                      <th className="num">{t('party.amount')}</th>
+                      <th>{t('client.receivedIn')}</th>
+                      <th>{t('party.reference')}</th>
+                      <th>{t('party.remarks')}</th>
+                      <th className="num">{t('client.balanceAfter')}</th>
+                      <th>{t('party.entry')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {receipts.map((r, i) => (
+                      <tr key={r.entry_id}>
+                        <td className="num muted">{i + 1}</td>
+                        <td className="nowrap">{showDate(r.entry_date)}</td>
+                        <MoneyCell paise={-r.receivable} />
+                        <td>{r.money_account_id ? names.accounts.get(r.money_account_id) : ''}</td>
+                        <td>{r.reference}</td>
+                        <td>{r.narration}</td>
+                        <MoneyCell paise={balanceAfter.get(r.entry_id)!} strong />
+                        <td className="nowrap">{entryLink(r)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr><td /><td>{t('client.received')}</td><MoneyCell paise={f.paid} /><td colSpan={5} /></tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+            <details className="add-rows">
+              <summary className="btn">＋ {t('client.addReceipts')}</summary>
+              {noOrders}
+              {(choices.moneyAccountsTheyOwe ?? []).length === 0 && (
+                <p className="banner bad">
+                  {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
+                </p>
+              )}
+              <p className="hint">{t('party.addHint')}</p>
+              <EntrySheet
+                columns={columns('client-receipt', receiptFields, 'client.receiptDate')}
+                today={todayInIndia()}
+                start={3}
+                defaults={lastTo ? { ...onlyOrder, to_account_id: lastTo } : onlyOrder}
+                save={postEntryRows.bind(null, 'client-receipt', firm.id)}
+              />
+            </details>
+          </>
+        ) },
+      ]} />
     </>
   );
 }

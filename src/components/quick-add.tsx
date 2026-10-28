@@ -1,32 +1,42 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-/** "+ Add bill" and "+ Pay" on a party's page: each opens its short form in a card below. */
+/** "+ Add bill" and "+ Pay" on a party's page: each opens its short form in a pop-up over the page. */
 export function QuickAdd({ name, bill, pay }: { name: string; bill: React.ReactNode; pay: React.ReactNode }) {
   const t = useTranslations('quick');
+  const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState<'bill' | 'pay' | null>(null);
-  const toggle = (which: 'bill' | 'pay') => setOpen(open === which ? null : which);
+  const show = (which: 'bill' | 'pay') => {
+    setOpen(which);
+    dialog.current?.showModal();
+  };
+  const title = open && t(open === 'bill' ? 'billTitle' : 'payTitle', { name });
   return (
     <div className="quick-add">
       <div className="quick-buttons">
-        <button type="button" className={`btn big${open === 'pay' ? ' ghost' : ''}`} aria-expanded={open === 'bill'} onClick={() => toggle('bill')}>
-          ＋ {t('addBill')}
-        </button>
-        <button type="button" className={`btn big${open === 'bill' ? ' ghost' : ''}`} aria-expanded={open === 'pay'} onClick={() => toggle('pay')}>
-          ＋ {t('pay')}
-        </button>
+        <button type="button" className="btn big" aria-haspopup="dialog" onClick={() => show('bill')}>＋ {t('addBill')}</button>
+        <button type="button" className="btn big" aria-haspopup="dialog" onClick={() => show('pay')}>＋ {t('pay')}</button>
       </div>
-      {open && (
-        <section className="card quick-card" aria-label={t(open === 'bill' ? 'billTitle' : 'payTitle', { name })}>
-          <div className="quick-card-head">
-            <h2>{t(open === 'bill' ? 'billTitle' : 'payTitle', { name })}</h2>
-            <button type="button" className="btn ghost small" onClick={() => setOpen(null)}>{t('close')}</button>
-          </div>
-          {open === 'bill' ? bill : pay}
-        </section>
-      )}
+      {/* Esc closes it too; a click on the dimmed page around it closes it. */}
+      <dialog
+        ref={dialog}
+        className="card quick-dialog"
+        aria-label={title || undefined}
+        onClose={() => setOpen(null)}
+        onClick={(e) => e.target === dialog.current && dialog.current.close()}
+      >
+        {open && (
+          <>
+            <div className="quick-card-head">
+              <h2>{title}</h2>
+              <button type="button" className="btn ghost small" onClick={() => dialog.current?.close()}>{t('close')}</button>
+            </div>
+            {open === 'bill' ? bill : pay}
+          </>
+        )}
+      </dialog>
     </div>
   );
 }
