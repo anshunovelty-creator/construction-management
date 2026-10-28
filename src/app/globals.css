@@ -1,37 +1,43 @@
 @import 'tailwindcss';
 
-/* Minimal and calm: white cards on a light gray page, one green accent,
-   blue for money going up and red for money going down. */
+/* Navy for the frame, one emerald accent, blue for money going up and red for money going down.
+   Tables read like Excel: lines between columns and every second row tinted. */
 :root {
-  --paper: #f6f7f8;
+  --paper: #f4f6fa;
   --sheet: #ffffff;
-  --ink: #17191c;
-  --muted: #6a7078;
-  --rule: #e6e8eb;
-  --rule-strong: #d3d7dc;
-  --plus: #1f5fbf;
-  --minus: #c0362c;
-  --mark: #fdf3d3;
-  --accent: #1f7a4f;
-  --accent-soft: #e8f3ed;
+  --ink: #0b1324;
+  --muted: #5f6b7e;
+  --rule: #e4e8ef;
+  --rule-strong: #d0d6e0;
+  --plus: #1e5bc6;
+  --minus: #c2362b;
+  --minus-soft: #fdecea;
+  --mark: #fff4de;
+  --amber: #8a5300;
+  --accent: #0e7c5a;
+  --accent-soft: #e6f4ee;
   --accent-ink: #ffffff;
-  --shadow: 0 1px 2px rgb(16 24 40 / 0.05);
-  --font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  --font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --navy: #0b1f3a;
+  --head: #f8fafc;
+  --zebra: #f7f9fc;
+  --hover: #eaf5ef;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-num: 'Inter', 'Segoe UI', system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --paper: #0f1113; --sheet: #17191c; --ink: #eceef0; --muted: #9aa1a9; --rule: #26292d; --rule-strong: #34383d;
     --plus: #84aeff; --minus: #ff8b80; --mark: #3a3320; --accent: #5cc493; --accent-soft: #173326; --accent-ink: #0b130f;
-    --shadow: none;
+    --shadow: none; --navy: #0a1626; --head: #1b1e22; --zebra: #1a1d21; --hover: #173326; --minus-soft: #3a1d1a; --amber: #f5c26b;
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
   --paper: #0f1113; --sheet: #17191c; --ink: #eceef0; --muted: #9aa1a9; --rule: #26292d; --rule-strong: #34383d;
   --plus: #84aeff; --minus: #ff8b80; --mark: #3a3320; --accent: #5cc493; --accent-soft: #173326; --accent-ink: #0b130f;
-  --shadow: none;
+  --shadow: none; --navy: #0a1626; --head: #1b1e22; --zebra: #1a1d21; --hover: #173326; --minus-soft: #3a1d1a; --amber: #f5c26b;
   color-scheme: dark;
 }
 
@@ -403,3 +409,82 @@ tr:hover .party-link { color: var(--accent); }
 @keyframes sk-shine { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
 .quick-saved { align-self: center; margin: 0; color: var(--accent); font-weight: 600; }
+
+/* ---------- Premium look (2026-10-28): navy bar, emerald accent, Excel-like tables ---------- */
+/* Placed last so it wins over the older rules above at equal weight. */
+h1 { font-weight: 700; }
+.card { border-radius: 16px; }
+.wrap { padding-top: 32px; }
+
+/* Top bar: navy, with white words. Wide screens only: the phone menu keeps its white panel. */
+.topbar { background: var(--navy); backdrop-filter: none; border-bottom: 1px solid rgb(255 255 255 / 0.06); }
+.brand { font-weight: 700; }
+.topbar .brand { color: #fff; }
+.brand-mark { background: var(--accent); color: #fff; box-shadow: none; }
+@media (min-width: 961px) {
+  .nav { align-self: center; }
+  .topbar .nav .nav-link, .topbar .more-desk > summary.nav-link { height: 36px; padding: 0 12px; border: 0; border-radius: 9px; color: rgb(255 255 255 / 0.72); font-size: 14px; }
+  .topbar .nav .nav-link:hover, .topbar .more-desk > summary.nav-link:hover { color: #fff; background: rgb(255 255 255 / 0.07); }
+  .topbar .nav .nav-link[aria-current='page'], .topbar .more-desk[open] > summary.nav-link { color: #fff; background: rgb(255 255 255 / 0.13); }
+  .topbar .nav .nav-link[aria-current='page'] .icon { color: #6ee7b7; }
+}
+@media (max-width: 960px) {
+  .topbar-inner { background: var(--navy); border-bottom-color: transparent; }
+  .menu-btn { color: #fff; }
+  .menu-btn:hover, .menu-btn[aria-expanded='true'] { background: rgb(255 255 255 / 0.1); }
+}
+.firm-pill { border-color: rgb(110 231 183 / 0.35); background: rgb(110 231 183 / 0.12); color: #a7f3d0; font-size: 13px; }
+summary.firm-pill:hover { border-color: #6ee7b7; }
+.avatar { background: var(--accent-soft); color: var(--navy); font-weight: 700; box-shadow: 0 0 0 2px rgb(255 255 255 / 0.2); }
+.avatar:hover, .account[open] > .avatar { box-shadow: 0 0 0 3px rgb(255 255 255 / 0.35); }
+.more-menu { border-radius: 12px; box-shadow: 0 12px 32px rgb(11 19 36 / 0.14); }
+
+/* Buttons: emerald saves or pays, navy adds what we owe, soft red undoes. */
+.btn, button[type='submit']:not(.btn) { border-radius: 10px; font-weight: 600; font-size: 14px; min-height: 40px; box-shadow: 0 1px 2px rgb(16 24 40 / 0.08); transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.btn:hover { filter: brightness(1.08); }
+.btn.big { min-height: 44px; font-size: 15px; }
+.btn.navy { background: var(--navy); border-color: var(--navy); }
+.btn.ghost { box-shadow: 0 1px 2px rgb(16 24 40 / 0.05); }
+.btn.ghost:hover { background: var(--head); border-color: var(--muted); }
+.btn.danger { background: var(--minus-soft); border-color: color-mix(in srgb, var(--minus) 30%, var(--sheet)); color: var(--minus); box-shadow: none; }
+.btn.danger:hover { filter: none; border-color: var(--minus); }
+input:not([type='checkbox']), select { border-radius: 10px; }
+input:not([type='checkbox']):focus, select:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent); }
+
+/* Summary cards */
+.stat { padding: 20px 22px; gap: 5px; }
+.stat-label { font-weight: 500; }
+.stat-value { font-size: 26px; font-weight: 700; }
+.stats.big .stat-value { font-size: 28px; }
+.stat.owe, .stat.due { border-color: var(--rule); }
+
+/* Tables: caps headings, a line between every column and every second row tinted, like Excel. */
+th, td { padding: 12px 14px; border-right: 1px solid var(--rule); }
+th:last-child, td:last-child { border-right: 0; }
+thead th, table.ledger thead th { background: var(--head); border-bottom: 1px solid var(--rule-strong); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); vertical-align: bottom; }
+tbody tr:nth-child(even) td, table.ledger tbody tr:nth-child(even) td { background: var(--zebra); }
+tbody tr:hover td, table.ledger tbody tr:hover td { background: var(--hover); }
+table.ledger th, table.ledger td { padding: 13px 16px; }
+tfoot td, table.ledger tfoot td { background: var(--head); font-weight: 700; border-top: 1px solid var(--rule-strong); }
+.party-link { font-weight: 600; }
+/* % paid: a short bar beside the number. */
+.pct { display: inline-flex; align-items: center; gap: 10px; }
+.pct-bar { display: block; width: 72px; height: 6px; border-radius: 99px; background: var(--rule); overflow: hidden; }
+.pct-bar > span { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+
+/* Status pills: a dot and a soft colour. */
+.pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; padding: 3px 10px; }
+.pill.cleared::before, .pill.partPaid::before, .pill.pending::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.partPaid, .pill.unverified { background: var(--mark); color: var(--amber); }
+.pill.pending, .pill.cancelled { background: var(--minus-soft); color: var(--minus); }
+
+/* Tabs: emerald underline and count. */
+.tab-list { gap: 28px; border-bottom-color: var(--rule); }
+.tab { padding: 10px 2px 12px; font-weight: 500; }
+.tab[aria-selected='true'] { font-weight: 600; }
+.chip, .subnav .nav-link { font-weight: 500; }
+.chip.on, .subnav .nav-link[aria-current='page'] { background: var(--navy); border-color: var(--navy); }
+
+/* Popup */
+.quick-dialog { border-radius: 16px; box-shadow: 0 24px 64px rgb(11 19 36 / 0.28); }
+.quick-dialog::backdrop { background: rgb(11 19 36 / 0.55); }

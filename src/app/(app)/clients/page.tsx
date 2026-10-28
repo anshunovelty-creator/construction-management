@@ -7,7 +7,7 @@ import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { showDate } from '../entries/data';
-import { loadFirmClients, MoneyCell, Stat, StatusPill } from '../party/shared';
+import { loadFirmClients, MoneyCell, PercentBar, Stat, StatusPill } from '../party/shared';
 
 /** Every client who owes the working firm, one line each: the client side of the party list. */
 export default async function ClientIndexPage() {
@@ -75,7 +75,7 @@ export default async function ClientIndexPage() {
                     <MoneyCell paise={f.total} />
                     <MoneyCell paise={f.paid} />
                     <MoneyCell paise={f.balance} strong />
-                    <td className="num">{f.percentPaid}%</td>
+                    <td><PercentBar percent={f.percentPaid} /></td>
                     <td><StatusPill status={f.status} t={t} side="client" /></td>
                     <td className="nowrap">{f.lastPayment ? showDate(f.lastPayment) : <span className="muted">–</span>}</td>
                   </tr>

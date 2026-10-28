@@ -4,7 +4,7 @@ import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { loadFirmParties, MoneyCell, Stat } from '../party/shared';
+import { loadFirmParties, MoneyCell, PercentBar, Stat } from '../party/shared';
 import { ListLink } from '@/components/list-link';
 
 /** The workbook's Dashboard sheet for the working firm: big totals, counts by status, the top 5 and a bar per party. */
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
                   <MoneyCell paise={f.total} />
                   <MoneyCell paise={f.paid} />
                   <MoneyCell paise={f.balance} strong />
-                  <td className="num">{f.percentPaid}%</td>
+                  <td><PercentBar percent={f.percentPaid} /></td>
                 </tr>
               ))}
             </tbody>

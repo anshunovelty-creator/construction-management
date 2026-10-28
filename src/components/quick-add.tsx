@@ -28,8 +28,8 @@ export function QuickAdd({ name, bill, pay }: { name: string; bill: React.ReactN
   return (
     <div className="quick-add">
       <div className="quick-buttons">
-        <button type="button" className="btn big" aria-haspopup="dialog" onClick={() => show('bill')}>＋ {t('addBill')}</button>
-        <button type="button" className="btn big" aria-haspopup="dialog" onClick={() => show('pay')}>＋ {t('pay')}</button>
+        <button type="button" className="btn big navy" aria-haspopup="dialog" onClick={() => show('bill')}>＋ {t('addBill')}</button>
+        <button type="button" className="btn big" aria-haspopup="dialog" onClick={() => show('pay')}>₹ {t('pay')}</button>
         {saved && <p role="status" className="quick-saved">{t('saved', { serial: saved })}</p>}
       </div>
       {/* Esc closes it too; a click on the dimmed page around it closes it. */}

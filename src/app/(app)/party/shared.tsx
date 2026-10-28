@@ -47,6 +47,16 @@ export function MoneyCell({ paise, strong = false }: { paise: number; strong?: b
   );
 }
 
+/** % paid as a short bar and the number, so a long list shows who is nearly settled at a glance. */
+export function PercentBar({ percent }: { percent: number }) {
+  return (
+    <span className="pct">
+      <span className="pct-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></span>
+      <span className="num">{percent}%</span>
+    </span>
+  );
+}
+
 /** A labelled number in a tile. `tone` colours the number: what we still owe, or what is settled. */
 export function Stat({ label, value, note, tone }: { label: string; value: string; note?: string; tone?: 'owe' | 'due' | 'done' }) {
   return (

@@ -8,7 +8,7 @@ import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { showDate } from './entries/data';
-import { loadFirmParties, MoneyCell, Stat, StatusPill } from './party/shared';
+import { loadFirmParties, MoneyCell, PercentBar, Stat, StatusPill } from './party/shared';
 
 /** Home: every party the working firm owes, one line each, like the Index sheet of the outstanding workbook. */
 export default async function PartyIndexPage() {
@@ -55,7 +55,6 @@ export default async function PartyIndexPage() {
                   <th className="num">{t('party.sr')}</th>
                   <th>{t('party.name')}</th>
                   <th className="num">{t('party.opening')}</th>
-                  <th className="num">{t('party.bills')}</th>
                   <th className="num">{t('party.total')}</th>
                   <th className="num">{t('party.paid')}</th>
                   <th className="num">{t('party.balance')}</th>
@@ -71,11 +70,10 @@ export default async function PartyIndexPage() {
                     {/* The name's link stretches over the whole row, so a click anywhere opens the party. */}
                     <td><ListLink href={`/party?id=${id}`} className="party-link">{name}</ListLink></td>
                     <MoneyCell paise={f.opening} />
-                    <MoneyCell paise={f.bills} />
                     <MoneyCell paise={f.total} />
                     <MoneyCell paise={f.paid} />
                     <MoneyCell paise={f.balance} strong />
-                    <td className="num">{f.percentPaid}%</td>
+                    <td><PercentBar percent={f.percentPaid} /></td>
                     <td><StatusPill status={f.status} t={t} /></td>
                     <td className="nowrap">{f.lastPayment ? showDate(f.lastPayment) : <span className="muted">–</span>}</td>
                   </tr>
@@ -86,7 +84,6 @@ export default async function PartyIndexPage() {
                   <td />
                   <td>{t('party.grandTotal')}</td>
                   <MoneyCell paise={sum.opening} />
-                  <MoneyCell paise={sum.bills} />
                   <MoneyCell paise={sum.total} />
                   <MoneyCell paise={sum.paid} />
                   <MoneyCell paise={sum.balance} strong />
