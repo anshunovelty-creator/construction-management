@@ -23,7 +23,6 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
   const defaults = {
     full_name: user.full_name,
     role: user.role,
-    language: user.language,
     is_active: user.is_active,
     firms: (firms ?? []).map((r) => r.firm_id as string),
     sites: (sites ?? []).map((r) => r.site_id as string),

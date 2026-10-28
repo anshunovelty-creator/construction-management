@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
-import type { Locale } from '@/i18n/locale';
 import { allowedFirms, pickWorkingFirm, type Firm } from '@/lib/firm';
 import { createClient } from '@/lib/supabase/server';
 
@@ -11,16 +10,21 @@ export interface Profile {
   email: string;
   full_name: string;
   role: AppRole;
-  language: Locale;
   is_active: boolean;
 }
 
 /** The signed-in user's profile, or null when signed out or deactivated. One lookup per request. */
-export const getProfile = cache(async (): Promise<Profile | null> => {
+/** The signed-in user's id, read from their session token (checked locally, no trip to the database). */
+const getUserId = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims.sub;
+  return data?.claims.sub ?? null;
+});
+
+export const getProfile = cache(async (): Promise<Profile | null> => {
+  const userId = await getUserId();
   if (!userId) return null;
+  const supabase = await createClient();
   const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle<Profile>();
   return profile?.is_active ? profile : null;
 });
@@ -37,14 +41,17 @@ export interface WorkingFirm {
  * Null for supervisors and for office staff with no firm assigned. One lookup per request.
  */
 export const getWorkingFirm = cache(async (): Promise<WorkingFirm | null> => {
-  const profile = await getProfile();
-  if (!profile || profile.role === 'supervisor') return null;
+  const userId = await getUserId();
+  if (!userId) return null;
   const db = await createClient();
-  const [{ data: firms }, { data: assigned }, { data: saved }] = await Promise.all([
+  // Asked for alongside the profile, not after it: one trip to the database instead of two on every page.
+  const [profile, { data: firms }, { data: assigned }, { data: saved }] = await Promise.all([
+    getProfile(),
     db.from('firms').select('id, name').order('name').returns<Firm[]>(),
-    db.from('user_firms').select('firm_id').eq('user_id', profile.user_id),
-    db.from('working_firms').select('firm_id').eq('user_id', profile.user_id).maybeSingle(),
+    db.from('user_firms').select('firm_id').eq('user_id', userId),
+    db.from('working_firms').select('firm_id').eq('user_id', userId).maybeSingle(),
   ]);
+  if (!profile || profile.role === 'supervisor') return null;
   const allowed = allowedFirms(profile.role, firms ?? [], (assigned ?? []).map((r) => r.firm_id as string));
   const firm = pickWorkingFirm(allowed, saved?.firm_id as string | undefined);
   return firm ? { firms: allowed, firm } : null;

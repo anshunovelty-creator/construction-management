@@ -53,18 +53,18 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
   const { firm } = working;
   const db = await createClient();
-  const { data: party } = await db.from('parties').select('id, name').eq('id', id).maybeSingle();
-  if (!party) notFound();
-
   const billFields = fieldsOf('vendor-bill', BILL_COLUMNS);
   const payFields = fieldsOf('pay-vendor', PAY_COLUMNS);
-  const [{ data }, names, choices, { data: materials }] = await Promise.all([
-    db.from('party_rows').select('*').eq('firm_id', firm.id).eq('party_id', party.id)
+  // The party is looked up alongside its entries rather than before them: one trip to the database, not two.
+  const [{ data: party }, { data }, names, choices, { data: materials }] = await Promise.all([
+    db.from('parties').select('id, name').eq('id', id).maybeSingle(),
+    db.from('party_rows').select('*').eq('firm_id', firm.id).eq('party_id', id)
       .order('entry_date').order('serial').returns<PartyRow[]>(),
     loadNames(db),
     loadChoices(db, [...billFields, ...payFields], { working, t }),
     db.from('materials').select('id, name'),
   ]);
+  if (!party) notFound();
   const materialOf = new Map((materials ?? []).map((m) => [m.id as string, m.name as string]));
   const rows = (data ?? []).map((r) => ({ ...r, amount: Number(r.amount_paise) }));
   const sumOf = (type: PartyRow['entry_type']) => rows.filter((r) => r.entry_type === type).reduce((s, r) => s + r.amount, 0);
@@ -112,7 +112,8 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
       <Link href="/" className="back">◄ {t('party.home')}</Link>
       <div className="party-head">
         <h1>{party.name}</h1>
-        <StatusPill status={f.status} t={t} />
+        {/* With no entries there is nothing to be settled, so no "fully paid" either. */}
+        {rows.length > 0 && <StatusPill status={f.status} t={t} />}
       </div>
       <p className="lede">
         {opening

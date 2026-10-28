@@ -42,7 +42,10 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
   const firm = working?.firm.id;
   const db = await createClient();
 
-  const { data: statuses } = await db.from('entry_status').select('entry_id, status');
+  // Only entries that are not simply checked: a list that stays short as entries get checked, where the whole table
+  // grew with every entry (and was cut off at 1,000 rows, showing older checked entries as waiting).
+  // ponytail: past 1,000 unchecked or cancelled entries this list is cut off too; join the status into the list query then.
+  const { data: statuses } = await db.from('entry_status').select('entry_id, status').neq('status', 'verified');
   const statusOf = new Map((statuses ?? []).map((s) => [s.entry_id as string, s.status as string]));
   const waitingIds = [...statusOf].filter(([, s]) => s === 'unverified').map(([id]) => id);
 
@@ -156,7 +159,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
             </thead>
             <tbody>
               {rows.map((r) => {
-                const status = statusOf.get(r.id) ?? 'unverified';
+                const status = statusOf.get(r.id) ?? 'verified';
                 return (
                   <tr key={r.id}>
                     <td>

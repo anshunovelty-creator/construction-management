@@ -8,8 +8,7 @@ import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { signOut } from '../login/actions';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const profile = await requireProfile();
-  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
+  const [profile, working, t] = await Promise.all([requireProfile(), getWorkingFirm(), getTranslations()]);
   const office = profile.role !== 'supervisor';
   const owner = profile.role === 'owner';
   const initials = profile.full_name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
@@ -71,7 +70,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   <b>{profile.full_name}</b>
                   <span>{t(`options.role.${profile.role}`)}</span>
                 </p>
-                <NavLink href="/settings"><Icon name="settings" /><span>{t('nav.settings')}</span></NavLink>
                 <form action={signOut}>
                   <button type="submit" className="nav-link signout"><Icon name="signOut" /><span>{t('nav.signOut')}</span></button>
                 </form>

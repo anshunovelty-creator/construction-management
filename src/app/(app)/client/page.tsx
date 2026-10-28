@@ -53,19 +53,19 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
   const { firm } = working;
   const db = await createClient();
-  const { data: client } = await db.from('parties').select('id, name').eq('id', id).eq('kind', 'client').maybeSingle();
-  if (!client) notFound();
-
   const billFields = fieldsOf('client-bill', BILL_COLUMNS);
   const receiptFields = fieldsOf('client-receipt', RECEIPT_COLUMNS);
-  const [{ data }, { data: orders }, names, choices] = await Promise.all([
-    db.from('client_rows').select('*').eq('firm_id', firm.id).eq('party_id', client.id)
+  // The client is looked up alongside their entries rather than before them: one trip to the database, not two.
+  const [{ data: client }, { data }, { data: orders }, names, choices] = await Promise.all([
+    db.from('parties').select('id, name').eq('id', id).eq('kind', 'client').maybeSingle(),
+    db.from('client_rows').select('*').eq('firm_id', firm.id).eq('party_id', id)
       .order('entry_date').order('serial').returns<ClientRow[]>(),
-    db.from('work_orders').select('id, ref, is_active, site:sites(name)').eq('firm_id', firm.id).eq('client_id', client.id)
+    db.from('work_orders').select('id, ref, is_active, site:sites(name)').eq('firm_id', firm.id).eq('client_id', id)
       .order('ref').returns<{ id: string; ref: string; is_active: boolean; site: { name: string } | null }[]>(),
     loadNames(db),
     loadChoices(db, [...billFields, ...receiptFields], { working, t }),
   ]);
+  if (!client) notFound();
   // Only this client's own work orders for this firm, named by their site.
   const orderLabel = new Map((orders ?? []).map((o) => [o.id, `${o.ref} · ${o.site?.name ?? ''}`]));
   choices.workOrders = (orders ?? []).filter((o) => o.is_active).map((o) => ({ value: o.id, label: orderLabel.get(o.id)! }));
@@ -122,7 +122,8 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
       <Link href="/clients" className="back">◄ {t('client.home')}</Link>
       <div className="party-head">
         <h1>{client.name}</h1>
-        <StatusPill status={f.status} t={t} side="client" />
+        {/* With no entries there is nothing to be settled, so no "fully received" either. */}
+        {rows.length > 0 && <StatusPill status={f.status} t={t} side="client" />}
       </div>
       <p className="lede">
         {opening

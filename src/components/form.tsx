@@ -1,9 +1,8 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useActionState, useState } from 'react';
 import { ChoiceOptions } from '@/components/choice-options';
-import { toLocale } from '@/i18n/locale';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
@@ -42,7 +41,6 @@ const asRupees = (paise: number) => (paise % 100 ? (paise / 100).toFixed(2) : St
  */
 function RupeesInput({ input, owed }: { input: React.InputHTMLAttributes<HTMLInputElement> & { id: string }; owed?: Owed }) {
   const t = useTranslations();
-  const locale = toLocale(useLocale());
   const [text, setText] = useState(String(input.defaultValue ?? ''));
   const paise = toPaise(text);
   const { defaultValue: _, ...rest } = input;
@@ -65,7 +63,7 @@ function RupeesInput({ input, owed }: { input: React.InputHTMLAttributes<HTMLInp
       <input {...rest} type="text" inputMode="decimal" autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} />
       {paise > 0 && (
         <p className="amount-words">
-          <b>{showPaise(paise)}</b> · {rupeesInWords(paise, locale)}
+          <b>{showPaise(paise)}</b> · {rupeesInWords(paise)}
         </p>
       )}
     </>

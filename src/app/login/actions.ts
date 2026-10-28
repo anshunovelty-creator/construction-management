@@ -1,9 +1,7 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/components/form';
-import { LOCALE_COOKIE, LOCALE_COOKIE_OPTIONS } from '@/i18n/locale';
 import { parseFields, submittedValues } from '@/lib/masters/parse';
 import { LOGIN_FIELDS } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
@@ -22,14 +20,13 @@ export async function signIn(_state: FormState, data: FormData): Promise<FormSta
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('language, is_active')
+    .select('is_active')
     .eq('user_id', session.user.id)
-    .maybeSingle<{ language: string; is_active: boolean }>();
+    .maybeSingle<{ is_active: boolean }>();
   if (!profile?.is_active) {
     await supabase.auth.signOut();
     return { errors: { _form: 'inactive' }, values };
   }
-  (await cookies()).set(LOCALE_COOKIE, profile.language, LOCALE_COOKIE_OPTIONS);
   redirect('/');
 }
 

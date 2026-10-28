@@ -33,6 +33,7 @@ describe('formatPaise', () => {
     expect(showPaise(619_957_800)).toBe('₹61,99,578');
     expect(showPaise(5_311_872)).toBe('₹53,118.72');
     expect(showPaise(-20_000_00)).toBe('-₹20,000');
+    expect(showPaise(-0)).toBe('₹0');
   });
 });
 

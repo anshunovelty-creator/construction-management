@@ -35,7 +35,8 @@ const INR_WHOLE = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 
 /** For screens: 619957800 -> "₹61,99,578", and paise only when there are some: 5311872 -> "₹53,118.72". */
 export function showPaise(paise: Paise): string {
   assertPaise(paise);
-  return paise % 100 === 0 ? INR_WHOLE.format(paise / 100) : INR.format(paise / 100);
+  // `+ 0` turns -0 (e.g. a negated empty sum) into 0, which Intl would otherwise print as "-₹0".
+  return paise % 100 === 0 ? INR_WHOLE.format(paise / 100 + 0) : INR.format(paise / 100);
 }
 
 /** Percentage given in basis points (1% = 100 bp), rounded half-up to the nearest paisa. */

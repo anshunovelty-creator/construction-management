@@ -72,13 +72,13 @@ describe('parseFields', () => {
       NEW_USER_FIELDS,
       form([
         ['email', ' Priya@Example.com '], ['password', 'secret pass'], ['full_name', 'Priya'], ['role', 'office'],
-        ['language', 'hi'], ['firms', FIRM], ['firms', SITE],
+        ['firms', FIRM], ['firms', SITE],
       ]),
     );
     expect(created).toEqual({
       ok: true,
       values: {
-        email: 'priya@example.com', password: 'secret pass', full_name: 'Priya', role: 'office', language: 'hi',
+        email: 'priya@example.com', password: 'secret pass', full_name: 'Priya', role: 'office',
         firms: [FIRM, SITE], sites: [],
       },
     });
@@ -91,7 +91,7 @@ describe('parseFields', () => {
   it('keeps the current password when the edit form leaves it empty', () => {
     const result = parseFields(
       EDIT_USER_FIELDS,
-      form([['full_name', 'Priya'], ['role', 'office'], ['language', 'en'], ['password', '']]),
+      form([['full_name', 'Priya'], ['role', 'office'], ['password', '']]),
     );
     expect(result.ok && 'password' in result.values).toBe(false);
   });

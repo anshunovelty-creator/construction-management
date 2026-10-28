@@ -83,13 +83,13 @@ async function login(
   email: string,
   fullName: string,
   role: string,
-  opts: { firms?: string[]; sites?: string[]; active?: boolean; language?: string } = {},
+  opts: { firms?: string[]; sites?: string[]; active?: boolean } = {},
 ) {
   const password = randomBytes(9).toString('base64url');
   const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
   if (error || !data.user) throw new Error(`login ${email}: ${error?.message}`);
   await one('profiles', {
-    user_id: data.user.id, email, full_name: fullName, role, language: opts.language ?? 'en', is_active: opts.active ?? true,
+    user_id: data.user.id, email, full_name: fullName, role, is_active: opts.active ?? true,
   });
   for (const firm_id of opts.firms ?? []) await one('user_firms', { user_id: data.user.id, firm_id });
   for (const site_id of opts.sites ?? []) await one('user_sites', { user_id: data.user.id, site_id });
@@ -100,9 +100,9 @@ async function login(
 const { data: realOwner } = await db.from('profiles').select('user_id').eq('role', 'owner').limit(1).maybeSingle();
 const owner: string = realOwner?.user_id ?? (await login('owner@demo.test', 'Owner', 'owner'));
 const office1 = await login('office1@demo.test', 'Office 1', 'office', { firms: [firmA, firmB] });
-const office2 = await login('office2@demo.test', 'Office 2 (Firm B only)', 'office', { firms: [firmB], language: 'hi' });
+const office2 = await login('office2@demo.test', 'Office 2 (Firm B only)', 'office', { firms: [firmB] });
 const sup1 = await login('supervisor1@demo.test', 'Supervisor 1', 'supervisor', { sites: [site1] });
-const sup2 = await login('supervisor2@demo.test', 'Supervisor 2', 'supervisor', { sites: [site2], language: 'hi' });
+const sup2 = await login('supervisor2@demo.test', 'Supervisor 2', 'supervisor', { sites: [site2] });
 await login('oldstaff@demo.test', 'Old staff (left)', 'office', { firms: [firmA], active: false });
 
 const account = async (kind: MoneyAccountRef['kind'], name: string, firmId: string | null, holder?: string, is_active = true) => {

@@ -7,7 +7,6 @@ const ENTRY_TYPES = [
   'cash_transfer', 'cash_close_difference', 'owner_capital', 'owner_drawing',
 ];
 import en from '../messages/en.json';
-import hi from '../messages/hi.json';
 
 type Messages = { [key: string]: string | Messages };
 
@@ -17,15 +16,7 @@ function keys(messages: Messages, prefix = ''): string[] {
   );
 }
 
-describe('translations', () => {
-  it('has the same keys in English and Hindi, none empty', () => {
-    expect(keys(hi).sort()).toEqual(keys(en).sort());
-    for (const messages of [en, hi] as Messages[]) {
-      const empty = keys(messages).filter((key) => key.split('.').reduce<unknown>((m, k) => (m as Messages)[k], messages) === '');
-      expect(empty).toEqual([]);
-    }
-  });
-
+describe('labels', () => {
   it('has a label for every field, master screen and choice', () => {
     const all = new Set(keys(en as Messages));
     const fields = [

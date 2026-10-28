@@ -16,7 +16,7 @@
   --accent-soft: #e8f3ed;
   --accent-ink: #ffffff;
   --shadow: 0 1px 2px rgb(16 24 40 / 0.05);
-  --font-body: 'IBM Plex Sans', 'Noto Sans Devanagari', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   --font-num: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   color-scheme: light;
 }
@@ -391,3 +391,14 @@ tr:hover .party-link { color: var(--accent); }
 .amount-words b { color: var(--ink); font-weight: 600; }
 .owed { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--paper); font-size: 14px; }
 .owed > span:first-child:not(.muted) { font-weight: 500; }
+
+/* ---------- Loading skeleton (src/app/(app)/loading.tsx) ---------- */
+.skeleton { display: grid; gap: 14px; }
+.sk { display: block; border-radius: 12px; background: linear-gradient(90deg, var(--rule) 25%, var(--paper) 50%, var(--rule) 75%); background-size: 200% 100%; animation: sk-shine 1.2s ease-in-out infinite; }
+.sk-title { width: min(320px, 70%); height: 30px; }
+.sk-line { width: min(480px, 90%); height: 14px; }
+.sk-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 8px; }
+.sk-card { height: 92px; }
+.sk-table { height: 280px; }
+@keyframes sk-shine { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }

@@ -7,7 +7,6 @@ export const ENUMS = {
   contract_type: ['item_rate', 'fixed'],
   money_account_kind: ['bank', 'owner_cash', 'supervisor_cash'],
   role: ['owner', 'office', 'supervisor'],
-  language: ['en', 'hi'],
   cost_head: COST_HEADS,
   /** Not a database enum: whether the owner puts money in or takes it out. */
   owner_money: ['in', 'out'],
@@ -120,7 +119,6 @@ export const LOGIN_FIELDS: Field[] = [
 const userFields: Field[] = [
   { name: 'full_name', kind: 'text', required: true },
   { name: 'role', kind: 'enum', enum: 'role', required: true },
-  { name: 'language', kind: 'enum', enum: 'language', required: true },
   { name: 'firms', kind: 'multi', ref: 'firms' },
   { name: 'sites', kind: 'multi', ref: 'sites' },
 ];
@@ -133,8 +131,6 @@ export const NEW_USER_FIELDS: Field[] = [
 
 /** Leaving the password empty keeps the current one. */
 export const EDIT_USER_FIELDS: Field[] = [...userFields, active, { name: 'password', kind: 'password' }];
-
-export const LANGUAGE_FIELDS: Field[] = [{ name: 'language', kind: 'enum', enum: 'language', required: true }];
 
 const amount: Field = { name: 'amount', kind: 'rupees', required: true };
 const date: Field = { name: 'entry_date', kind: 'date', required: true };

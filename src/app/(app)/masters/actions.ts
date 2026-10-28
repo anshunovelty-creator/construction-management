@@ -28,7 +28,7 @@ export async function saveMaster(slug: string, id: string | null, _state: FormSt
     const duplicate = error.code === '23505';
     return { errors: { _form: duplicate ? 'duplicate' : 'save_failed' }, detail: duplicate ? undefined : error.message, values };
   }
-  revalidatePath(`/masters/${slug}`);
+  revalidatePath('/', 'layout');
   redirect(`/masters/${slug}`);
 }
 

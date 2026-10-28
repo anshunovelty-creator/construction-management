@@ -16,7 +16,6 @@ interface UserValues {
   password?: string;
   full_name: string;
   role: string;
-  language: string;
   is_active?: boolean;
   firms: string[];
   sites: string[];
@@ -72,7 +71,7 @@ export async function createUser(_state: FormState, data: FormData): Promise<For
   const userId = created.user.id;
   const { error: profileError } = await db
     .from('profiles')
-    .insert({ user_id: userId, email: user.email, full_name: user.full_name, role: user.role, language: user.language });
+    .insert({ user_id: userId, email: user.email, full_name: user.full_name, role: user.role });
   if (profileError) {
     await admin.auth.admin.deleteUser(userId); // no profile yet, so nothing else points at this login
     return { errors: { _form: 'save_failed' }, detail: profileError.message, values };
@@ -100,7 +99,7 @@ export async function updateUser(userId: string, _state: FormState, data: FormDa
   const db = await createClient();
   const { error } = await db
     .from('profiles')
-    .update({ full_name: user.full_name, role: user.role, language: user.language, is_active: user.is_active })
+    .update({ full_name: user.full_name, role: user.role, is_active: user.is_active })
     .eq('user_id', userId);
   const failure =
     error?.message ??

@@ -26,7 +26,6 @@ export default async function UsersPage() {
               <th>{t('fields.full_name')}</th>
               <th>{t('fields.email')}</th>
               <th>{t('fields.role')}</th>
-              <th>{t('fields.language')}</th>
               <th>{t('fields.is_active')}</th>
               <th aria-label={t('masters.edit')} />
             </tr>
@@ -37,7 +36,6 @@ export default async function UsersPage() {
                 <td>{user.full_name}</td>
                 <td>{user.email}</td>
                 <td>{t(`options.role.${user.role}`)}</td>
-                <td>{t(`options.language.${user.language}`)}</td>
                 <td>{t(user.is_active ? 'common.yes' : 'common.no')}</td>
                 <td>
                   <Link href={`/users/${user.user_id}`} className="underline">

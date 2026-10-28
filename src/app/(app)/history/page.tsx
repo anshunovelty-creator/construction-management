@@ -1,4 +1,4 @@
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import type { Choices } from '@/components/form';
 import { requireProfile } from '@/lib/auth';
 import { changedFields } from '@/lib/masters/diff';
@@ -28,13 +28,12 @@ const FIELDS: Record<string, Field[]> = {
 export default async function HistoryPage() {
   await requireProfile('owner');
   const db = await createClient();
-  const [{ data: changes }, names, t, locale] = await Promise.all([
+  const [{ data: changes }, names, t] = await Promise.all([
     db.from('master_changes').select('*').order('id', { ascending: false }).limit(200).returns<Change[]>(),
     loadNames(db),
     getTranslations(),
-    getLocale(),
   ]);
-  const when = new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+  const when = new Intl.DateTimeFormat('en-IN', {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'Asia/Kolkata',

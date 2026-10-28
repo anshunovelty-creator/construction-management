@@ -8,7 +8,6 @@
     "masters": "Setup",
     "users": "People",
     "history": "Change log",
-    "settings": "Settings",
     "signOut": "Sign out",
     "label": "Main",
     "add": "Add an entry",
@@ -89,7 +88,6 @@
     "password": "Password (at least 8 characters)",
     "full_name": "Full name",
     "role": "Role",
-    "language": "Language",
     "firms": "Firms (office staff)",
     "sites": "Sites (supervisors)",
     "vendor_id": "Vendor",
@@ -133,10 +131,6 @@
       "owner": "Owner",
       "office": "Office staff",
       "supervisor": "Supervisor"
-    },
-    "language": {
-      "en": "English",
-      "hi": "हिन्दी"
     },
     "cost_head": {
       "material": "Material",
@@ -195,10 +189,6 @@
         "delete": "Took {person} off site {site}"
       }
     }
-  },
-  "settings": {
-    "title": "Settings",
-    "save": "Save"
   },
   "errors": {
     "required": "Required.",
