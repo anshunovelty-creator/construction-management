@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { FormState } from '@/components/form';
 import { requireProfile } from '@/lib/auth';
-import { parseFields, submittedValues } from '@/lib/masters/parse';
+import { moneyAccountErrors, parseFields, submittedValues } from '@/lib/masters/parse';
 import { getMaster } from '@/lib/masters/registry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { allowDelete } from '@/lib/supabase/env';
@@ -19,6 +19,8 @@ export async function saveMaster(slug: string, id: string | null, _state: FormSt
   const values = submittedValues(data);
   const parsed = parseFields(def.fields, data);
   if (!parsed.ok) return { errors: parsed.errors, values };
+  const broken = slug === 'money-accounts' ? moneyAccountErrors(parsed.values) : null;
+  if (broken) return { errors: broken, values };
 
   const db = await createClient();
   const { error } = id

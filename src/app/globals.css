@@ -402,3 +402,4 @@ tr:hover .party-link { color: var(--accent); }
 .sk-table { height: 280px; }
 @keyframes sk-shine { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+.quick-saved { align-self: center; margin: 0; color: var(--accent); font-weight: 600; }

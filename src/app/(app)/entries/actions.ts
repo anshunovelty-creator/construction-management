@@ -127,6 +127,21 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
   }
 }
 
+/**
+ * A bill number already in this firm's books for the same vendor or client is almost always the same bill typed twice.
+ * Returns that entry's serial; cancelled bills don't count, and neither does this same entry (a retried sheet row).
+ */
+async function sameBillNumber(db: Db, draft: EntryDraft): Promise<string | null> {
+  if ((draft.entryType !== 'vendor_bill' && draft.entryType !== 'client_bill') || !draft.reference || !draft.partyId) return null;
+  const { data: same } = await db.from('entries').select('id, serial')
+    .eq('entry_type', draft.entryType).eq('party_id', draft.partyId).eq('reference', draft.reference)
+    .eq('firm_id', draft.firmId!).neq('id', draft.id);
+  if (!same?.length) return null;
+  const { data: statuses } = await db.from('entry_status').select('entry_id, status').in('entry_id', same.map((e) => e.id));
+  const cancelled = new Set((statuses ?? []).filter((s) => s.status === 'cancelled').map((s) => s.entry_id));
+  return same.find((e) => !cancelled.has(e.id))?.serial ?? null;
+}
+
 export type Saved = { id: string; serial: string };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -161,6 +176,8 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
     return { errors: { _form: 'save_failed' }, detail: (error as Error).message, values };
   }
   if (entryId && UUID.test(entryId)) draft.id = entryId;
+  const repeat = await sameBillNumber(db, draft);
+  if (repeat) return { errors: { _form: 'duplicate_bill', bill_no: 'duplicate' }, detail: repeat, values };
   const { data: result, error } = await db.rpc('app_post_entry', { p_entry: draft });
   if (error) return { errors: { _form: 'save_failed' }, detail: error.message, values };
   return result as Saved;

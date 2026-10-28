@@ -29,6 +29,19 @@ export function percentToBasisPoints(input: string): number {
  * Turns submitted form data into column values, or field errors (message keys under `errors.*`).
  * Empty optional fields become the column's empty value; an empty optional password is left out.
  */
+/**
+ * The rules for a bank or cash account, said per field: a bank belongs to one firm and cash to none (the database
+ * checks this too), and supervisor cash, and only that, is held by a supervisor.
+ */
+export function moneyAccountErrors(v: Record<string, Value>): Record<string, string> | null {
+  const errors: Record<string, string> = {};
+  if (v.kind === 'bank' && !v.firm_id) errors.firm_id = 'bank_needs_firm';
+  if (v.kind !== 'bank' && v.firm_id) errors.firm_id = 'cash_no_firm';
+  if (v.kind === 'supervisor_cash' && !v.holder_user_id) errors.holder_user_id = 'needs_supervisor';
+  if (v.kind !== 'supervisor_cash' && v.holder_user_id) errors.holder_user_id = 'only_supervisor_cash';
+  return Object.keys(errors).length ? errors : null;
+}
+
 export function parseFields(fields: Field[], data: FormData): ParseResult {
   const values: Record<string, Value> = {};
   const errors: Record<string, string> = {};

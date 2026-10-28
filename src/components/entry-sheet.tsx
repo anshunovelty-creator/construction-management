@@ -161,7 +161,7 @@ export function EntrySheet({
 
   const message = (result: FormState) => {
     const form = result.errors?._form;
-    if (form) return `${t(`errors.${form}`)}${result.detail ? ` ${result.detail}` : ''}`;
+    if (form) return `${t(`errors.${form}`)}${result.detail ? ` (${result.detail})` : ''}`;
     return Object.entries(result.errors ?? {})
       .map(([name, key]) => `${columns.find((c) => c.name === name)?.label}: ${t(`errors.${key}`)}`)
       .join(' · ');

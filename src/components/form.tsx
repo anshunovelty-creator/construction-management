@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { ChoiceOptions } from '@/components/choice-options';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
@@ -97,9 +97,14 @@ export function Form({
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const t = useTranslations();
+  const form = useRef<HTMLFormElement>(null);
+  // Lets a pop-up around the form close itself once the entry is saved (see QuickAdd).
+  useEffect(() => {
+    if (state.saved) form.current?.dispatchEvent(new CustomEvent('entry-saved', { bubbles: true, detail: state.saved }));
+  }, [state]);
 
   return (
-    <form action={formAction} className="form">
+    <form ref={form} action={formAction} className="form">
       {state.saved && (
         <p role="status" className="banner">✓ {t('entries.saved', { serial: state.saved })}</p>
       )}

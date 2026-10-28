@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseFields, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
+import { moneyAccountErrors, parseFields, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
 import { EDIT_USER_FIELDS, MASTERS, NEW_USER_FIELDS } from '@/lib/masters/registry';
 
 const form = (entries: [string, string][]) => {
@@ -94,6 +94,18 @@ describe('parseFields', () => {
       form([['full_name', 'Priya'], ['role', 'office'], ['password', '']]),
     );
     expect(result.ok && 'password' in result.values).toBe(false);
+  });
+});
+
+describe('bank and cash account rules', () => {
+  it('ties a bank to a firm, keeps cash common, and gives supervisor cash a supervisor', () => {
+    expect(moneyAccountErrors({ kind: 'bank', firm_id: FIRM, holder_user_id: null })).toBeNull();
+    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: null, holder_user_id: null })).toBeNull();
+    expect(moneyAccountErrors({ kind: 'supervisor_cash', firm_id: null, holder_user_id: SITE })).toBeNull();
+    expect(moneyAccountErrors({ kind: 'bank', firm_id: null, holder_user_id: SITE }))
+      .toEqual({ firm_id: 'bank_needs_firm', holder_user_id: 'only_supervisor_cash' });
+    expect(moneyAccountErrors({ kind: 'supervisor_cash', firm_id: FIRM, holder_user_id: null }))
+      .toEqual({ firm_id: 'cash_no_firm', holder_user_id: 'needs_supervisor' });
   });
 });
 

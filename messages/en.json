@@ -188,7 +188,8 @@
         "insert": "Put {person} on site {site}",
         "delete": "Took {person} off site {site}"
       }
-    }
+    },
+    "testDelete": "Owner (testing delete)"
   },
   "errors": {
     "required": "Required.",
@@ -205,7 +206,12 @@
     "inactive": "This account is switched off. Ask the owner.",
     "cash_matches": "The cash matches the books exactly. Nothing to record — well done!",
     "reason_required": "Write what is wrong first.",
-    "other_firm": "This belongs to the other firm. Switch firm at the top right first."
+    "other_firm": "This belongs to the other firm. Switch firm at the top right first.",
+    "duplicate_bill": "This bill number is already in the books for this party. Cancel that entry first if it was wrong",
+    "bank_needs_firm": "A bank account belongs to one firm. Choose it.",
+    "cash_no_firm": "Cash is shared by all firms. Leave the firm empty.",
+    "needs_supervisor": "Choose the supervisor who holds this cash.",
+    "only_supervisor_cash": "Only supervisor cash is held by a supervisor. Leave this empty."
   },
   "common": {
     "yes": "Yes",
@@ -527,7 +533,7 @@
     "addBills": "Add many bills at once",
     "addPayments": "Add many payments at once",
     "addHint": "Type in the rows like Excel: Tab and Enter move between boxes, and you can paste rows copied from Excel. Then press Save.",
-    "partyCount": "{count} parties",
+    "partyCount": "{count, plural, one {# party} other {# parties}}",
     "percentNote": "{percent}% of the total",
     "includesOpening": "Includes opening {amount}",
     "balanceNote": "Still to pay",
@@ -572,7 +578,7 @@
     "includesOpening": "Includes opening due {amount}",
     "percentReceived": "% received",
     "lastReceipt": "Last receipt",
-    "clientCount": "{count} clients",
+    "clientCount": "{count, plural, one {# client} other {# clients}}",
     "search": "Find a client",
     "searchHint": "Type a name to find a client…",
     "searchNone": "No client has that name.",
@@ -620,7 +626,8 @@
     "close": "Close",
     "owe": "Still to pay {name}: {amount}",
     "payFull": "Pay full {amount}",
-    "nothingOwed": "Nothing is due to {name} right now."
+    "nothingOwed": "Nothing is due to {name} right now.",
+    "saved": "✓ Saved. Serial number {serial}."
   },
   "firm": {
     "switchLabel": "Working in {firm}. Tap to switch firm.",

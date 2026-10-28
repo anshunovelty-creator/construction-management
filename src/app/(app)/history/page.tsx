@@ -99,7 +99,7 @@ export default async function HistoryPage() {
             {(changes ?? []).map((change) => (
               <tr key={change.id}>
                 <td className="whitespace-nowrap">{when.format(new Date(change.changed_at))}</td>
-                <td>{change.changed_by ? nameOf(names.people, change.changed_by) : t('history.system')}</td>
+                <td>{change.changed_by ? nameOf(names.people, change.changed_by) : t(change.action === 'delete' ? 'history.testDelete' : 'history.system')}</td>
                 <td>{sentence(change, change.new_row ?? change.old_row ?? {})}</td>
                 <td>
                   <ul>
