@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
+import { ListLink } from '@/components/list-link';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { clientFigures } from '@/lib/ledger/party';
@@ -106,7 +107,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
   const lastTo = receipts.at(-1)?.money_account_id;
   const entryLink = (r: ClientRow) => (
     <>
-      <Link href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</Link>
+      <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
       {r.status === 'unverified' && <span className="pill unverified small-pill" title={t('party.notCheckedHint')}>{t('party.notChecked')}</span>}
     </>
   );

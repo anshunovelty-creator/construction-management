@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
 import { Form } from '@/components/form';
+import { ListLink } from '@/components/list-link';
 import { QuickAdd } from '@/components/quick-add';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
@@ -95,7 +96,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
     }));
   const entryLink = (r: PartyRow) => (
     <>
-      <Link href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</Link>
+      <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
       {r.status === 'unverified' && <span className="pill unverified small-pill" title={t('party.notCheckedHint')}>{t('party.notChecked')}</span>}
     </>
   );

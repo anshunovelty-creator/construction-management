@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Form } from '@/components/form';
+import { ListLink } from '@/components/list-link';
 import { requireProfile } from '@/lib/auth';
 import { getMaster } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
@@ -45,9 +45,9 @@ export default async function MasterListPage({ params }: { params: Promise<{ tab
                   ))}
                   {canEdit && (
                     <td>
-                      <Link href={`/masters/${slug}/${row.id}`} className="underline">
+                      <ListLink href={`/masters/${slug}/${row.id}`} className="underline">
                         {t('masters.edit')}
-                      </Link>
+                      </ListLink>
                     </td>
                   )}
                 </tr>

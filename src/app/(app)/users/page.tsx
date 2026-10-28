@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Form } from '@/components/form';
+import { ListLink } from '@/components/list-link';
 import { requireProfile, type Profile } from '@/lib/auth';
 import { NEW_USER_FIELDS } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
@@ -38,9 +38,9 @@ export default async function UsersPage() {
                 <td>{t(`options.role.${user.role}`)}</td>
                 <td>{t(user.is_active ? 'common.yes' : 'common.no')}</td>
                 <td>
-                  <Link href={`/users/${user.user_id}`} className="underline">
+                  <ListLink href={`/users/${user.user_id}`} className="underline">
                     {t('masters.edit')}
-                  </Link>
+                  </ListLink>
                 </td>
               </tr>
             ))}

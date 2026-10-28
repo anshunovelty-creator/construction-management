@@ -5,6 +5,7 @@ import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadFirmParties, MoneyCell, Stat } from '../party/shared';
+import { ListLink } from '@/components/list-link';
 
 /** The workbook's Dashboard sheet for the working firm: big totals, counts by status, the top 5 and a bar per party. */
 export default async function DashboardPage() {
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
               {top.map(({ id, name, f }, i) => (
                 <tr key={id}>
                   <td className="num muted">{i + 1}</td>
-                  <td><Link href={`/party?id=${id}`} className="party-link">{name}</Link></td>
+                  <td><ListLink href={`/party?id=${id}`} className="party-link">{name}</ListLink></td>
                   <MoneyCell paise={f.total} />
                   <MoneyCell paise={f.paid} />
                   <MoneyCell paise={f.balance} strong />

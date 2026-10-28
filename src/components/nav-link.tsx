@@ -18,7 +18,8 @@ export function NavLink({
   const path = usePathname();
   const current = path === href || path === section || (!exact && path.startsWith(`${section}/`));
   return (
-    <Link href={href} className="nav-link" aria-current={current ? 'page' : undefined}>
+    // The main menu is loaded in full ahead of time, so a click opens the page at once.
+    <Link href={href} prefetch className="nav-link" aria-current={current ? 'page' : undefined}>
       {children}
     </Link>
   );

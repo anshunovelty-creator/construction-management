@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { ListLink } from '@/components/list-link';
 import { RowFilter } from '@/components/row-filter';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
@@ -67,7 +68,7 @@ export default async function ClientIndexPage() {
                 {clients.map(({ id, name, f }, i) => (
                   <tr key={id} data-name={name}>
                     <td className="num muted">{i + 1}</td>
-                    <td><Link href={`/client?id=${id}`} className="party-link">{name}</Link></td>
+                    <td><ListLink href={`/client?id=${id}`} className="party-link">{name}</ListLink></td>
                     <MoneyCell paise={f.opening} />
                     <MoneyCell paise={f.gross} />
                     <MoneyCell paise={f.deductions} />

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { AutoForm } from '@/components/auto-form';
 import { GroupCards, GROUPS, SitesTable } from '@/components/board';
+import { ListLink } from '@/components/list-link';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { isCommonEntry } from '@/lib/firm';
 import { describeAll, type LineRow } from '@/lib/ledger/plain';
@@ -163,7 +164,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
                 return (
                   <tr key={r.id}>
                     <td>
-                      <Link href={`/entries/${r.id}`} className="serial underline">{r.serial}</Link>
+                      <ListLink href={`/entries/${r.id}`} className="serial underline">{r.serial}</ListLink>
                     </td>
                     <td className="nowrap">{showDate(r.entry_date)}</td>
                     <td>

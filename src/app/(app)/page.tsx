@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { ListLink } from '@/components/list-link';
 import { RowFilter } from '@/components/row-filter';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
@@ -68,7 +69,7 @@ export default async function PartyIndexPage() {
                   <tr key={id} data-name={name}>
                     <td className="num muted">{i + 1}</td>
                     {/* The name's link stretches over the whole row, so a click anywhere opens the party. */}
-                    <td><Link href={`/party?id=${id}`} className="party-link">{name}</Link></td>
+                    <td><ListLink href={`/party?id=${id}`} className="party-link">{name}</ListLink></td>
                     <MoneyCell paise={f.opening} />
                     <MoneyCell paise={f.bills} />
                     <MoneyCell paise={f.total} />
