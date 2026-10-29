@@ -151,10 +151,10 @@ describe('office staff', () => {
     await expect(asUser(db, office, (tx) => post(tx, { ...abBill(), firmId: seed.jayraj, lines: abBill().lines.map((l) => ({ ...l, firmId: seed.jayraj })) }))).rejects.toThrow(
       'not assigned to every firm',
     );
-    const jayrajPaysAb = vendorPayment({
-      billFirmId: seed.ab, vendorId: seed.ansari, from: seed.jayrajBank, amountPaise: 100, paymentDate: '2026-10-22', reference: 'U1',
+    const jayrajPaysJayraj = vendorPayment({
+      billFirmId: seed.jayraj, vendorId: seed.ansari, from: seed.jayrajBank, amountPaise: 100, paymentDate: '2026-10-22', reference: 'U1',
     });
-    await expect(asUser(db, office, (tx) => post(tx, jayrajPaysAb))).rejects.toThrow('not assigned to every firm');
+    await expect(asUser(db, office, (tx) => post(tx, jayrajPaysJayraj))).rejects.toThrow('not assigned to every firm');
     await asUser(db, office, async (tx) => {
       expect(await ids(tx, 'select id from work_orders')).toEqual([]); // the work order is Jayraj's
       expect(await ids(tx, 'select id from money_accounts')).toEqual(

@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
 import { FirmLine } from '@/components/firm-line';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
-import { ENTRY_FORMS, getEntryForm } from '@/lib/masters/registry';
+import { ENTRY_FORMS, getEntryForm, type Field } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../../masters/options';
 import { postEntryRows } from '../actions';
@@ -14,7 +14,11 @@ import { sheetColumns } from './columns';
 export default async function SheetPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const { type } = await searchParams;
   const profile = await requireProfile();
-  const slugs = Object.keys(ENTRY_FORMS).filter((s) => (getEntryForm(s)!.roles as string[]).includes(profile.role));
+  // Bills have item lines, which a row cannot hold; they are typed in their own form.
+  const slugs = Object.keys(ENTRY_FORMS).filter((s) => {
+    const form = getEntryForm(s)!;
+    return (form.roles as string[]).includes(profile.role) && !(form.fields as Field[]).some((f) => f.kind === 'items');
+  });
   const slug = type && slugs.includes(type) ? type : slugs[0]!;
   const form = getEntryForm(slug)!;
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);

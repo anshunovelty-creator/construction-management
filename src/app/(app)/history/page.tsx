@@ -62,7 +62,7 @@ export default async function HistoryPage() {
     return t('history.sentence', {
       action: t(`history.action.${change.action}`),
       thing: t.has(`history.thing.${thing}`) ? t(`history.thing.${thing}`) : change.table_name,
-      name: String(row.name ?? row.ref ?? row.full_name ?? ''),
+      name: String(row.name ?? row.ref ?? row.full_name ?? (row.rate_bp === undefined ? '' : `${Number(row.rate_bp) / 100}%`)),
     });
   };
 

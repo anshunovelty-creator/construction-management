@@ -1,6 +1,5 @@
 import { assertPaise, type Paise } from '@/lib/money';
 import { assertBalanced, assertDate, assertPositive } from '../balance';
-import { interFirmLines } from '../inter-firm';
 import type { CostHead, EntryDraft, MoneyAccountRef } from '../types';
 
 export interface SiteCashExpenseInput {
@@ -58,15 +57,18 @@ export interface CashTransferInput {
 }
 
 /**
- * Moving money between our own accounts (bank to owner, owner to supervisor, firm to firm).
- * Not an expense. Bank-to-bank across firms creates an inter-firm due; paying back
- * an existing due is the same transfer in the other direction (it nets off).
+ * Moving money between our own accounts within one firm (bank to owner cash, owner to supervisor).
+ * Not an expense. Money never moves between firms.
  */
 export function cashTransfer(input: CashTransferInput): EntryDraft {
   assertDate(input.transferDate, 'transfer date');
   assertPositive(input.amountPaise, 'transfer amount');
   if (input.from.id === input.to.id) {
     throw new Error('cannot transfer to the same account');
+  }
+  // Firms are independent: money moves only within one firm (or among common accounts).
+  if (input.from.firmId !== input.to.firmId) {
+    throw new Error('money cannot move between firms');
   }
   const draft: EntryDraft = {
     id: input.id ?? crypto.randomUUID(),
@@ -78,7 +80,6 @@ export function cashTransfer(input: CashTransferInput): EntryDraft {
     lines: [
       { account: 'money', amountPaise: input.amountPaise, firmId: input.to.firmId, moneyAccountId: input.to.id },
       { account: 'money', amountPaise: -input.amountPaise, firmId: input.from.firmId, moneyAccountId: input.from.id },
-      ...interFirmLines(input.from.firmId, input.to.firmId, input.amountPaise),
     ],
   };
   assertBalanced(draft);

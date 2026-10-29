@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useRef, useState } from 'react';
+import { BillItems } from '@/components/bill-items';
 import { ChoiceOptions } from '@/components/choice-options';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
@@ -104,7 +105,7 @@ export function Form({
   }, [state]);
 
   return (
-    <form ref={form} action={formAction} className="form">
+    <form ref={form} action={formAction} className={fields.some((f) => f.kind === 'items') ? 'form bill' : 'form'}>
       {state.saved && (
         <p role="status" className="banner">✓ {t('entries.saved', { serial: state.saved })}</p>
       )}
@@ -159,9 +160,9 @@ function Fields({
   // The vendor picked so far, so the amount box can say what they are still owed.
   const [vendor, setVendor] = useState(vendorId ?? String(valueOf('vendor_id') ?? ''));
 
-  return (
-    <>
-      {fields.map((field) => {
+  const renderField = (field: Field) => {
+        // The items table is drawn by BillItems, below.
+        if (field.kind === 'items') return null;
         const id = `field-${field.name}`;
         const error = state.errors?.[field.name];
         const hintKey = hintPrefix ? `${hintPrefix}.${field.name}` : undefined;
@@ -169,6 +170,9 @@ function Fields({
         const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
         const value = valueOf(field.name);
         const label = t(`fields.${field.name}`);
+        // What an empty choice means on this form, when that is not simply "none" (e.g. "work order's %").
+        const emptyKey = hintPrefix ? `${hintPrefix.replace(/hints$/, 'empty')}.${field.name}` : undefined;
+        const emptyLabel = emptyKey && t.has(emptyKey) ? t(emptyKey) : t(field.required ? 'common.choose' : 'common.none');
         let control: React.ReactNode;
 
         if (field.kind === 'checkbox') {
@@ -213,7 +217,7 @@ function Fields({
               )}
               {field.kind === 'enum' || field.kind === 'ref' ? (
                 <select {...shared} onChange={field.name === 'vendor_id' ? (e) => setVendor(e.target.value) : undefined}>
-                  <option value="">{t(field.required ? 'common.choose' : 'common.none')}</option>
+                  <option value="">{emptyLabel}</option>
                   {field.kind === 'enum'
                     ? ENUMS[field.enum].map((option) => (
                         <option key={option} value={option}>
@@ -237,7 +241,7 @@ function Fields({
         }
 
         return (
-          <div key={field.name} className="field">
+          <div key={field.name} className={`field f-${field.name}`}>
             {control}
             {error && (
               <p id={`${id}-error`} className="error">
@@ -246,7 +250,22 @@ function Fields({
             )}
           </div>
         );
-      })}
+  };
+
+  // A bill has an items table: the details above it, and the notes, deductions and totals below it.
+  const itemsAt = fields.findIndex((f) => f.kind === 'items');
+  if (itemsAt < 0) return <>{fields.map(renderField)}</>;
+  return (
+    <>
+      <p className="bill-section">{t('items.details')}</p>
+      <div className="bill-head">{fields.slice(0, itemsAt).map(renderField)}</div>
+      <BillItems
+        materials={choices.materials ?? []}
+        gstRates={choices.gstRates ?? []}
+        values={state.values ?? {}}
+        errors={state.errors}
+        aside={<div className="bill-aside">{fields.slice(itemsAt + 1).map(renderField)}</div>}
+      />
     </>
   );
 }

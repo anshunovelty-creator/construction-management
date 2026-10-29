@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
+import { Form } from '@/components/form';
 import { ListLink } from '@/components/list-link';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
@@ -10,7 +11,7 @@ import { getEntryForm } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../masters/options';
-import { postEntryRows } from '../entries/actions';
+import { postClientBill, postEntryRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
 import { MoneyCell, Stat, StatusPill } from '../party/shared';
@@ -35,8 +36,9 @@ interface ClientRow {
 }
 
 type Slug = 'client-bill' | 'client-receipt';
-/** Sheet columns in reading order. */
-const BILL_COLUMNS = ['entry_date', 'bill_no', 'work_order_id', 'gross', 'tds', 'retention', 'security_deposit', 'narration'];
+/** The bill form's questions: the bill's details, its items, then what the client cuts. */
+const BILL_FIELDS = ['work_order_id', 'bill_no', 'entry_date', 'items', 'tds_rate', 'retention', 'security_deposit', 'narration'];
+/** Sheet columns in reading order. Bills have items, so they are typed in a form, not a sheet. */
 const RECEIPT_COLUMNS = ['entry_date', 'work_order_id', 'amount', 'to_account_id', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them. */
@@ -54,11 +56,11 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
   const { firm } = working;
   const db = await createClient();
-  const billFields = fieldsOf('client-bill', BILL_COLUMNS);
+  const billFields = fieldsOf('client-bill', BILL_FIELDS);
   const receiptFields = fieldsOf('client-receipt', RECEIPT_COLUMNS);
   // The client is looked up alongside their entries rather than before them: one trip to the database, not two.
   const [{ data: client }, { data }, { data: orders }, names, choices] = await Promise.all([
-    db.from('parties').select('id, name').eq('id', id).eq('kind', 'client').maybeSingle(),
+    db.from('parties').select('id, name, gst_number').eq('id', id).eq('kind', 'client').maybeSingle(),
     db.from('client_rows').select('*').eq('firm_id', firm.id).eq('party_id', id)
       .order('entry_date').order('serial').returns<ClientRow[]>(),
     db.from('work_orders').select('id, ref, is_active, site:sites(name)').eq('firm_id', firm.id).eq('client_id', id)
@@ -123,6 +125,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
       <Link href="/clients" className="back">◄ {t('client.home')}</Link>
       <div className="party-head">
         <h1>{client.name}</h1>
+        <p className="muted">{t('party.gst', { number: client.gst_number || t('party.noGst') })}</p>
         {/* With no entries there is nothing to be settled, so no "fully received" either. */}
         {rows.length > 0 && <StatusPill status={f.status} t={t} side="client" />}
       </div>
@@ -202,12 +205,13 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
               <summary className="btn">＋ {t('client.addBills')}</summary>
               {noOrders}
               <p className="hint">{t('client.addBillsHint')}</p>
-              <EntrySheet
-                columns={columns('client-bill', billFields, 'party.billDate')}
-                today={todayInIndia()}
-                start={3}
-                defaults={onlyOrder}
-                save={postEntryRows.bind(null, 'client-bill', firm.id)}
+              <Form
+                fields={billFields}
+                defaults={{ ...onlyOrder, entry_date: todayInIndia() }}
+                choices={choices}
+                action={postClientBill.bind(null, firm.id)}
+                submitLabel={t('entries.save')}
+                hintPrefix="entryForms.client-bill.hints"
               />
             </details>
           </>
@@ -255,7 +259,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             <details className="add-rows">
               <summary className="btn">＋ {t('client.addReceipts')}</summary>
               {noOrders}
-              {(choices.moneyAccountsTheyOwe ?? []).length === 0 && (
+              {(choices.firmAccounts ?? []).length === 0 && (
                 <p className="banner bad">
                   {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
                 </p>

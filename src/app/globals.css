@@ -398,6 +398,81 @@ tr:hover .party-link { color: var(--accent); }
 .owed { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--paper); font-size: 14px; }
 .owed > span:first-child:not(.muted) { font-weight: 500; }
 
+/* ---------- Bill forms (vendor and client bills): details on top, items in a table, totals and notes below ---------- */
+.quick-dialog:has(.bill-items) { width: min(960px, calc(100vw - 32px)); }
+/* A bill form needs the whole width, so the "what happens" note sits above it. */
+.form-layout:has(.bill-items) { grid-template-columns: minmax(0, 1fr); }
+.form-layout:has(.bill-items) .why { position: static; order: -1; }
+.form.bill { max-width: 920px; gap: 24px; }
+.quick-dialog .form.bill { max-width: none; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.quick-dialog .form.bill > .btn { justify-self: end; }
+
+/* Section label: small capitals over a rule, so each block reads as one step. */
+.bill-section {
+  margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Details: a 12-column row. Party and site take half a row, bill number and date a quarter each. */
+.bill-head { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.bill-head > .field { grid-column: span 3; min-width: 0; }
+.bill-head > .f-vendor_id, .bill-head > .f-work_order_id, .bill-head > .f-site_id, .bill-head > .f-cost_head { grid-column: span 6; }
+@media (max-width: 640px) {
+  .bill-head > .field, .bill-head > .f-vendor_id, .bill-head > .f-work_order_id, .bill-head > .f-site_id, .bill-head > .f-cost_head { grid-column: span 12; }
+  .bill-head > .f-bill_no, .bill-head > .f-entry_date { grid-column: span 6; }
+}
+
+/* Each box: label above, the control, then the hint and the amount in words; any error last. */
+.form.bill .field { display: flex; flex-direction: column; gap: 6px; }
+.form.bill .field > label { order: 0; font-weight: 600; font-size: 13.5px; color: var(--ink); }
+.form.bill .field > .hint { order: 2; margin: 0; font-size: 12.5px; color: var(--muted); }
+.form.bill .field > .amount-words { order: 2; margin: 0; }
+.form.bill .field > .error { order: 3; margin: 0; }
+.form.bill .field input:not([type='checkbox']), .form.bill .field select { width: 100%; min-height: 40px; box-sizing: border-box; }
+
+/* Items: one row per line, fixed column widths, so the table reads the same whatever the names are. */
+.bill-items { display: grid; gap: 10px; min-width: 0; }
+.bill-items p { margin: 0; }
+.bill-items .table-wrap { position: relative; border: 1px solid var(--rule); border-radius: 10px; }
+.bill-items table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+@media (max-width: 640px) { .bill-items table { min-width: 760px; } }
+.bill-items th, .bill-items td { padding: 8px 10px; vertical-align: middle; }
+.bill-items .c-no { width: 36px; }
+.bill-items .c-qty { width: 84px; }
+.bill-items .c-rate { width: 104px; }
+.bill-items .c-amount { width: 110px; }
+.bill-items .c-gst { width: 96px; }
+.bill-items .c-gstamt { width: 104px; }
+.bill-items .c-total { width: 116px; }
+.bill-items .c-del { width: 44px; }
+.bill-items input:not([type='checkbox']), .bill-items select { width: 100%; min-height: 38px; box-sizing: border-box; padding: 6px 10px; }
+.bill-items td.num input { text-align: right; }
+.bill-items .error { margin: 4px 0 0; font-size: 12.5px; }
+.bill-items .btn.ghost.small { justify-self: start; min-width: 0; }
+.bill-items td .btn.small { width: 32px; min-width: 32px; padding: 4px 0; }
+
+/* Foot: notes and deductions on the left, the totals in a box on the right. */
+.bill-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 24px; align-items: start; }
+.bill-aside { display: grid; gap: 16px; align-content: start; min-width: 0; max-width: 380px; }
+.bill-sum { display: grid; gap: 10px; padding: 16px 18px; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
+.bill-sum .amount-words { margin: 0; font-size: 13px; color: var(--muted); text-align: right; }
+@media (max-width: 760px) { .bill-foot { grid-template-columns: minmax(0, 1fr); } }
+
+/* The totals: without GST, GST, and the total in the accent colour. */
+.bill-totals { display: grid; gap: 6px; justify-self: end; min-width: min(320px, 100%); margin: 0; }
+.bill-sum .bill-totals { justify-self: stretch; min-width: 0; }
+.bill-totals > div { display: flex; justify-content: space-between; gap: 24px; }
+.bill-totals dt { color: var(--muted); }
+.bill-totals dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bill-totals .grand { padding-top: 8px; border-top: 1px solid var(--rule-strong); font-size: 16px; }
+.bill-totals .grand dt { color: var(--ink); font-weight: 600; }
+.bill-sum .grand dd { color: var(--accent); font-size: 18px; }
+section > .bill-totals { margin-top: 10px; }
+
+/* Save sits at the bottom right; full width on a phone. */
+.form.bill > .btn { justify-self: end; min-width: 180px; }
+@media (max-width: 640px) { .form.bill > .btn { justify-self: stretch; } }
+
 /* ---------- Loading skeleton (src/app/(app)/loading.tsx) ---------- */
 .skeleton { display: grid; gap: 14px; }
 .sk { display: block; border-radius: 12px; background: linear-gradient(90deg, var(--rule) 25%, var(--paper) 50%, var(--rule) 75%); background-size: 200% 100%; animation: sk-shine 1.2s ease-in-out infinite; }
@@ -435,7 +510,7 @@ h1 { font-weight: 700; }
 }
 .firm-pill { border-color: rgb(110 231 183 / 0.35); background: rgb(110 231 183 / 0.12); color: #a7f3d0; font-size: 13px; }
 summary.firm-pill:hover { border-color: #6ee7b7; }
-.avatar { background: var(--accent-soft); color: var(--navy); font-weight: 700; box-shadow: 0 0 0 2px rgb(255 255 255 / 0.2); }
+.avatar { background: var(--accent-soft); color: var(--ink); font-weight: 700; box-shadow: 0 0 0 2px rgb(255 255 255 / 0.2); }
 .avatar:hover, .account[open] > .avatar { box-shadow: 0 0 0 3px rgb(255 255 255 / 0.35); }
 .more-menu { border-radius: 12px; box-shadow: 0 12px 32px rgb(11 19 36 / 0.14); }
 
@@ -443,7 +518,7 @@ summary.firm-pill:hover { border-color: #6ee7b7; }
 .btn, button[type='submit']:not(.btn) { border-radius: 10px; font-weight: 600; font-size: 14px; min-height: 40px; box-shadow: 0 1px 2px rgb(16 24 40 / 0.08); transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s; }
 .btn:hover { filter: brightness(1.08); }
 .btn.big { min-height: 44px; font-size: 15px; }
-.btn.navy { background: var(--navy); border-color: var(--navy); }
+.btn.navy { background: var(--navy); border-color: var(--navy); color: #fff; }
 .btn.ghost { box-shadow: 0 1px 2px rgb(16 24 40 / 0.05); }
 .btn.ghost:hover { background: var(--head); border-color: var(--muted); }
 .btn.danger { background: var(--minus-soft); border-color: color-mix(in srgb, var(--minus) 30%, var(--sheet)); color: var(--minus); box-shadow: none; }
@@ -483,7 +558,7 @@ tfoot td, table.ledger tfoot td { background: var(--head); font-weight: 700; bor
 .tab { padding: 10px 2px 12px; font-weight: 500; }
 .tab[aria-selected='true'] { font-weight: 600; }
 .chip, .subnav .nav-link { font-weight: 500; }
-.chip.on, .subnav .nav-link[aria-current='page'] { background: var(--navy); border-color: var(--navy); }
+.chip.on, .subnav .nav-link[aria-current='page'] { background: var(--navy); border-color: var(--navy); color: #fff; }
 
 /* Popup */
 .quick-dialog { border-radius: 16px; box-shadow: 0 24px 64px rgb(11 19 36 / 0.28); }

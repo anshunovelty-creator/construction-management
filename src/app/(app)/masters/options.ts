@@ -45,22 +45,27 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
       const { data } = await db.from('materials').select('id, name').eq('is_active', true).order('name');
       return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
     }
+    case 'gstRates': {
+      // A bill line keeps the rate itself, not the row, so the value is the rate in basis points.
+      const { data } = await db.from('gst_rates').select('rate_bp').eq('is_active', true).order('rate_bp');
+      return (data ?? []).map((r) => ({ value: String(r.rate_bp), label: `${r.rate_bp / 100}%` }));
+    }
+    case 'tdsRates': {
+      // Like GST, a bill keeps the rate itself; the section says which rule the rate comes from.
+      const { data } = await db.from('tds_rates').select('rate_bp, section').eq('is_active', true).order('rate_bp');
+      return (data ?? []).map((r) => ({
+        value: String(r.rate_bp),
+        label: r.section ? `${r.rate_bp / 100}% · ${r.section}` : `${r.rate_bp / 100}%`,
+      }));
+    }
     case 'moneyAccounts':
-    case 'moneyAccountsWeOwe':
-    case 'moneyAccountsTheyOwe': {
-      const { data } = await db
-        .from('money_accounts')
-        .select('id, name, firm_id')
-        .eq('is_active', true)
-        .order('name')
-        .returns<AccountRow[]>();
+    case 'firmAccounts': {
+      // Payments and receipts (firmAccounts) never offer supervisor cash; only the firm's own accounts are listed.
+      let query = db.from('money_accounts').select('id, name, firm_id').eq('is_active', true).order('name');
+      if (source === 'firmAccounts') query = query.neq('kind', 'supervisor_cash');
+      const { data } = await query.returns<AccountRow[]>();
       if (!scope) return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
-      const { firm, firms } = scope.working;
-      const nameOf = (id: string) => firms.find((f) => f.id === id)?.name ?? '';
-      // "Other firm: AB Infra will owe Jayraj Infra": the due that picking one of these accounts leaves behind.
-      const groupOf = (other: string) =>
-        scope.t(source === 'moneyAccountsWeOwe' ? 'firm.otherWeOwe' : 'firm.otherTheyOwe', { us: firm.name, them: nameOf(other) });
-      return accountChoices(data ?? [], accountScope(source)!, firm.id, groupOf);
+      return accountChoices(data ?? [], accountScope(source)!, scope.working.firm.id);
     }
     case 'workOrders': {
       let query = db
@@ -78,7 +83,8 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
 
 /** Choices for every reference field in `fields`, as the signed-in user may see them; in `scope`'s firm when given. */
 export async function loadChoices(db: Db, fields: Field[], scope?: ChoiceScope): Promise<Choices> {
-  const sources = [...new Set(fields.flatMap((f) => (f.kind === 'ref' || f.kind === 'multi' ? [f.ref] : [])))];
+  const sources = [...new Set(fields.flatMap((f): RefSource[] =>
+    f.kind === 'ref' || f.kind === 'multi' ? [f.ref] : f.kind === 'items' ? ['materials', 'gstRates'] : []))];
   const loaded = await Promise.all(sources.map((source) => load(db, source, scope)));
   return Object.fromEntries(sources.map((source, i) => [source, loaded[i]]));
 }

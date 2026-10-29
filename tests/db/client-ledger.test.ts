@@ -30,7 +30,7 @@ it('adds up opening, bills (gross, deductions) and receipts per firm and client,
     workOrder: seed.workOrder, to: seed.jayrajBank, amountPaise: 4_000_00, receiptDate: '2026-10-23', reference: 'UTR9',
   }));
   const wrong = await post(clientReceipt({
-    workOrder: seed.workOrder, to: seed.ownerCash, amountPaise: 999_00, receiptDate: '2026-10-24',
+    workOrder: seed.workOrder, to: seed.jayrajBank, amountPaise: 999_00, receiptDate: '2026-10-24', reference: 'UTR-WRONG',
   }));
   await reverseEntry(db, wrong.id, OWNER, 'typed twice');
 

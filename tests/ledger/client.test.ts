@@ -39,7 +39,7 @@ describe('clientBill', () => {
   it('refuses deductions larger than the gross amount', () => {
     expect(() =>
       clientBill({ workOrder: WO, billDate: '2026-10-31', billNo: 'RA-3', grossPaise: 100, deductions: { tdsPaise: 101 } }),
-    ).toThrow('deductions are more than the gross amount');
+    ).toThrow('deductions are more than the bill amount');
   });
 });
 
@@ -52,12 +52,8 @@ describe('clientReceipt', () => {
     expect(draft.lines[1]).toMatchObject({ account: 'client_receivable', amountPaise: -94_000_000 });
   });
 
-  it("makes the receiving firm owe the work-order firm when money lands in the other firm's bank", () => {
-    const draft = clientReceipt({ workOrder: WO, to: AB_BANK, amountPaise: 500, receiptDate: '2026-11-15', reference: 'UTR6' });
-    expect(draft.lines.slice(2)).toEqual([
-      { account: 'inter_firm', amountPaise: 500, firmId: JI, counterFirmId: AB },
-      { account: 'inter_firm', amountPaise: -500, firmId: AB, counterFirmId: JI },
-    ]);
+  it('refuses a receipt into another firm’s account: firms are independent', () => {
+    expect(() => clientReceipt({ workOrder: WO, to: AB_BANK, amountPaise: 500, receiptDate: '2026-11-15', reference: 'UTR6' })).toThrow('own bank or cash');
   });
 
   it('requires a UTR or cheque number for bank receipts', () => {

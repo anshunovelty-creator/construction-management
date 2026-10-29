@@ -30,9 +30,9 @@ beforeAll(async () => {
       firmId: s.ab, vendorId: s.ansari, siteId: s.svgSite, billDate: '2026-10-22', billNo: 'BR-101',
       items: [{ costHead: 'material', amountPaise: 50_000_000 }],
     }),
-    // Jayraj's bank pays ₹2,00,000 towards that AB Infra bill.
+    // AB Infra's own bank pays ₹2,00,000 towards that bill (firms never pay from each other's accounts).
     vendorPayment({
-      billFirmId: s.ab, vendorId: s.ansari, from: s.jayrajBank, amountPaise: 20_000_000,
+      billFirmId: s.ab, vendorId: s.ansari, from: s.abBank, amountPaise: 20_000_000,
       paymentDate: '2026-10-22', reference: 'UTR-778',
     }),
     // Owner gives Ramesh ₹20,000; Ramesh pays the day's labour; counts ₹240 short at close.
@@ -68,9 +68,9 @@ describe('a realistic sequence of postings', () => {
     expect(await balanceOf(db, 'vendor_payable', { firm_id: seed.ab, party_id: seed.ansari })).toBe(-115_000_000);
   });
 
-  it('records that AB Infra owes Jayraj Infra the ₹2,00,000 Jayraj paid', async () => {
-    expect(await balanceOf(db, 'inter_firm', { firm_id: seed.jayraj, counter_firm_id: seed.ab })).toBe(20_000_000);
-    expect(await balanceOf(db, 'inter_firm', { firm_id: seed.ab, counter_firm_id: seed.jayraj })).toBe(-20_000_000);
+  it('keeps each firm’s money apart: no money is owed between the two firms', async () => {
+    expect(await balanceOf(db, 'inter_firm', { firm_id: seed.jayraj, counter_firm_id: seed.ab })).toBe(0);
+    expect(await balanceOf(db, 'inter_firm', { firm_id: seed.ab, counter_firm_id: seed.jayraj })).toBe(0);
   });
 
   it("puts every firm's cost into the SVG site and gives site profit = billed − costs", async () => {
@@ -81,8 +81,9 @@ describe('a realistic sequence of postings', () => {
   });
 
   it('tracks bank and supervisor cash exactly', async () => {
-    // ₹6,20,000 − ₹2,00,000 + ₹9,40,000
-    expect(await balanceOf(db, 'money', { money_account_id: seed.jayrajBank.id })).toBe(136_000_000);
+    // ₹6,20,000 + ₹9,40,000 (the ₹2,00,000 went out of AB Infra's own bank)
+    expect(await balanceOf(db, 'money', { money_account_id: seed.jayrajBank.id })).toBe(156_000_000);
+    expect(await balanceOf(db, 'money', { money_account_id: seed.abBank.id })).toBe(-20_000_000);
     // ₹20,000 − ₹11,060 − ₹240 short
     expect(await balanceOf(db, 'money', { money_account_id: seed.rameshCash.id })).toBe(870_000);
     expect(await balanceOf(db, 'cash_short_excess')).toBe(24_000);

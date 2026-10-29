@@ -30,20 +30,20 @@ interface PartyRow {
   cost_head: string | null;
   money_account_id: string | null;
   material_id: string | null;
+  /** The bill's items, by name; null for bills typed as one amount before items came in. */
+  item_names: string | null;
 }
 
 type Slug = 'vendor-bill' | 'pay-vendor';
-/** Sheet columns in the workbook's order. */
-const BILL_COLUMNS = ['entry_date', 'bill_no', 'material_id', 'amount', 'site_id', 'cost_head', 'narration'];
+/** Sheet columns in the workbook's order. Bills have items, so they are typed in the pop-up, not a sheet. */
 const PAY_COLUMNS = ['entry_date', 'amount', 'from_account_id', 'reference', 'narration'];
-/** The quick card's questions: the amount first, the rest as on the sheet. */
-const BILL_QUICK = ['amount', 'bill_no', 'site_id', 'material_id', 'cost_head', 'entry_date', 'narration'];
+/** The pop-ups' questions: the bill's details, then its items. */
+const BILL_QUICK = ['bill_no', 'entry_date', 'site_id', 'cost_head', 'items', 'tds_rate', 'narration'];
 const PAY_QUICK = ['amount', 'from_account_id', 'entry_date', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them (party.* keys). */
 const LABELS: Record<string, string> = {
-  bill_no: 'billNo', material_id: 'material', amount: 'amount', site_id: 'site', cost_head: 'costType', narration: 'remarks',
-  from_account_id: 'paidFrom', reference: 'reference',
+  amount: 'amount', narration: 'remarks', from_account_id: 'paidFrom', reference: 'reference',
 };
 
 /** One party's page in the working firm, like a vendor sheet of the outstanding workbook. ?id= */
@@ -54,11 +54,11 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
   const { firm } = working;
   const db = await createClient();
-  const billFields = fieldsOf('vendor-bill', BILL_COLUMNS);
+  const billFields = fieldsOf('vendor-bill', BILL_QUICK);
   const payFields = fieldsOf('pay-vendor', PAY_COLUMNS);
   // The party is looked up alongside its entries rather than before them: one trip to the database, not two.
   const [{ data: party }, { data }, names, choices, { data: materials }] = await Promise.all([
-    db.from('parties').select('id, name').eq('id', id).maybeSingle(),
+    db.from('parties').select('id, name, gst_number').eq('id', id).maybeSingle(),
     db.from('party_rows').select('*').eq('firm_id', firm.id).eq('party_id', id)
       .order('entry_date').order('serial').returns<PartyRow[]>(),
     loadNames(db),
@@ -101,7 +101,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
     </>
   );
   // Without a site or a bank/cash account the sheet cannot save, so say where to add one.
-  const missing = (source: 'sites' | 'moneyAccountsWeOwe', slug: string, key: string) =>
+  const missing = (source: 'sites' | 'firmAccounts', slug: string, key: string) =>
     (choices[source] ?? []).length === 0 && (
       <p className="banner bad">
         {t(`party.${key}`)} <Link href={`/masters/${slug}`} className="underline">{t('party.goSetup')}</Link>
@@ -113,6 +113,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
       <Link href="/" className="back">◄ {t('party.home')}</Link>
       <div className="party-head">
         <h1>{party.name}</h1>
+        <p className="muted">{t('party.gst', { number: party.gst_number || t('party.noGst') })}</p>
         {/* With no entries there is nothing to be settled, so no "fully paid" either. */}
         {rows.length > 0 && <StatusPill status={f.status} t={t} />}
       </div>
@@ -137,7 +138,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
         name={party.name}
         bill={
           <Form
-            fields={fieldsOf('vendor-bill', BILL_QUICK)}
+            fields={billFields}
             defaults={{ entry_date: todayInIndia(), site_id: lastBill?.site_id ?? '', cost_head: lastBill?.cost_head ?? '' }}
             choices={choices}
             action={postPartyEntry.bind(null, 'vendor-bill', firm.id, party.id)}
@@ -186,7 +187,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                         <td className="num muted">{i + 1}</td>
                         <td className="nowrap">{showDate(r.entry_date)}</td>
                         <td>{r.entry_type === 'opening' ? <strong>{t('party.openingRow')}</strong> : r.reference}</td>
-                        <td>{r.material_id ? materialOf.get(r.material_id) : <span className="muted">–</span>}</td>
+                        <td>{r.item_names ?? (r.material_id ? materialOf.get(r.material_id) : <span className="muted">–</span>)}</td>
                         <MoneyCell paise={r.amount} />
                         <td>
                           {r.site_id ? names.sites.get(r.site_id) : ''}
@@ -203,23 +204,12 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                 </table>
               </div>
             )}
-            <details className="add-rows">
-              <summary className="btn ghost">▦ {t('party.addBills')}</summary>
-              {missing('sites', 'sites', 'needSite')}
-              {(choices.materials ?? []).length === 0 && (
-                <p className="hint">
-                  {t('party.noMaterials')} <Link href="/masters/materials" className="underline">{t('party.goSetup')}</Link>
-                </p>
-              )}
-              <p className="hint">{t('party.addHint')}</p>
-              <EntrySheet
-                columns={columns('vendor-bill', billFields, 'billDate')}
-                today={todayInIndia()}
-                start={3}
-                defaults={lastBill ? { site_id: lastBill.site_id ?? '', cost_head: lastBill.cost_head ?? '' } : {}}
-                save={postPartyRows.bind(null, 'vendor-bill', firm.id, party.id)}
-              />
-            </details>
+            {missing('sites', 'sites', 'needSite')}
+            {(choices.materials ?? []).length === 0 && (
+              <p className="hint">
+                {t('party.noMaterials')} <Link href="/masters/materials" className="underline">{t('party.goSetup')}</Link>
+              </p>
+            )}
           </>
         ) },
         { key: 'payments', label: t('party.paymentsTitle'), count: payments.length, panel: (
@@ -264,7 +254,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
             )}
             <details className="add-rows">
               <summary className="btn ghost">▦ {t('party.addPayments')}</summary>
-              {missing('moneyAccountsWeOwe', 'money-accounts', 'needAccount')}
+              {missing('firmAccounts', 'money-accounts', 'needAccount')}
               <p className="hint">{t('party.addHint')}</p>
               <EntrySheet
                 columns={columns('pay-vendor', payFields, 'payDate')}

@@ -27,13 +27,13 @@ it('adds up opening, bills and payments per firm and vendor, leaving out cancell
     firmId: seed.jayraj, vendorId: seed.ansari, siteId: seed.svgSite, billDate: '2026-10-22', billNo: 'B-1',
     items: [{ costHead: 'material', amountPaise: 500_00 }], materialId: cement,
   }));
-  // Paid from A B Infra's bank, but the bill is Jayraj's: it still counts on Jayraj's page.
+  // Paid from Jayraj's own bank: it counts on Jayraj's page.
   await post(vendorPayment({
-    billFirmId: seed.jayraj, vendorId: seed.ansari, from: seed.abBank, amountPaise: 300_00,
+    billFirmId: seed.jayraj, vendorId: seed.ansari, from: seed.jayrajBank, amountPaise: 300_00,
     paymentDate: '2026-10-23', reference: 'UTR1',
   }));
   const wrong = await post(vendorPayment({
-    billFirmId: seed.jayraj, vendorId: seed.ansari, from: seed.ownerCash, amountPaise: 999_00, paymentDate: '2026-10-24',
+    billFirmId: seed.jayraj, vendorId: seed.ansari, from: seed.jayrajBank, amountPaise: 999_00, paymentDate: '2026-10-24', reference: 'UTR-WRONG',
   }));
   await reverseEntry(db, wrong.id, OWNER, 'typed twice');
 
@@ -49,6 +49,6 @@ it('adds up opening, bills and payments per firm and vendor, leaving out cancell
   expect(detail.rows).toEqual([
     { entry_type: 'opening', site_id: null, money_account_id: null, material_id: null },
     { entry_type: 'vendor_bill', site_id: seed.svgSite, money_account_id: null, material_id: cement },
-    { entry_type: 'vendor_payment', site_id: null, money_account_id: seed.abBank.id, material_id: null },
+    { entry_type: 'vendor_payment', site_id: null, money_account_id: seed.jayrajBank.id, material_id: null },
   ]);
 });

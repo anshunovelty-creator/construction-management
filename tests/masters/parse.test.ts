@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { moneyAccountErrors, parseFields, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
-import { EDIT_USER_FIELDS, MASTERS, NEW_USER_FIELDS } from '@/lib/masters/registry';
+import { moneyAccountErrors, parseFields, parseItems, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
+import { EDIT_USER_FIELDS, getEntryForm, MASTERS, NEW_USER_FIELDS } from '@/lib/masters/registry';
 
 const form = (entries: [string, string][]) => {
   const data = new FormData();
@@ -100,7 +100,8 @@ describe('parseFields', () => {
 describe('bank and cash account rules', () => {
   it('ties a bank to a firm, keeps cash common, and gives supervisor cash a supervisor', () => {
     expect(moneyAccountErrors({ kind: 'bank', firm_id: FIRM, holder_user_id: null })).toBeNull();
-    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: null, holder_user_id: null })).toBeNull();
+    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: FIRM, holder_user_id: null })).toBeNull();
+    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: null, holder_user_id: null })).toEqual({ firm_id: 'cash_needs_firm' });
     expect(moneyAccountErrors({ kind: 'supervisor_cash', firm_id: null, holder_user_id: SITE })).toBeNull();
     expect(moneyAccountErrors({ kind: 'bank', firm_id: null, holder_user_id: SITE }))
       .toEqual({ firm_id: 'bank_needs_firm', holder_user_id: 'only_supervisor_cash' });
@@ -122,5 +123,51 @@ describe('form values', () => {
       name: 'A',
       firms: ['x', 'y'],
     });
+  });
+});
+
+describe('parseItems', () => {
+  const CEMENT = '3b6c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
+  const line = (material: string, qty: string, rate: string, gst = '1800'): [string, string][] =>
+    [['item_material', material], ['item_qty', qty], ['item_rate', rate], ['item_gst', gst]];
+
+  it('prices each filled line and skips blank ones', () => {
+    const { items, errors } = parseItems(form([...line(CEMENT, '10', '350'), ...line('', '', '')]));
+    expect(errors).toEqual({});
+    expect(items).toEqual([
+      { materialId: CEMENT, quantityMilli: 10_000, ratePaise: 35_000, gstBp: 1_800, amountPaise: 350_000, gstPaise: 63_000 },
+    ]);
+  });
+
+  it('says which line is wrong, and needs at least one line', () => {
+    expect(parseItems(form([...line(CEMENT, '10', '350'), ...line(CEMENT, 'ten', '350')])).errors).toEqual({ 'items.2': 'item_quantity' });
+    expect(parseItems(form(line('', '5', '350'))).errors).toEqual({ 'items.1': 'item_material' });
+    expect(parseItems(form(line(CEMENT, '5', '0'))).errors).toEqual({ 'items.1': 'item_rate' });
+    expect(parseItems(form(line('', '', ''))).errors).toEqual({ items: 'items_needed' });
+  });
+});
+
+describe('TDS rate on a bill', () => {
+  const billFields = getEntryForm('vendor-bill')!.fields;
+  const rate = (value: string) => parseFields(billFields.filter((f) => f.name === 'tds_rate'), form([['tds_rate', value]]));
+
+  it('takes a rate in basis points from the TDS list; an empty box means none', () => {
+    expect(rate('100')).toEqual({ ok: true, values: { tds_rate: '100' } });
+    expect(rate('')).toEqual({ ok: true, values: { tds_rate: null } });
+    expect(rate('1.5')).toEqual({ ok: false, errors: { tds_rate: 'invalid_choice' } });
+  });
+});
+
+describe('GST number of a party', () => {
+  const gst = (value: string) => parseFields(MASTERS.parties!.fields.filter((f) => f.name === 'gst_number'), form([['gst_number', value]]));
+
+  it('keeps a valid GST number in capitals, with no spaces', () => {
+    expect(gst('27aaaaa0000a1z5')).toEqual({ ok: true, values: { gst_number: '27AAAAA0000A1Z5' } });
+    expect(gst(' 27 AAAAA0000A1Z5 ')).toEqual({ ok: true, values: { gst_number: '27AAAAA0000A1Z5' } });
+  });
+
+  it('keeps an empty box as empty, and refuses a malformed number', () => {
+    expect(gst('')).toEqual({ ok: true, values: { gst_number: '' } });
+    expect(gst('27AAAAA0000A1Z')).toEqual({ ok: false, errors: { gst_number: 'invalid_gstin' } });
   });
 });

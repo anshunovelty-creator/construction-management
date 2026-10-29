@@ -5,9 +5,10 @@ import { redirect } from 'next/navigation';
 import type { FormState } from '@/components/form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { accountScope, firmErrors } from '@/lib/firm';
-import { cashCloseDifference, cashTransfer, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
+import { cashCloseDifference, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
+import { billTotals, type PricedItem } from '@/lib/ledger/bill-items';
 import type { CostHead, EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
 import { showPaise, percentOf } from '@/lib/money';
 import { parseFields, submittedValues, type Value } from '@/lib/masters/parse';
@@ -31,6 +32,20 @@ async function workOrder(db: Db, id: string) {
   if (!data) throw new Error('work order not found');
   const ref: WorkOrderRef = { id: data.id, firmId: data.firm_id, clientId: data.client_id, siteId: data.site_id };
   return { ref, tdsBp: data.tds_bp as number, retentionBp: data.retention_bp as number, depositBp: data.security_deposit_bp as number };
+}
+
+/** A bill's TDS rate for the TDS record: the rate in basis points, and the section it comes from (Setup → TDS rates). */
+async function tdsFor(db: Db, rateBp: number): Promise<{ rateBp: number; section: string }> {
+  const { data } = await db.from('tds_rates').select('section').eq('rate_bp', rateBp).maybeSingle();
+  return { rateBp, section: (data?.section as string | undefined) ?? '' };
+}
+
+/**
+ * How a payment or receipt was made must match its account: cash goes through a cash account, online and cheque through a bank.
+ * Throws a marker that saveEntry turns into a message under the method box.
+ */
+function checkMethod(method: string, account: MoneyAccountRef): void {
+  if ((method === 'cash') !== (account.kind !== 'bank')) throw new Error('payment_method');
 }
 
 /** What the books say is in a bank or cash account right now. */
@@ -71,41 +86,52 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
 
   switch (slug) {
     case 'vendor-bill': {
-      const { materialId, costHead } = materialAndType(s);
+      const billItems = v.items as PricedItem[];
+      const { base, gst } = billTotals(billItems);
+      // Left empty, no TDS is deducted.
+      const rate = v.tds_rate as string | null;
       return vendorBill({
         firmId: firmId!, vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
-        items: [{ costHead, amountPaise: n('amount') }], narration: s('narration'), materialId,
+        items: [{ costHead: (s('cost_head') || 'material') as CostHead, amountPaise: base }], gstPaise: gst, billItems,
+        tds: rate === null ? undefined : await tdsFor(db, Number(rate)),
+        narration: s('narration'),
       });
     }
-    case 'pay-vendor':
+    case 'pay-vendor': {
+      const from = await moneyAccount(db, s('from_account_id'));
+      checkMethod(s('payment_method'), from);
       return vendorPayment({
-        billFirmId: firmId!, vendorId: s('vendor_id'), from: await moneyAccount(db, s('from_account_id')),
+        billFirmId: firmId!, vendorId: s('vendor_id'), from,
         amountPaise: n('amount'), paymentDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
+    }
     case 'client-bill': {
       const wo = await workOrder(db, s('work_order_id'));
-      const gross = n('gross');
-      // An empty deduction box means "use the work order's percentage".
+      const billItems = v.items as PricedItem[];
+      const { base: gross, gst } = billTotals(billItems);
+      // An empty deduction box means "use the work order's percentage", worked out on the bill before GST.
       const pick = (name: string, bp: number) => (v[name] === null ? percentOf(gross, bp) : n(name));
+      // The TDS rate the client deducts: the one picked, or the work order's when left empty.
+      const tds = await tdsFor(db, v.tds_rate === null ? wo.tdsBp : Number(v.tds_rate));
       return clientBill({
-        workOrder: wo.ref, billDate: s('entry_date'), billNo: s('bill_no'), grossPaise: gross, narration: s('narration'),
+        workOrder: wo.ref, billDate: s('entry_date'), billNo: s('bill_no'), grossPaise: gross, gstPaise: gst, billItems,
+        narration: s('narration'),
         deductions: {
-          tdsPaise: pick('tds', wo.tdsBp),
+          tdsPaise: percentOf(gross, tds.rateBp),
           retentionPaise: pick('retention', wo.retentionBp),
           securityDepositPaise: pick('security_deposit', wo.depositBp),
         },
+        tds,
       });
     }
-    case 'client-receipt':
+    case 'client-receipt': {
+      const to = await moneyAccount(db, s('to_account_id'));
+      checkMethod(s('payment_method'), to);
       return clientReceipt({
-        workOrder: (await workOrder(db, s('work_order_id'))).ref, to: await moneyAccount(db, s('to_account_id')),
+        workOrder: (await workOrder(db, s('work_order_id'))).ref, to,
         amountPaise: n('amount'), receiptDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
-    case 'move-money':
-      return cashTransfer({
-        from: await moneyAccount(db, s('from_account_id')), to: await moneyAccount(db, s('to_account_id')),
-        amountPaise: n('amount'), transferDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
-      });
+    }
     case 'site-spend': {
       const { materialId, costHead } = materialAndType(s);
       return siteCashExpense({
@@ -173,7 +199,9 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   try {
     draft = await buildDraft(slug as EntryFormSlug, parsed.values, firmId, db);
   } catch (error) {
-    return { errors: { _form: 'save_failed' }, detail: (error as Error).message, values };
+    const message = (error as Error).message;
+    if (message === 'payment_method') return { errors: { payment_method: 'method_account' }, values };
+    return { errors: { _form: 'save_failed' }, detail: message, values };
   }
   if (entryId && UUID.test(entryId)) draft.id = entryId;
   const repeat = await sameBillNumber(db, draft);
@@ -218,6 +246,14 @@ export async function postPartyEntry(
 ): Promise<FormState> {
   data.set('vendor_id', vendorId);
   const saved = await saveEntry(slug, firmId, data, await createClient());
+  if (!('id' in saved)) return saved;
+  revalidatePath('/', 'layout');
+  return { saved: saved.serial };
+}
+
+/** A bill from the client page. Stays on the page, which then shows the new totals. */
+export async function postClientBill(firmId: string, _state: FormState, data: FormData): Promise<FormState> {
+  const saved = await saveEntry('client-bill', firmId, data, await createClient());
   if (!('id' in saved)) return saved;
   revalidatePath('/', 'layout');
   return { saved: saved.serial };

@@ -18,7 +18,8 @@
     "more": "More",
     "menu": "Menu",
     "overview": "Overview",
-    "clients": "Clients"
+    "clients": "Clients",
+    "tds": "TDS record"
   },
   "login": {
     "title": "Sign in",
@@ -34,13 +35,13 @@
     "waitingTitle": "entries waiting to be checked",
     "waitingHint": "Someone other than the person who typed an entry should check it.",
     "emptyTitle": "No entries yet",
-    "emptyHint": "Start in Setup: add your firms, sites, vendors, clients and bank accounts. Then add your first entry.",
+    "emptyHint": "Start in Setup: add your firms, sites, parties, clients and bank accounts. Then add your first entry.",
     "emptySupervisor": "Nothing here yet. When the office gives you cash, it shows up here."
   },
   "masters": {
     "firms": "Firms",
     "sites": "Sites",
-    "parties": "Parties (vendors, clients, workers)",
+    "parties": "Parties (clients, workers, staff)",
     "work-orders": "Work orders",
     "money-accounts": "Bank and cash accounts",
     "add": "Add new",
@@ -48,7 +49,7 @@
     "save": "Save",
     "empty": "Nothing here yet.",
     "readOnly": "Only the owner can change these.",
-    "lede": "The lists the forms pick from: firms, sites, vendors and clients, contracts, bank or cash accounts, and materials.",
+    "lede": "The lists the forms pick from: firms, sites, parties and clients, contracts, bank or cash accounts, materials and GST rates.",
     "delete": {
       "title": "Delete (testing only)",
       "warning": "Only while the app is being built. Deleting is permanent. Anything that entries, work orders, bank accounts or staff logins still use cannot be deleted — switch it off instead.",
@@ -64,7 +65,9 @@
         "other": "other records"
       }
     },
-    "materials": "Materials"
+    "materials": "Materials",
+    "gst-rates": "GST rates",
+    "tds-rates": "TDS rates"
   },
   "fields": {
     "code": "Short code (2–4 capital letters)",
@@ -90,7 +93,7 @@
     "role": "Role",
     "firms": "Firms (office staff)",
     "sites": "Sites (supervisors)",
-    "vendor_id": "Vendor",
+    "vendor_id": "Party",
     "bill_no": "Bill number",
     "cost_head": "What for",
     "amount": "Amount (₹)",
@@ -108,11 +111,17 @@
     "counted": "Cash counted (₹)",
     "account_id": "Bank or cash",
     "direction": "In or out",
-    "material_id": "Material"
+    "material_id": "Material",
+    "items": "Items",
+    "rate_bp": "Rate (%)",
+    "section": "Section",
+    "tds_rate": "TDS",
+    "gst_number": "GST number (GSTIN)",
+    "payment_method": "How paid"
   },
   "options": {
     "party_kind": {
-      "vendor": "Vendor",
+      "vendor": "Party",
       "client": "Client",
       "worker": "Worker",
       "staff": "Staff",
@@ -145,6 +154,11 @@
     "owner_money": {
       "in": "Owner puts money in",
       "out": "Owner takes money out"
+    },
+    "payment_method": {
+      "online": "Online",
+      "cash": "Cash",
+      "cheque": "Cheque"
     }
   },
   "users": {
@@ -172,12 +186,14 @@
       "work_orders": "work order",
       "money_accounts": "bank or cash account",
       "profiles": "login for",
-      "vendor": "vendor",
+      "vendor": "party",
       "client": "client",
       "worker": "worker",
       "staff": "staff member",
       "other": "party",
-      "materials": "material"
+      "materials": "material",
+      "gst_rates": "GST rate",
+      "tds_rates": "TDS rate"
     },
     "access": {
       "user_firms": {
@@ -209,9 +225,17 @@
     "other_firm": "This belongs to the other firm. Switch firm at the top right first.",
     "duplicate_bill": "This bill number is already in the books for this party. Cancel that entry first if it was wrong",
     "bank_needs_firm": "A bank account belongs to one firm. Choose it.",
-    "cash_no_firm": "Cash is shared by all firms. Leave the firm empty.",
+    "cash_no_firm": "Supervisor cash belongs to a supervisor, not a firm. Leave the firm empty.",
     "needs_supervisor": "Choose the supervisor who holds this cash.",
-    "only_supervisor_cash": "Only supervisor cash is held by a supervisor. Leave this empty."
+    "only_supervisor_cash": "Only supervisor cash is held by a supervisor. Leave this empty.",
+    "items_needed": "Add at least one item: pick it, then type the quantity and rate.",
+    "item_material": "Pick the item.",
+    "item_quantity": "Type the quantity, e.g. 10 or 2.5.",
+    "item_rate": "Type the rate for one unit, e.g. 350 or 1,250.50.",
+    "item_gst": "Pick the GST rate.",
+    "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
+    "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
+    "cash_needs_firm": "Each firm keeps its own cash. Choose the firm."
   },
   "common": {
     "yes": "Yes",
@@ -236,7 +260,10 @@
     "interFirmPay": "{firm}’s books: to pay {other}",
     "vendorAdvance": "Advance with {vendor} · paid by {firm}",
     "clientAdvance": "Advance from {client} to {firm} · work still owed",
-    "excess": "Extra cash found at day close"
+    "excess": "Extra cash found at day close",
+    "gstInput": "{firm} · GST to claim back",
+    "gstOutput": "{firm} · GST to pay the government",
+    "tdsPayable": "{firm} · TDS to pay the government"
   },
   "board": {
     "title": "Where the money is now",
@@ -250,7 +277,7 @@
     },
     "weOwe": {
       "title": "We owe",
-      "hint": "Vendor bills not yet paid."
+      "hint": "Party bills not yet paid."
     },
     "owedToUs": {
       "title": "Owed to us",
@@ -264,6 +291,10 @@
       "title": "Held by clients",
       "hint": "Still our money. It comes back later."
     },
+    "gst": {
+      "title": "GST",
+      "hint": "GST paid on party bills, to claim back, and GST charged on client bills, to pay."
+    },
     "owner": {
       "title": "Owner",
       "hint": "The owner’s own money, old balances and cash differences."
@@ -275,6 +306,10 @@
       "billed": "Billed",
       "cost": "Costs",
       "profit": "Profit"
+    },
+    "tds": {
+      "title": "TDS",
+      "hint": "TDS deducted from party bills, to pay to the government."
     }
   },
   "entries": {
@@ -344,39 +379,43 @@
   },
   "entryForms": {
     "vendor-bill": {
-      "title": "Bill from a vendor",
-      "when": "A vendor sent a bill for material, machines or work.",
-      "what": "The site’s cost goes up by the bill amount, and the firm now owes the vendor that much, even before anyone pays. Paying it later is a separate entry: “Pay a vendor”.",
+      "title": "Bill from a party",
+      "when": "A party sent a bill for material, machines or work.",
+      "what": "The site’s cost goes up by the bill before GST. The GST is kept apart: the firm claims it back. If TDS is deducted, it is kept apart too: it is owed to the government, so the party is paid less. The firm owes the party the total less TDS, even before anyone pays. Paying it later is a separate entry: “Pay a party”.",
       "hints": {
         "firm_id": "The firm named on the bill.",
         "vendor_id": "Not in the list? Add them in Setup → Parties.",
         "site_id": "Where the material or work was used.",
-        "bill_no": "The number printed on the vendor’s bill.",
-        "amount": "The bill total, for example 25000 or 25,000.50",
-        "narration": "Anything worth remembering, e.g. “40 bags cement”."
+        "bill_no": "The number printed on the party’s bill.",
+        "narration": "Anything worth remembering, e.g. “40 bags cement”.",
+        "cost_head": "Left empty, the bill counts as material.",
+        "tds_rate": "Left empty, no TDS is deducted. The rate is worked out on the bill before GST."
       }
     },
     "pay-vendor": {
-      "title": "Pay a vendor",
-      "when": "Money went to a vendor by bank, UPI or cash.",
-      "what": "What the firm owes the vendor goes down, and the bank or cash goes down by the same amount. The site’s cost does not change: it was counted when the bill came. If one firm’s bank pays another firm’s bill, the app notes that the second firm now owes the first.",
+      "title": "Pay a party",
+      "when": "Money went to a party by bank, UPI or cash.",
+      "what": "What the firm owes the party goes down, and the bank or cash goes down by the same amount. The site’s cost does not change: it was counted when the bill came. If one firm’s bank pays another firm’s bill, the app notes that the second firm now owes the first.",
       "hints": {
         "firm_id": "The firm whose bill this pays.",
         "from_account_id": "The bank or cash the money left from.",
-        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash."
+        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash.",
+        "payment_method": "Online or cheque: the firm’s bank. Cash: the firm’s cash."
       }
     },
     "client-bill": {
       "title": "Bill to a client",
       "when": "We sent a client a bill for work done.",
-      "what": "The full value of the work counts as the site’s income. The client owes us the rest after TDS, retention and security deposit. Those are still our money, just held for now.",
+      "what": "The work done (the bill before GST) counts as the site’s income. The GST on top is owed to the government. The client owes us the total after TDS, retention and security deposit; those are still our money, just held for now.",
       "hints": {
         "work_order_id": "The contract this bill is for.",
         "bill_no": "Your bill number, e.g. RA-3.",
-        "gross": "Value of the work in this bill, before any cuts.",
-        "tds": "Leave empty to use the work order’s TDS %.",
-        "retention": "Leave empty to use the work order’s retention %.",
-        "security_deposit": "Leave empty to use the work order’s security deposit %."
+        "retention": "Leave empty to use the work order’s retention %, worked out on the bill before GST.",
+        "security_deposit": "Leave empty to use the work order’s security deposit %, worked out on the bill before GST.",
+        "tds_rate": "Left empty, the work order’s TDS % is used. Pick 0% if the client deducts none. Worked out on the bill before GST."
+      },
+      "empty": {
+        "tds_rate": "Work order’s TDS %"
       }
     },
     "client-receipt": {
@@ -385,16 +424,8 @@
       "what": "Money in the bank goes up, and what the client owes us goes down. Profit does not change: it was earned when the work was billed.",
       "hints": {
         "to_account_id": "Where the money arrived.",
-        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash."
-      }
-    },
-    "move-money": {
-      "title": "Move money",
-      "when": "Money moved between our own accounts: bank to cash, cash to a supervisor, one firm to another.",
-      "what": "This is not spending. The total stays the same; the money just sits somewhere else now. If it crosses from one firm to another, the app notes the due between the firms.",
-      "hints": {
-        "from_account_id": "Where the money came from.",
-        "to_account_id": "Where the money went."
+        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash.",
+        "payment_method": "Online or cheque: the firm’s bank. Cash: the firm’s cash."
       }
     },
     "site-spend": {
@@ -432,12 +463,12 @@
       "why": "A balance carried over from the old Excel records, so the app starts where the books left off."
     },
     "vendor_bill": {
-      "title": "Bill from a vendor",
-      "why": "The firm owes the money from the moment the bill arrives, even before paying. The cost belongs to the site where it was used."
+      "title": "Bill from a party",
+      "why": "The firm owes the money from the moment the bill arrives, even before paying. The cost, before GST, belongs to the site where it was used; the GST on it is claimed back, so it is not a cost. TDS deducted is owed to the government, so the party is paid less, and it is kept in the TDS record."
     },
     "vendor_payment": {
-      "title": "Paid a vendor",
-      "why": "Paying a bill does not change the site’s cost; it was counted when the bill came. Money just moves from our bank or cash to the vendor."
+      "title": "Paid a party",
+      "why": "Paying a bill does not change the site’s cost; it was counted when the bill came. Money just moves from our bank or cash to the party."
     },
     "site_cash_expense": {
       "title": "Spent at a site",
@@ -445,7 +476,7 @@
     },
     "client_bill": {
       "title": "Bill to a client",
-      "why": "The full value is income. TDS, retention and security deposit are still our money, just held by others: TDS is claimed back in the tax return, retention comes back after the defect period."
+      "why": "The value of the work, before GST, is income; the GST on top is collected for the government. TDS, retention and security deposit are still our money, just held by others: TDS is claimed back in the tax return, retention comes back after the defect period."
     },
     "client_receipt": {
       "title": "Money from a client",
@@ -548,10 +579,12 @@
     "notChecked": "not checked",
     "notCheckedHint": "Nobody has checked this entry yet. Click the entry number to check it, or to cancel it if it is wrong.",
     "needSite": "Add your sites first: every bill needs the site it was for.",
-    "needAccount": "Add your bank and cash accounts first: every payment needs where the money came from.",
+    "needAccount": "Add this firm's bank and cash accounts first: every payment needs where the money came from.",
     "goSetup": "Go to Setup →",
     "material": "Material",
-    "noMaterials": "Your materials list is empty. Add cement, sand, steel and the rest once, and they show up here on every bill."
+    "noMaterials": "Your materials list is empty. Add cement, sand, steel and the rest once, and they show up here on every bill.",
+    "gst": "GST number: {number}",
+    "noGst": "not added yet"
   },
   "dashboard": {
     "title": "{firm} – Dashboard",
@@ -615,7 +648,7 @@
     "balanceAfter": "Balance after receipt",
     "addBills": "Add bills given",
     "addReceipts": "Add money received",
-    "addBillsHint": "Type in the rows like Excel. Leave TDS, retention or deposit empty to use the work order's %, or type 0 if none was cut. Then press Save.",
+    "addBillsHint": "Add each item with its GST. Leave TDS empty to use the work order’s TDS %, and retention or deposit empty to use the work order’s %. Type 0 if none was cut. Then press Save.",
     "needWorkOrder": "This client has no work order for this firm yet. A work order says which site the bills are for."
   },
   "quick": {
@@ -639,5 +672,41 @@
     "otherTheyOwe": "Other firm: {them} will owe {us}",
     "common": "Common",
     "commonHint": "Owner or supervisor cash: belongs to no firm."
+  },
+  "items": {
+    "title": "Items on the bill",
+    "item": "Item",
+    "qty": "Qty",
+    "rate": "Rate (₹)",
+    "amount": "Amount",
+    "gst": "GST",
+    "gstAmount": "GST ₹",
+    "total": "Total",
+    "remove": "Remove line",
+    "add": "Add item",
+    "base": "Total without GST",
+    "gstTotal": "Total GST",
+    "grand": "Total (with GST)",
+    "tds": "TDS at {rate}%",
+    "netVendor": "Net payable to party",
+    "details": "Bill details"
+  },
+  "tds": {
+    "title": "TDS record",
+    "lede": "Every bill with TDS, with its rate, section and amount. TDS we deducted from parties is owed to the government. TDS clients deducted from our bills we can claim back.",
+    "toGovernment": "TDS to pay the government",
+    "toClaim": "TDS clients deducted, to claim back",
+    "none": "No bills with TDS yet.",
+    "date": "Date",
+    "bill": "Bill",
+    "party": "Party",
+    "section": "Section",
+    "rate": "Rate",
+    "base": "Before GST",
+    "amount": "TDS",
+    "direction": "Direction",
+    "deducted": "We deducted",
+    "clientDeducted": "Client deducted",
+    "total": "Total"
   }
 }

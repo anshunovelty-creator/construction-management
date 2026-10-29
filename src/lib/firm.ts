@@ -16,15 +16,15 @@ export function pickWorkingFirm(allowed: Firm[], savedId: string | null | undefi
 }
 
 /**
- * Which money accounts a list offers in a working firm: `own` is the firm's banks and common cash;
- * `weOwe` / `theyOwe` add the other firms' banks, where using them leaves a between-firm due.
+ * Which money accounts a list offers in a working firm. `own` is the firm's banks and common cash (owner money,
+ * day close, site spending). `firm` is only the firm's own banks and cash: where money is paid or received,
+ * firms never share an account.
  */
-export type AccountScope = 'own' | 'weOwe' | 'theyOwe';
+export type AccountScope = 'own' | 'firm';
 
 const SCOPES: Partial<Record<RefSource, AccountScope>> = {
   moneyAccounts: 'own',
-  moneyAccountsWeOwe: 'weOwe',
-  moneyAccountsTheyOwe: 'theyOwe',
+  firmAccounts: 'firm',
 };
 
 /** The account scope of a reference field's source; undefined when it is not a money account list. */
@@ -32,18 +32,13 @@ export const accountScope = (source: RefSource): AccountScope | undefined => SCO
 
 /** Whether an account (by its firm; null = common cash) is in a list for the working firm. */
 export const inScope = (scope: AccountScope, accountFirmId: string | null, firmId: string): boolean =>
-  accountFirmId === null || accountFirmId === firmId || scope !== 'own';
+  scope === 'firm' ? accountFirmId === firmId : accountFirmId === null || accountFirmId === firmId;
 
 export type AccountRow = { id: string; name: string; firm_id: string | null };
 
-/** A money account list in the working firm: its own banks and common cash, then any other firm's banks under `groupOf`. */
-export function accountChoices(rows: AccountRow[], scope: AccountScope, firmId: string, groupOf: (otherFirmId: string) => string): Choice[] {
-  const own = rows.filter((r) => r.firm_id === null || r.firm_id === firmId).map((r) => ({ value: r.id, label: r.name }));
-  if (scope === 'own') return own;
-  const other = rows
-    .filter((r) => r.firm_id !== null && r.firm_id !== firmId)
-    .map((r) => ({ value: r.id, label: r.name, group: groupOf(r.firm_id!) }));
-  return [...own, ...other];
+/** A money account list in the working firm: its own banks, and common cash too when the list allows it. */
+export function accountChoices(rows: AccountRow[], scope: AccountScope, firmId: string): Choice[] {
+  return rows.filter((r) => inScope(scope, r.firm_id, firmId)).map((r) => ({ value: r.id, label: r.name }));
 }
 
 /**

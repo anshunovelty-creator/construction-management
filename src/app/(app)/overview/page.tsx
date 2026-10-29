@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { loadNames } from '../entries/data';
 
 const QUICK: Record<string, EntryFormSlug[]> = {
-  owner: ['vendor-bill', 'pay-vendor', 'move-money'],
+  owner: ['vendor-bill', 'pay-vendor', 'client-receipt'],
   office: ['vendor-bill', 'pay-vendor', 'client-receipt'],
   supervisor: ['site-spend', 'day-close'],
 };

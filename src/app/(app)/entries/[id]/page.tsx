@@ -20,6 +20,22 @@ interface Entry {
   created_by: string;
 }
 
+interface BillTdsRow {
+  rate_bp: number;
+  section: string;
+  tds_paise: number | string;
+}
+
+interface BillItemRow {
+  line_no: number;
+  quantity: number | string;
+  rate_paise: number | string;
+  gst_bp: number;
+  amount_paise: number | string;
+  gst_paise: number | string;
+  material: { name: string } | null;
+}
+
 export default async function EntryPage({
   params,
   searchParams,
@@ -33,8 +49,11 @@ export default async function EntryPage({
   const { data: entry } = await db.from('entries').select('*').eq('id', id).maybeSingle<Entry>();
   if (!entry) notFound();
 
-  const [{ data: lines }, { data: status }, { data: events }, { data: reversal }, { data: pairs }, names, t] = await Promise.all([
+  const [{ data: lines }, { data: items }, { data: tds }, { data: status }, { data: events }, { data: reversal }, { data: pairs }, names, t] = await Promise.all([
     db.from('entry_lines').select('*').eq('entry_id', id).order('line_no').returns<LineRow[]>(),
+    db.from('bill_items').select('line_no, quantity, rate_paise, gst_bp, amount_paise, gst_paise, material:materials(name)')
+      .eq('entry_id', id).order('line_no').returns<BillItemRow[]>(),
+    db.from('bill_tds').select('rate_bp, section, tds_paise').eq('entry_id', id).maybeSingle<BillTdsRow>(),
     db.from('entry_status').select('status').eq('entry_id', id).maybeSingle<{ status: string }>(),
     db.from('entry_events').select('kind, actor, reason').eq('entry_id', id).order('id'),
     db.from('entries').select('id, serial').eq('reverses_entry_id', id).maybeSingle(),
@@ -87,6 +106,10 @@ export default async function EntryPage({
               .filter(Boolean)
               .flatMap((part, i) => (i === 0 ? [part] : [' · ', part]))}
           </p>
+        )}
+
+        {items && items.length > 0 && (
+          <BillItemsTable items={items} tds={tds} vendorBill={entry.entry_type === 'vendor_bill'} t={t} />
         )}
 
         <section>
@@ -191,5 +214,72 @@ export default async function EntryPage({
         )}
       </article>
     </>
+  );
+}
+
+/** A bill's lines as typed, and the three totals at its foot. */
+function BillItemsTable({
+  items,
+  tds,
+  vendorBill,
+  t,
+}: {
+  items: BillItemRow[];
+  tds: BillTdsRow | null;
+  vendorBill: boolean;
+  t: Awaited<ReturnType<typeof getTranslations>>;
+}) {
+  const rows = items.map((i) => ({ ...i, amount: Number(i.amount_paise), gst: Number(i.gst_paise) }));
+  const base = rows.reduce((s, r) => s + r.amount, 0);
+  const gst = rows.reduce((s, r) => s + r.gst, 0);
+  const tdsAmount = tds ? Number(tds.tds_paise) : 0;
+  return (
+    <section>
+      <h2 className="eyebrow">{t('items.title')}</h2>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th className="num">#</th>
+              <th>{t('items.item')}</th>
+              <th className="num">{t('items.qty')}</th>
+              <th className="num">{t('items.rate')}</th>
+              <th className="num">{t('items.amount')}</th>
+              <th className="num">{t('items.gst')}</th>
+              <th className="num">{t('items.gstAmount')}</th>
+              <th className="num">{t('items.total')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.line_no}>
+                <td className="num muted">{r.line_no}</td>
+                <td>{r.material?.name}</td>
+                <td className="num">{Number(r.quantity)}</td>
+                <td className="num">{showPaise(Number(r.rate_paise))}</td>
+                <td className="num">{showPaise(r.amount)}</td>
+                <td className="num">{r.gst_bp / 100}%</td>
+                <td className="num">{showPaise(r.gst)}</td>
+                <td className="num"><b>{showPaise(r.amount + r.gst)}</b></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <dl className="bill-totals">
+        <div><dt>{t('items.base')}</dt><dd>{showPaise(base)}</dd></div>
+        <div><dt>{t('items.gstTotal')}</dt><dd>{showPaise(gst)}</dd></div>
+        <div className="grand"><dt>{t('items.grand')}</dt><dd>{showPaise(base + gst)}</dd></div>
+        {tds && (
+          <div>
+            <dt>{t('items.tds', { rate: String(tds.rate_bp / 100) })}{tds.section && ` · ${tds.section}`}</dt>
+            <dd>−{showPaise(tdsAmount)}</dd>
+          </div>
+        )}
+        {tds && vendorBill && (
+          <div className="grand"><dt>{t('items.netVendor')}</dt><dd>{showPaise(base + gst - tdsAmount)}</dd></div>
+        )}
+      </dl>
+    </section>
   );
 }

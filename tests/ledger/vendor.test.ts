@@ -46,21 +46,16 @@ describe('vendorPayment', () => {
     expect(sumOf(draft)).toBe(0);
   });
 
-  it("records that the bill firm owes the paying firm when another firm's bank pays", () => {
-    const draft = vendorPayment({
+  it('refuses a payment from another firm’s account: firms are independent', () => {
+    expect(() => vendorPayment({
       billFirmId: AB, vendorId: VENDOR, from: JI_BANK, amountPaise: 20_000_000, paymentDate: '2026-10-22', reference: 'UTR9',
-    });
-    expect(draft.lines).toEqual([
-      { account: 'vendor_payable', amountPaise: 20_000_000, firmId: AB, partyId: VENDOR },
-      { account: 'money', amountPaise: -20_000_000, firmId: JI, moneyAccountId: JI_BANK.id },
-      { account: 'inter_firm', amountPaise: 20_000_000, firmId: JI, counterFirmId: AB },
-      { account: 'inter_firm', amountPaise: -20_000_000, firmId: AB, counterFirmId: JI },
-    ]);
+    })).toThrow('own bank or cash');
   });
 
   it('requires a cheque number or UTR for bank payments but not for cash', () => {
     const input = { billFirmId: JI, vendorId: VENDOR, amountPaise: 100, paymentDate: '2026-10-22' };
     expect(() => vendorPayment({ ...input, from: JI_BANK })).toThrow('cheque number or UTR is required');
-    expect(vendorPayment({ ...input, from: OWNER_CASH }).firmId).toBeNull();
+    // A firm pays cash from its own cash account; common owner cash is not a firm's.
+    expect(vendorPayment({ ...input, billFirmId: JI, from: { id: 'acct-ji-cash', kind: 'owner_cash', firmId: JI } }).firmId).toBe(JI);
   });
 });

@@ -38,36 +38,31 @@ describe('money account lists', () => {
     { id: JI_BANK.id, name: 'Jayraj Infra - Bank', firm_id: JI },
     { id: OWNER_CASH.id, name: 'Owner cash', firm_id: null },
   ];
-  const groupOf = (otherFirmId: string) => `Other firm: ${otherFirmId}`;
 
   it('reads the scope from the field source', () => {
     expect(accountScope('moneyAccounts')).toBe('own');
-    expect(accountScope('moneyAccountsWeOwe')).toBe('weOwe');
-    expect(accountScope('moneyAccountsTheyOwe')).toBe('theyOwe');
+    expect(accountScope('firmAccounts')).toBe('firm');
     expect(accountScope('vendors')).toBeUndefined();
   });
 
-  it('lists only the firm’s own banks and common cash where money may not cross', () => {
-    expect(accountChoices(rows, 'own', AB, groupOf)).toEqual([
+  it('lists the firm’s own banks and common cash for owner money and site spending', () => {
+    expect(accountChoices(rows, 'own', AB)).toEqual([
       { value: AB_BANK.id, label: 'AB Infra - Bank' },
       { value: OWNER_CASH.id, label: 'Owner cash' },
     ]);
   });
 
-  it('adds the other firm’s banks last, in their own group, where money may cross', () => {
-    expect(accountChoices(rows, 'weOwe', AB, groupOf)).toEqual([
-      { value: AB_BANK.id, label: 'AB Infra - Bank' },
-      { value: OWNER_CASH.id, label: 'Owner cash' },
-      { value: JI_BANK.id, label: 'Jayraj Infra - Bank', group: `Other firm: ${JI}` },
-    ]);
+  it('lists only the firm’s own banks for payments and receipts: never common cash or another firm’s', () => {
+    expect(accountChoices(rows, 'firm', AB)).toEqual([{ value: AB_BANK.id, label: 'AB Infra - Bank' }]);
   });
 
   it('checks a chosen account the same way on save', () => {
     expect(inScope('own', null, AB)).toBe(true);
     expect(inScope('own', AB, AB)).toBe(true);
     expect(inScope('own', JI, AB)).toBe(false);
-    expect(inScope('weOwe', JI, AB)).toBe(true);
-    expect(inScope('theyOwe', JI, AB)).toBe(true);
+    expect(inScope('firm', null, AB)).toBe(false);
+    expect(inScope('firm', AB, AB)).toBe(true);
+    expect(inScope('firm', JI, AB)).toBe(false);
   });
 });
 
@@ -95,11 +90,9 @@ describe('firmErrors (checked on save)', () => {
     expect(firmErrors('client-bill', fields('client-bill'), JI, [AB, JI], { work_order_id: JI })).toBeNull();
   });
 
-  it('allows the other firm’s bank only where the form offers it', () => {
-    const move = fields('move-money');
-    expect(firmErrors('move-money', move, AB, [AB, JI], { from_account_id: JI, to_account_id: AB })).toEqual({ from_account_id: 'other_firm' });
-    expect(firmErrors('move-money', move, AB, [AB, JI], { from_account_id: null, to_account_id: JI })).toBeNull();
-    expect(firmErrors('pay-vendor', fields('pay-vendor'), AB, [AB, JI], { from_account_id: JI })).toBeNull();
+  it('never lets a payment or receipt use another firm’s account, and site spending uses only its own', () => {
+    expect(firmErrors('pay-vendor', fields('pay-vendor'), AB, [AB, JI], { from_account_id: JI })).toEqual({ from_account_id: 'other_firm' });
+    expect(firmErrors('pay-vendor', fields('pay-vendor'), AB, [AB, JI], { from_account_id: AB })).toBeNull();
     expect(firmErrors('site-spend', fields('site-spend'), AB, [AB, JI], { from_account_id: JI })).toEqual({ from_account_id: 'other_firm' });
   });
 });
@@ -116,9 +109,11 @@ describe('isCommonEntry', () => {
     expect(isCommonEntry(rowsOf(spend))).toBe(true);
   });
 
-  it('is false for a firm’s bill paid from owner cash, though its serial is CM', () => {
-    const payment = vendorPayment({ billFirmId: AB, vendorId: VENDOR, from: OWNER_CASH, amountPaise: 100_000, paymentDate: '2026-10-22' });
-    expect(payment.firmId).toBeNull();
+  it('is false for a firm’s bill paid from the firm’s own cash', () => {
+    const payment = vendorPayment({
+      billFirmId: AB, vendorId: VENDOR, from: { id: 'acct-ab-cash', kind: 'owner_cash', firmId: AB }, amountPaise: 100_000, paymentDate: '2026-10-22',
+    });
+    expect(payment.firmId).toBe(AB);
     expect(isCommonEntry(rowsOf(payment))).toBe(false);
   });
 });

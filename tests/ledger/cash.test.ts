@@ -28,14 +28,13 @@ describe('siteCashExpense', () => {
 });
 
 describe('cashTransfer', () => {
-  it('moves money between accounts, adding inter-firm lines only across firm banks', () => {
+  it('moves money between accounts of one firm, and refuses a move between firms', () => {
     const toSupervisor = cashTransfer({ from: OWNER_CASH, to: RAMESH, amountPaise: 2_000_000, transferDate: '2026-10-22' });
     expect(toSupervisor.lines).toEqual([
       { account: 'money', amountPaise: 2_000_000, firmId: null, moneyAccountId: RAMESH.id },
       { account: 'money', amountPaise: -2_000_000, firmId: null, moneyAccountId: OWNER_CASH.id },
     ]);
-    const firmToFirm = cashTransfer({ from: JI_BANK, to: AB_BANK, amountPaise: 300, transferDate: '2026-10-22' });
-    expect(firmToFirm.lines).toHaveLength(4);
+    expect(() => cashTransfer({ from: JI_BANK, to: AB_BANK, amountPaise: 300, transferDate: '2026-10-22' })).toThrow('between firms');
   });
 
   it('refuses a transfer to the same account', () => {

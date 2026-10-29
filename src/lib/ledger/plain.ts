@@ -20,7 +20,7 @@ export interface Names {
 }
 
 /** Where a balance sits on the home board. */
-export type Group = 'money' | 'weOwe' | 'owedToUs' | 'betweenFirms' | 'heldByClients' | 'sites' | 'owner';
+export type Group = 'money' | 'weOwe' | 'owedToUs' | 'betweenFirms' | 'heldByClients' | 'gst' | 'tds' | 'sites' | 'owner';
 
 export type Translate = (key: string, values?: Record<string, string>) => string;
 
@@ -52,6 +52,9 @@ function keyOf(r: LineRow): string {
     case 'owner_capital': return 'capital';
     case 'opening_balance': return 'opening';
     case 'cash_short_excess': return 'short';
+    case 'gst_input': return `gstIn:${r.firm_id}`;
+    case 'gst_output': return `gstOut:${r.firm_id}`;
+    case 'tds_payable': return `tdsPay:${r.firm_id}`;
   }
 }
 
@@ -107,6 +110,14 @@ export function describe(row: LineRow, amount: number, names: Names, t: Translat
       return make('owner', t('plain.opening'), -1);
     case 'cash_short_excess':
       return make('owner', t('plain.short'), 1);
+    // GST paid on vendor bills is claimed back; GST charged on client bills is owed to the government.
+    case 'gst_input':
+      return make('gst', t('plain.gstInput', { firm }), 1);
+    case 'gst_output':
+      return make('gst', t('plain.gstOutput', { firm }), -1);
+    // TDS deducted from a vendor's bill is owed to the government until it is paid in.
+    case 'tds_payable':
+      return make('tds', t('plain.tdsPayable', { firm }), -1);
   }
 }
 

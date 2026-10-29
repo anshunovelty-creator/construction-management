@@ -10,16 +10,18 @@ export const ENUMS = {
   cost_head: COST_HEADS,
   /** Not a database enum: whether the owner puts money in or takes it out. */
   owner_money: ['in', 'out'],
+  /** Not a database enum: how a payment or receipt was made. Online and cheque use a bank; cash uses a cash account. */
+  payment_method: ['online', 'cash', 'cheque'],
 } as const;
 export type EnumName = keyof typeof ENUMS;
 
 /**
  * Where a reference field's choices come from. In a working firm, `moneyAccounts` lists that firm's banks
- * and common cash; the `WeOwe` / `TheyOwe` lists add the other firms' banks, for forms where money may cross.
+ * and common cash; `firmAccounts` lists only that firm's own banks and cash, for payments and receipts: firms never share money.
  */
 export type RefSource =
-  | 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'workOrders' | 'materials'
-  | 'moneyAccounts' | 'moneyAccountsWeOwe' | 'moneyAccountsTheyOwe';
+  | 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'workOrders' | 'materials' | 'gstRates' | 'tdsRates'
+  | 'moneyAccounts' | 'firmAccounts';
 
 /** One choice in a dropdown. Choices with a `group` come last, under that heading. */
 export type Choice = { value: string; label: string; group?: string };
@@ -28,7 +30,9 @@ export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
   | { name: string; kind: 'rupees'; required?: boolean; allowZero?: boolean }
   | { name: string; kind: 'enum'; enum: EnumName; required?: boolean }
-  | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean };
+  | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean }
+  /** A bill's item lines: material, quantity, rate and GST rate per line, with the totals underneath. */
+  | { name: string; kind: 'items'; required?: boolean };
 
 export interface MasterDef {
   table: string;
@@ -61,11 +65,12 @@ export const MASTERS: Record<string, MasterDef> = {
   parties: {
     table: 'parties',
     ownerOnly: false,
-    list: ['name', 'kind', 'phone', 'is_active'],
+    list: ['name', 'kind', 'phone', 'gst_number', 'is_active'],
     fields: [
       { name: 'kind', kind: 'enum', enum: 'party_kind', required: true },
       { name: 'name', kind: 'text', required: true },
       { name: 'phone', kind: 'text' },
+      { name: 'gst_number', kind: 'text' },
       active,
     ],
   },
@@ -105,6 +110,18 @@ export const MASTERS: Record<string, MasterDef> = {
     list: ['name', 'is_active'],
     fields: [{ name: 'name', kind: 'text', required: true }, active],
   },
+  'gst-rates': {
+    table: 'gst_rates',
+    ownerOnly: true,
+    list: ['rate_bp', 'is_active'],
+    fields: [{ name: 'rate_bp', kind: 'percent', required: true }, active],
+  },
+  'tds-rates': {
+    table: 'tds_rates',
+    ownerOnly: true,
+    list: ['rate_bp', 'section', 'is_active'],
+    fields: [{ name: 'rate_bp', kind: 'percent', required: true }, { name: 'section', kind: 'text' }, active],
+  },
 };
 
 export function getMaster(slug: string): MasterDef | undefined {
@@ -141,6 +158,8 @@ const account = (name: string, ref: RefSource = 'moneyAccounts'): Field => ({ na
 const from = account('from_account_id');
 const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', required: true };
 const workOrder: Field = { name: 'work_order_id', kind: 'ref', ref: 'workOrders', required: true };
+const payMethod: Field = { name: 'payment_method', kind: 'enum', enum: 'payment_method', required: true };
+const items: Field = { name: 'items', kind: 'items', required: true };
 
 /**
  * The money forms, keyed by URL slug (/entries/new/<slug>), in the order the "Add an entry" page shows them.
@@ -152,12 +171,17 @@ export const ENTRY_FORMS = {
     icon: '🧾',
     roles: ['owner', 'office'],
     fields: [
+      // Details on the top row, then the items, then the notes and deductions in the foot.
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
-      { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
       { name: 'bill_no', kind: 'text', required: true },
-      { name: 'material_id', kind: 'ref', ref: 'materials' },
-      // Picking a material is enough: the type then defaults to material.
-      { ...costHead, required: false }, amount, date, note,
+      date,
+      { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
+      // Left empty, the type is material.
+      { ...costHead, required: false },
+      items,
+      // Left empty, no TDS is deducted.
+      { name: 'tds_rate', kind: 'ref', ref: 'tdsRates' },
+      note,
     ],
   },
   'pay-vendor': {
@@ -166,7 +190,7 @@ export const ENTRY_FORMS = {
     fields: [
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
       // Another firm's bank may pay this firm's bill: this firm then owes that one.
-      account('from_account_id', 'moneyAccountsWeOwe'), amount, date, reference, note,
+      payMethod, account('from_account_id', 'firmAccounts'), amount, date, reference, note,
     ],
   },
   'client-bill': {
@@ -175,24 +199,19 @@ export const ENTRY_FORMS = {
     fields: [
       workOrder,
       { name: 'bill_no', kind: 'text', required: true },
-      { name: 'gross', kind: 'rupees', required: true },
-      { name: 'tds', kind: 'rupees', allowZero: true },
+      date, items,
+      // Left empty, the work order's TDS % is used; 0% means the client deducts none.
+      { name: 'tds_rate', kind: 'ref', ref: 'tdsRates' },
       { name: 'retention', kind: 'rupees', allowZero: true },
       { name: 'security_deposit', kind: 'rupees', allowZero: true },
-      date, note,
+      note,
     ],
   },
   'client-receipt': {
     icon: '💰',
     roles: ['owner', 'office'],
     // The client's money may land in another firm's bank: that firm then owes this one.
-    fields: [workOrder, account('to_account_id', 'moneyAccountsTheyOwe'), amount, date, reference, note],
-  },
-  'move-money': {
-    icon: '🔁',
-    roles: ['owner', 'office'],
-    // Money leaves this firm's banks or common cash; it may go to another firm's bank, which then owes this firm.
-    fields: [from, account('to_account_id', 'moneyAccountsTheyOwe'), amount, date, reference, note],
+    fields: [workOrder, payMethod, account('to_account_id', 'firmAccounts'), amount, date, reference, note],
   },
   'site-spend': {
     icon: '🛠️',

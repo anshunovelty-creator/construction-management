@@ -1,6 +1,6 @@
 import type { Paise } from '@/lib/money';
 import { assertBalanced, assertDate, assertPositive } from '../balance';
-import { interFirmLines } from '../inter-firm';
+import type { PricedItem } from '../bill-items';
 import type { EntryDraft, LineDraft, MoneyAccountRef, WorkOrderRef } from '../types';
 
 export interface ClientBillDeductions {
@@ -18,15 +18,22 @@ export interface ClientBillInput {
   workOrder: WorkOrderRef;
   billDate: string;
   billNo: string;
+  /** The bill before GST: the work done. */
   grossPaise: Paise;
+  /** GST charged on top: collected for the government, so it is not income. */
+  gstPaise?: Paise;
+  /** The bill's item lines, kept with the entry; their amounts and GST add up to `grossPaise` and `gstPaise`. */
+  billItems?: PricedItem[];
   deductions: ClientBillDeductions;
+  /** The TDS rate the client deducts (its amount is `deductions.tdsPaise`), kept for the TDS record. */
+  tds?: { rateBp: number; section: string };
   narration?: string;
 }
 
 /**
- * A running/stage bill to the client. Income is the gross amount. TDS, retention and
- * security deposit stay ours (held by the client or claimable), so they are assets.
- * Recoveries and penalties are costs. The client owes the rest.
+ * A running/stage bill to the client. Income is the gross amount before GST; the GST is owed to the
+ * government. TDS, retention and security deposit stay ours (held by the client or claimable), so they
+ * are assets. Recoveries and penalties are costs. The client owes the rest of gross + GST.
  * An earlier client advance (negative receivable) nets off automatically.
  */
 export function clientBill(input: ClientBillInput): EntryDraft {
@@ -52,10 +59,12 @@ export function clientBill(input: ClientBillInput): EntryDraft {
   });
   addDeduction(d.otherPaise, 'other deduction', { account: 'site_cost', ...woDims, costHead: 'other' });
 
+  const gst = input.gstPaise ?? 0;
+  if (gst < 0) throw new Error('GST cannot be less than zero');
   const totalDeductions = deductionLines.reduce((sum, line) => sum + line.amountPaise, 0);
-  const net = input.grossPaise - totalDeductions;
+  const net = input.grossPaise + gst - totalDeductions;
   if (net < 0) {
-    throw new Error('deductions are more than the gross amount');
+    throw new Error('deductions are more than the bill amount');
   }
   const draft: EntryDraft = {
     id: input.id ?? crypto.randomUUID(),
@@ -65,10 +74,13 @@ export function clientBill(input: ClientBillInput): EntryDraft {
     partyId: wo.clientId,
     reference: input.billNo.trim(),
     narration: input.narration ?? '',
+    items: input.billItems,
+    tds: input.tds && { rateBp: input.tds.rateBp, section: input.tds.section, basePaise: input.grossPaise, tdsPaise: d.tdsPaise ?? 0 },
     lines: [
       ...(net > 0 ? [{ account: 'client_receivable' as const, amountPaise: net, ...woDims }] : []),
       ...deductionLines,
       { account: 'contract_income', amountPaise: -input.grossPaise, ...woDims },
+      ...(gst > 0 ? [{ account: 'gst_output' as const, amountPaise: -gst, firmId: wo.firmId, partyId: wo.clientId }] : []),
     ],
   };
   assertBalanced(draft);
@@ -93,6 +105,10 @@ export interface ClientReceiptInput {
 export function clientReceipt(input: ClientReceiptInput): EntryDraft {
   assertDate(input.receiptDate, 'receipt date');
   assertPositive(input.amountPaise, 'receipt amount');
+  // Firms are independent: the money lands in the work order's own firm.
+  if (input.to.firmId !== input.workOrder.firmId) {
+    throw new Error('a receipt must go to this firm’s own bank or cash account');
+  }
   const reference = (input.reference ?? '').trim();
   if (input.to.kind === 'bank' && reference === '') {
     throw new Error('UTR or cheque number is required for bank receipts');
@@ -116,7 +132,6 @@ export function clientReceipt(input: ClientReceiptInput): EntryDraft {
         siteId: wo.siteId,
         workOrderId: wo.id,
       },
-      ...interFirmLines(wo.firmId, input.to.firmId, input.amountPaise),
     ],
   };
   assertBalanced(draft);
