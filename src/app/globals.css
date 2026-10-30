@@ -167,6 +167,80 @@ summary.firm-pill:hover { border-color: var(--accent); }
 .why .eyebrow { margin-bottom: 6px; }
 .banner { background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 12px 16px; font-weight: 500; margin: 0 0 16px; }
 .minus { color: var(--minus); }
+
+/* Daily report: the site/date bar, the day's totals, and the work done builder (one block per activity). */
+.report-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 14px 18px; margin-bottom: 14px; }
+.report-bar .btn { min-height: 44px; }
+.report-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.activity-field { display: grid; gap: 5px; min-width: 0; }
+.activity-field > span { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.activity-field.grow { flex: 1 1 240px; }
+.work-builder { display: grid; gap: 14px; }
+.work-builder-head h2 { margin: 0 0 4px; }
+.work-builder-head .hint { margin: 0; max-width: 78ch; }
+.activity { border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--sheet); overflow: hidden; }
+.activity.wrong { border-color: var(--minus); box-shadow: 0 0 0 3px var(--minus-soft); }
+.activity-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 130px 150px auto; align-items: end; gap: 12px; padding: 14px 16px; background: var(--head); border-bottom: 1px solid var(--rule); }
+.sr-badge { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 6px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.icon-btn { width: 36px; min-width: 36px; padding: 0; margin-bottom: 4px; }
+.activity-empty { margin: 0; padding: 18px 16px; color: var(--muted); font-size: 14px; }
+.measure-table { width: 100%; border-collapse: collapse; }
+.measure-table th { padding: 8px 10px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.03em; text-transform: uppercase; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.measure-table td { padding: 6px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.measure-table td { vertical-align: middle; }
+.measure-table .box { width: 1%; text-align: left; }
+.measure-table td + td, .measure-table th + th { border-left: 1px solid var(--rule); }
+.measure-table tbody tr:nth-child(even) td { background: var(--zebra); }
+.measure-table tr.wrong td { background: var(--minus-soft); }
+.measure-table input { width: 6.5rem; min-height: 38px; padding: 6px 8px; font-size: 15px; }
+.measure-table td:first-child input { width: 4rem; }
+.measure-table .times { margin-right: 8px; color: var(--muted); }
+.measure-table .result { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 600; min-width: 6rem; }
+.activity-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; }
+.activity-total { font-size: 14px; color: var(--muted); }
+.activity-total strong, .work-total-bar strong { margin-left: 6px; color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.add-activity { justify-self: start; border-style: dashed; }
+.work-total-bar { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -22px -20px; padding: 14px 22px; background: var(--sheet); border-top: 1px solid var(--rule-strong); border-radius: 0 0 16px 16px; font-size: 15px; }
+.work-total-bar strong { font-size: 20px; }
+.day-picker { display: flex; align-items: center; gap: 6px; }
+.day-picker .icon-btn { margin: 0; min-height: 44px; font-size: 20px; line-height: 1; }
+.report-section { display: grid; gap: 12px; margin: 26px 0 8px; }
+.report-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.report-head .sr-badge { margin: 0; width: 36px; height: 36px; background: var(--accent); color: var(--accent-ink); }
+.report-head h2 { margin: 0; font-size: 19px; }
+.report-head p { margin: 2px 0 0; font-size: 13px; }
+.section-total { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+.empty-state { margin: 0; padding: 18px 20px; color: var(--muted); border-style: dashed; box-shadow: none; }
+table.saved-work tbody + tbody tr:first-child td { border-top: 1px solid var(--rule-strong); }
+table.saved-work tr.subtotal td { background: var(--head); color: var(--muted); font-size: 13.5px; font-weight: 600; }
+table.saved-work tr.subtotal td.num { color: var(--ink); }
+.qty-with-unit { display: inline-flex; align-items: center; gap: 8px; }
+.unit-tag { min-width: 2.5rem; font-size: 13px; font-weight: 600; color: var(--muted); }
+.use-table select { min-width: 12rem; min-height: 38px; padding: 6px 8px; font-size: 15px; }
+.use-table .remark-input { width: 100%; min-width: 10rem; }
+@media (max-width: 640px) {
+  .activity-head { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .activity-head .activity-field:not(.grow) { grid-column: 2 / -1; }
+  .report-stats { grid-template-columns: 1fr 1fr; }
+  .report-stats .stat:last-child { grid-column: 1 / -1; }
+  .report-head .section-total { font-size: 18px; }
+  /* On a phone each measurement or material line is a small labelled grid, so nothing hides off the side. */
+  .measure-table thead { display: none; }
+  .measure-table, .measure-table tbody { display: block; }
+  .measure-table tr { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px 10px; padding: 12px 52px 12px 14px; border-bottom: 1px solid var(--rule); }
+  .measure-table tr.wrong { background: var(--minus-soft); }
+  .measure-table td, .measure-table .box { display: block; width: auto; padding: 0; border: 0 !important; background: none !important; text-align: left; }
+  .measure-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); }
+  .measure-table input, .measure-table select, .use-table select { width: 100%; min-width: 0; }
+  .measure-table .times, .measure-table .line-no { display: none; }
+  .measure-table .result { grid-column: span 2; min-width: 0; }
+  .measure-table .wide { grid-column: 1 / -1; }
+  .measure-table .qty { grid-column: span 2; }
+  .measure-table .line-remove { position: absolute; top: 12px; right: 10px; }
+  .measure-table .line-remove:empty { display: none; }
+  .qty-with-unit { display: flex; }
+  .qty-with-unit input { flex: 1; min-width: 0; }
+}
 .banner.bad { background: color-mix(in srgb, var(--minus) 10%, var(--sheet)); color: var(--minus); }
 
 /* ---------- Home ---------- */

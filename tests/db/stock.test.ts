@@ -60,3 +60,23 @@ it('keeps a material’s unit from Setup', async () => {
   const { rows } = await db.query(`select u.name from units u join materials m on m.unit_id = u.id where m.id = $1`, [cement]);
   expect(rows).toEqual([{ name: 'Bags' }]);
 });
+
+it('lets a supervisor see what was bought for their own site, for the material rates, and nothing for other sites', async () => {
+  await postEntry(db, bill('S-1', 100_000), OWNER);
+  const other = (await db.query<{ id: string }>(`insert into sites (name) values ('Other Site') returning id`)).rows[0]!.id;
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const bought = (siteId: string) => asUser(db, ramesh, (tx) => tx.query(
+    `select material_id, quantity::text, amount_paise from app_site_bought($1, '2026-10-30')`, [siteId]));
+  expect((await bought(seed.svgSite)).rows).toEqual([{ material_id: cement, quantity: '100.000', amount_paise: 3_500_000 }]);
+  expect((await bought(other)).rows).toEqual([]);
+});
+
+it('keeps work done with its measurement, and refuses an amount that is not quantity × rate', async () => {
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const m2 = (await db.query<{ id: string }>(`select id from units where name = 'M2'`)).rows[0]!.id;
+  const add = (amount: number) => asUser(db, ramesh, (tx) => tx.query(
+    `insert into work_done (site_id, work_date, activity, measurement, quantity, unit_id, rate_paise, amount_paise)
+     values ($1, '2026-10-18', 'Plaster', '4.3*1.3', 5.59, $2, 60000, $3)`, [seed.svgSite, m2, amount]));
+  await add(335_400);
+  await expect(add(1)).rejects.toThrow('work_done');
+});

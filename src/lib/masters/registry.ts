@@ -12,6 +12,8 @@ export const ENUMS = {
   owner_money: ['in', 'out'],
   /** Not a database enum: how a payment or receipt was made. Online and cheque use a bank; cash uses a cash account. */
   payment_method: ['online', 'cash', 'cheque'],
+  /** How a unit is measured on the daily report: see src/lib/work.ts. */
+  unit_measure: ['quantity', 'length', 'area', 'volume'],
 } as const;
 export type EnumName = keyof typeof ENUMS;
 
@@ -95,8 +97,8 @@ export const MASTERS: Record<string, MasterDef> = {
   units: {
     table: 'units',
     ownerOnly: false,
-    list: ['name', 'is_active'],
-    fields: [{ name: 'name', kind: 'text', required: true }, active],
+    list: ['name', 'measure', 'is_active'],
+    fields: [{ name: 'name', kind: 'text', required: true }, { name: 'measure', kind: 'enum', enum: 'unit_measure', required: true }, active],
   },
   'gst-rates': {
     table: 'gst_rates',
