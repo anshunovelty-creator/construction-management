@@ -5,10 +5,16 @@ import { useEffect, useState } from 'react';
 import { Icon } from '@/components/icons';
 
 /**
- * The main links. On wide screens they sit in the bar as they are; on phones a menu button
- * opens them as a panel under the bar. Going to another page, Escape or a tap outside closes it.
+ * The app's navigation. Wide screens: every link in a sidebar on the left. Phones: the main few in a tab bar
+ * at the bottom, within thumb reach, and More slides the full sidebar up as a sheet. Going to another page,
+ * Escape or a tap outside closes the sheet.
  */
-export function NavMenu({ label, children }: { label: string; children: React.ReactNode }) {
+export function NavMenu({ label, brand, tabs, children }: {
+  label: string;
+  brand: React.ReactNode;
+  tabs: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const path = usePathname();
   // Remembering where it was opened closes it by itself once the page changes.
   const [openAt, setOpenAt] = useState<string | null>(null);
@@ -23,19 +29,26 @@ export function NavMenu({ label, children }: { label: string; children: React.Re
 
   return (
     <>
-      <button
-        type="button"
-        className="menu-btn"
-        aria-label={label}
-        aria-expanded={open}
-        aria-controls="site-nav"
-        onClick={() => setOpenAt(open ? null : path)}
-      >
-        <Icon name={open ? 'close' : 'menu'} size={22} />
-      </button>
-      <div id="site-nav" className="nav-panel" data-open={open || undefined}>
+      <aside id="site-nav" className="sidebar" data-open={open || undefined}>
+        <div className="sidebar-brand">{brand}</div>
+        <button type="button" className="sheet-close" aria-label={label} onClick={() => setOpenAt(null)}>
+          <Icon name="close" size={20} />
+        </button>
         {children}
-      </div>
+      </aside>
+      <nav className="tabbar" aria-label={label}>
+        {tabs}
+        <button
+          type="button"
+          className="tab-item"
+          aria-expanded={open}
+          aria-controls="site-nav"
+          onClick={() => setOpenAt(open ? null : path)}
+        >
+          <Icon name="grid" size={22} />
+          <span>{label}</span>
+        </button>
+      </nav>
       {open && <div className="nav-scrim" aria-hidden="true" onClick={() => setOpenAt(null)} />}
     </>
   );

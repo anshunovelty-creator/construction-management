@@ -6,7 +6,7 @@ export default async function MastersLayout({ children }: { children: React.Reac
   const t = await getTranslations();
   return (
     <>
-      <p className="eyebrow">{t('nav.masters')}</p>
+      <h1>{t('nav.masters')}</h1>
       <p className="lede">{t('masters.lede')}</p>
       <nav aria-label={t('nav.masters')} className="filters subnav">
         {Object.keys(MASTERS).map((slug) => (

@@ -9,6 +9,7 @@ import { loadChoices } from '../../masters/options';
 import { postEntryRows } from '../actions';
 import { todayInIndia } from '../data';
 import { sheetColumns } from './columns';
+import { Icon } from '@/components/icons';
 
 /** Many entries of one kind at once, typed into rows like a spreadsheet, in the working firm. ?type=<entry form slug>. */
 export default async function SheetPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
@@ -29,13 +30,12 @@ export default async function SheetPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <p className="eyebrow">{t('sheet.eyebrow')}</p>
       <h1>{t('sheet.title')}</h1>
       <p className="lede">{t('sheet.lede')}</p>
       <nav className="filters" aria-label={t('sheet.eyebrow')}>
         {slugs.map((s) => (
           <Link key={s} href={`/entries/sheet?type=${s}`} className={`chip${s === slug ? ' on' : ''}`} aria-current={s === slug ? 'page' : undefined}>
-            {getEntryForm(s)!.icon} {t(`entryForms.${s}.title`)}
+            <Icon name={getEntryForm(s)!.icon} size={16} /> {t(`entryForms.${s}.title`)}
           </Link>
         ))}
       </nav>

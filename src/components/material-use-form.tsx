@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useState } from 'react';
 import { showPaise } from '@/lib/money';
 import { QTY, valueOf } from '@/lib/stock';
+import { Icon } from '@/components/icons';
 
 export interface MaterialLine {
   materialId: string;
@@ -144,7 +145,7 @@ export function MaterialUseForm({
                           className="btn ghost small icon-btn"
                           onClick={() => setLines((all) => all.filter((_, i) => i !== l))}
                           aria-label={t('use.removeLine')}
-                        >✕</button>
+                        ><Icon name="close" size={16} /></button>
                       )}
                     </td>
                   </tr>

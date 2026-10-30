@@ -7,6 +7,7 @@ import { ITEM_INPUTS } from '@/lib/masters/parse';
 import type { Choice } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
+import { Icon } from '@/components/icons';
 
 type Row = { key: number; material: string; qty: string; rate: string; gst: string };
 type Typed = string | string[] | undefined;
@@ -129,7 +130,7 @@ export function BillItems({
                   <td className="num"><b>{money(p ? p.amountPaise + p.gstPaise : undefined)}</b></td>
                   <td>
                     <button type="button" className="btn ghost small" aria-label={label('remove')}
-                      disabled={rows.length === 1} onClick={() => remove(row.key)}>×</button>
+                      disabled={rows.length === 1} onClick={() => remove(row.key)}><Icon name="close" size={16} /></button>
                   </td>
                 </tr>
               );

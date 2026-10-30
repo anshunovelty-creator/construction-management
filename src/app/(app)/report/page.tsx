@@ -10,6 +10,7 @@ import type { Measure } from '@/lib/work';
 import { Stat } from '../party/shared';
 import { showDate, todayInIndia } from '../entries/data';
 import { addMaterialUse, addWorkDone, removeReportLine } from './actions';
+import { Icon } from '@/components/icons';
 
 interface UseRow extends Used {
   id: string;
@@ -98,7 +99,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const canRemove = (createdBy: string) => office || createdBy === profile.user_id;
   const remove = (table: 'material_use' | 'work_done', id: string) => (
     <form action={removeReportLine.bind(null, table, id, site.id, date)}>
-      <button type="submit" className="btn ghost small icon-btn" aria-label={t('report.remove')}>✕</button>
+      <button type="submit" className="btn ghost small icon-btn" aria-label={t('report.remove')}><Icon name="close" size={16} /></button>
     </form>
   );
   const dayLink = (days: number) => `/report?site=${site.id}&date=${shiftDate(date, days)}`;
@@ -118,9 +119,9 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         <div className="activity-field">
           <span>{t('report.date')}</span>
           <div className="day-picker">
-            <Link href={dayLink(-1)} className="btn ghost icon-btn" aria-label={t('report.prevDay')}>‹</Link>
+            <Link href={dayLink(-1)} className="btn ghost icon-btn" aria-label={t('report.prevDay')}><Icon name="chevronLeft" /></Link>
             <input type="date" name="date" defaultValue={date} max={today} aria-label={t('report.date')} />
-            {date < today && <Link href={dayLink(1)} className="btn ghost icon-btn" aria-label={t('report.nextDay')}>›</Link>}
+            {date < today && <Link href={dayLink(1)} className="btn ghost icon-btn" aria-label={t('report.nextDay')}><Icon name="chevronRight" /></Link>}
           </div>
         </div>
         <button type="submit" className="btn">{t('report.open')}</button>

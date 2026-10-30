@@ -10,6 +10,7 @@ import { loadChoices } from '../../../masters/options';
 import { loadFirmParties } from '../../../party/shared';
 import { postEntryForm } from '../../actions';
 import { todayInIndia } from '../../data';
+import { Icon } from '@/components/icons';
 
 export default async function EntryFormPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -30,14 +31,12 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
   return (
     <>
       <p className="mb-2">
-        <Link href="/entries/new" className="back">← {t('entries.new.title')}</Link>
+        <Link href="/entries/new" className="back"><Icon name="chevronLeft" size={16} /> {t('entries.new.title')}</Link>
       </p>
       <div className="form-layout">
         <section className="card">
-          <p className="eyebrow">
-            <span aria-hidden="true">{form.icon}</span> {t('entries.new.eyebrow')}
-          </p>
-          <h1>{t(`entryForms.${slug}.title`)}</h1>
+          <h1 className="title-with-icon">
+            <span className="title-icon"><Icon name={form.icon} size={22} /></span>{t(`entryForms.${slug}.title`)}</h1>
           <p className="lede">{t(`entryForms.${slug}.when`)}</p>
           {working && <FirmLine slug={slug} firm={working.firm} t={t} />}
           <Form
@@ -51,7 +50,7 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
           />
         </section>
         <aside className="why">
-          <h2 className="eyebrow">{t('entries.whatHappens')}</h2>
+          <h2 className="section-title">{t('entries.whatHappens')}</h2>
           <p>{t(`entryForms.${slug}.what`)}</p>
         </aside>
       </div>

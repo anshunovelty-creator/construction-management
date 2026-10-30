@@ -18,7 +18,7 @@ export function FirmSwitch({ firms, firm }: { firms: Firm[]; firm: Firm }) {
         <Icon name="firm" size={16} />{firm.name}<Icon name="chevron" size={14} />
       </summary>
       <form action={action} className="more-menu card">
-        <p className="eyebrow">{t('menuTitle')}</p>
+        <p className="menu-label">{t('menuTitle')}</p>
         {firms.map((f) => (
           <button
             key={f.id}

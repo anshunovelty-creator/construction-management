@@ -25,7 +25,7 @@ export function GroupCards({ plain, groups, t, supervisor = false }: { plain: Pl
         );
         return (
           <section key={group} className={`group card g-${group}`}>
-            <h2 className="eyebrow">{t(supervisor && group === 'money' ? 'board.yourCash' : `board.${group}.title`)}</h2>
+            <h2 className="section-title">{t(supervisor && group === 'money' ? 'board.yourCash' : `board.${group}.title`)}</h2>
             {/* The owner card mixes unrelated things (own money, cash short), and the GST card GST to claim with
                 GST to pay, so their sums mean nothing. */}
             {group !== 'owner' && group !== 'gst' && <p className="group-total">{showPaise(sum)}</p>}
@@ -63,7 +63,7 @@ export function SitesTable({ rows, names, t, hint }: { rows: LineRow[]; names: N
   if (sites.size === 0) return null;
   return (
     <section className="card sites">
-      <h2 className="eyebrow">{t('board.sites.title')}</h2>
+      <h2 className="section-title">{t('board.sites.title')}</h2>
       <p className="hint">{hint}</p>
       <div className="table-wrap">
         <table>

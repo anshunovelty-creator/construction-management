@@ -7,6 +7,7 @@ import { ENTRY_FORMS, type EntryFormSlug } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames } from '../entries/data';
+import { Icon } from '@/components/icons';
 
 const QUICK: Record<string, EntryFormSlug[]> = {
   owner: ['vendor-bill', 'pay-vendor', 'client-receipt'],
@@ -35,15 +36,14 @@ export default async function HomePage() {
     <>
       <section className="hero">
         <div>
-          <p className="eyebrow">{t('home.greeting')}</p>
           <h1>{t('home.welcome', { name: profile.full_name })}</h1>
           <p className="lede">{t(supervisor ? 'home.ledeSupervisor' : 'home.lede')}</p>
         </div>
         <div className="hero-actions">
-          <Link href="/entries/new" className="btn big">＋ {t('home.addEntry')}</Link>
+          <Link href="/entries/new" className="btn big"><Icon name="plus" /> {t('home.addEntry')}</Link>
           {QUICK[profile.role]!.map((slug) => (
             <Link key={slug} href={`/entries/new/${slug}`} className="btn ghost">
-              <span aria-hidden="true">{ENTRY_FORMS[slug].icon}</span> {t(`entryForms.${slug}.title`)}
+              <Icon name={ENTRY_FORMS[slug].icon} /> {t(`entryForms.${slug}.title`)}
             </Link>
           ))}
         </div>
@@ -56,7 +56,7 @@ export default async function HomePage() {
             <b>{t('home.waitingTitle')}</b>
             <span className="block muted">{t('home.waitingHint')}</span>
           </span>
-          <span aria-hidden="true">→</span>
+          <Icon name="chevronRight" size={20} />
         </Link>
       )}
 
@@ -68,7 +68,7 @@ export default async function HomePage() {
       ) : (
         <>
           <div className="board-head">
-            <h2 className="eyebrow">{t('board.title')}</h2>
+            <h2 className="section-title">{t('board.title')}</h2>
             {!supervisor && (
               <span className="balanced">{total === 0 ? t('board.balanced') : t('board.unbalanced', { amount: showPaise(total) })}</span>
             )}

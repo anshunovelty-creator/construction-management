@@ -9,6 +9,7 @@ import { allowDelete } from '@/lib/supabase/env';
 import { createClient } from '@/lib/supabase/server';
 import { deleteMaster, saveMaster } from '../../actions';
 import { loadChoices } from '../../options';
+import { Icon } from '@/components/icons';
 
 export default async function MasterEditPage({
   params,
@@ -33,13 +34,13 @@ export default async function MasterEditPage({
   return (
     <>
       <p className="mb-2">
-        <Link href={`/masters/${slug}`} className="underline">
-          ← {t(`masters.${slug}`)}
+        <Link href={`/masters/${slug}`} className="back">
+          <Icon name="chevronLeft" size={16} /> {t(`masters.${slug}`)}
         </Link>
       </p>
-      <h1>
+      <h2 className="card-title">
         {t('masters.edit')}: {String(row.name ?? row.ref ?? row.code)}
-      </h1>
+      </h2>
       <Form fields={def.fields} defaults={defaults} choices={choices} action={saveMaster.bind(null, slug, id)} submitLabel={t('masters.save')} />
 
       {profile.role === 'owner' && allowDelete() && (

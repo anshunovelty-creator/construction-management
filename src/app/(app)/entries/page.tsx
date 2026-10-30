@@ -101,7 +101,6 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <p className="eyebrow">{t('daybook.eyebrow')}</p>
       <h1>{title}</h1>
       <p className="lede">{t(site ? 'daybook.siteLede' : firm ? 'daybook.firmLede' : 'daybook.lede')}</p>
 
@@ -122,7 +121,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
           <SitesTable rows={summary} names={names} t={t} hint={t(firm ? 'daybook.sitesHintFirm' : 'board.sites.hint')} />
           {costs.size > 0 && (
             <section className="card">
-              <h2 className="eyebrow">{t('daybook.costs')}</h2>
+              <h2 className="section-title">{t('daybook.costs')}</h2>
               <p className="hint">{t('daybook.costsHint')}</p>
               {[...costs].sort((a, b) => b[1] - a[1]).map(([head, amount]) => (
                 <div key={head} className="row">

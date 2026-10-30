@@ -9,6 +9,7 @@ import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { showDate } from './entries/data';
 import { loadFirmParties, MoneyCell, PercentBar, Stat, StatusPill } from './party/shared';
+import { Icon } from '@/components/icons';
 
 /** Home: every party the working firm owes, one line each, like the Index sheet of the outstanding workbook. */
 export default async function PartyIndexPage() {
@@ -31,7 +32,7 @@ export default async function PartyIndexPage() {
           <h1>{t('party.indexTitle', { firm: firm.name })}</h1>
           <p className="lede">{t('party.indexLede')}</p>
         </div>
-        <Link href="/dashboard" className="btn ghost">{t('nav.dashboard')} ►</Link>
+        <Link href="/dashboard" className="btn ghost">{t('nav.dashboard')} <Icon name="arrowRight" size={16} /></Link>
       </div>
 
       {parties.length === 0 ? (
@@ -104,7 +105,7 @@ export default async function PartyIndexPage() {
             <option key={v.id} value={v.id}>{v.name}</option>
           ))}
         </select>
-        <button type="submit" className="btn ghost">{t('party.open')} ►</button>
+        <button type="submit" className="btn ghost">{t('party.open')} <Icon name="arrowRight" size={16} /></button>
         <p className="hint">
           {t('party.openOtherHint')} <Link href="/masters/parties" className="underline">{t('party.addParty')}</Link>
         </p>

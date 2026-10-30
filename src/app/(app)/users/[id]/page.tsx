@@ -7,6 +7,7 @@ import { EDIT_USER_FIELDS } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../../masters/options';
 import { updateUser } from '../actions';
+import { Icon } from '@/components/icons';
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,8 +32,8 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <p className="mb-2">
-        <Link href="/users" className="underline">
-          ← {t('users.title')}
+        <Link href="/users" className="back">
+          <Icon name="chevronLeft" size={16} /> {t('users.title')}
         </Link>
       </p>
       <h1>{user.full_name}</h1>

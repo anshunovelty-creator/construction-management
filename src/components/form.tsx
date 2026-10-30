@@ -7,6 +7,7 @@ import { ChoiceOptions } from '@/components/choice-options';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
+import { Icon } from '@/components/icons';
 
 export interface FormState {
   /** Field name -> message key under `errors.*`; `_form` for the whole form. */
@@ -107,7 +108,7 @@ export function Form({
   return (
     <form ref={form} action={formAction} className={fields.some((f) => f.kind === 'items') ? 'form bill' : 'form'}>
       {state.saved && (
-        <p role="status" className="banner">✓ {t('entries.saved', { serial: state.saved })}</p>
+        <p role="status" className="banner"><Icon name="check" /> {t('entries.saved', { serial: state.saved })}</p>
       )}
       {/* React resets a form after its action runs, and a <select> only reads defaultValue when it first
           appears. A new key per returned state rebuilds the fields so every choice the user made comes back,

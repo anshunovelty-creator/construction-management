@@ -24,7 +24,7 @@ export default async function MasterListPage({ params }: { params: Promise<{ tab
 
   return (
     <>
-      <h1>{t(`masters.${slug}`)}</h1>
+      <h2 className="card-title">{t(`masters.${slug}`)}</h2>
       {!canEdit && <p className="mb-4 text-gray-600">{t('masters.readOnly')}</p>}
       {rows && rows.length > 0 ? (
         <div className="overflow-x-auto">

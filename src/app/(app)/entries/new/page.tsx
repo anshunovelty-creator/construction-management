@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { requireProfile } from '@/lib/auth';
 import { ENTRY_FORMS } from '@/lib/masters/registry';
+import { Icon } from '@/components/icons';
 
 export default async function NewEntryPage() {
   const profile = await requireProfile();
@@ -10,14 +11,13 @@ export default async function NewEntryPage() {
 
   return (
     <>
-      <p className="eyebrow">{t('entries.new.eyebrow')}</p>
       <h1>{t('entries.new.title')}</h1>
       <p className="lede">{t('entries.new.lede')}</p>
       <ul className="tiles">
         {forms.map(([slug, form]) => (
           <li key={slug}>
             <Link href={`/entries/new/${slug}`} className="tile">
-              <span className="tile-icon" aria-hidden="true">{form.icon}</span>
+              <span className="tile-icon"><Icon name={form.icon} size={22} /></span>
               <span className="tile-title">{t(`entryForms.${slug}.title`)}</span>
               <span className="tile-when">{t(`entryForms.${slug}.when`)}</span>
             </Link>
@@ -25,7 +25,7 @@ export default async function NewEntryPage() {
         ))}
       </ul>
       <p className="mt-6">
-        <Link href="/entries/sheet" className="btn ghost">▦ {t('sheet.fromNew')}</Link>
+        <Link href="/entries/sheet" className="btn ghost"><Icon name="sheet" /> {t('sheet.fromNew')}</Link>
       </p>
     </>
   );

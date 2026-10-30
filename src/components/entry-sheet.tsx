@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition, type ClipboardEvent, type KeyboardE
 import { ChoiceOptions } from '@/components/choice-options';
 import type { FormState } from '@/components/form';
 import type { Choice } from '@/lib/masters/registry';
+import { Icon } from '@/components/icons';
 
 export interface Column {
   name: string;
@@ -219,7 +220,7 @@ export function EntrySheet({
                   })}
                   <td className="status">
                     {saved ? (
-                      <Link href={`/entries/${row.result.id}`}>✓ {row.result.serial}</Link>
+                      <Link href={`/entries/${row.result.id}`}><Icon name="check" size={14} /> {row.result.serial}</Link>
                     ) : row.result ? (
                       <span className="error">{message(row.result as FormState)}</span>
                     ) : null}

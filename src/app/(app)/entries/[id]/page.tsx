@@ -7,6 +7,7 @@ import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { cancelEntry, verifyEntry } from '../actions';
 import { loadNames, showDate } from '../data';
+import { Icon } from '@/components/icons';
 
 interface Entry {
   id: string;
@@ -72,11 +73,11 @@ export default async function EntryPage({
   return (
     <>
       <p className="mb-2">
-        <Link href="/entries" className="back">← {t('nav.daybook')}</Link>
+        <Link href="/entries" className="back"><Icon name="chevronLeft" size={16} /> {t('nav.daybook')}</Link>
       </p>
       {saved && (
         <p className="banner" role="status">
-          ✓ {t('entries.saved', { serial: entry.serial })}
+          <Icon name="check" /> {t('entries.saved', { serial: entry.serial })}
         </p>
       )}
       {error && (
@@ -113,7 +114,7 @@ export default async function EntryPage({
         )}
 
         <section>
-          <h2 className="eyebrow">{t('entries.whatChanges')}</h2>
+          <h2 className="section-title">{t('entries.whatChanges')}</h2>
           <ul className="effects">
             {changes.map((c) => (
               <li key={c.key}>
@@ -178,7 +179,7 @@ export default async function EntryPage({
           <div className="actions">
             {canCheck && (
               <form action={verifyEntry.bind(null, id)}>
-                <button type="submit" className="btn">✓ {t('entries.check')}</button>
+                <button type="submit" className="btn"><Icon name="check" /> {t('entries.check')}</button>
               </form>
             )}
             {canCancel && (
@@ -235,7 +236,7 @@ function BillItemsTable({
   const tdsAmount = tds ? Number(tds.tds_paise) : 0;
   return (
     <section>
-      <h2 className="eyebrow">{t('items.title')}</h2>
+      <h2 className="section-title">{t('items.title')}</h2>
       <div className="table-wrap">
         <table>
           <thead>

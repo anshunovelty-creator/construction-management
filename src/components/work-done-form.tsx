@@ -5,6 +5,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
 import { amountPaise, DIMENSIONS, quantityMilli, type MeasurementLine, type Measure } from '@/lib/work';
+import { Icon } from '@/components/icons';
 
 export interface WorkActivity {
   description: string;
@@ -144,7 +145,7 @@ export function WorkDoneForm({
                   className="btn ghost small icon-btn"
                   onClick={() => setActivities((all) => all.filter((_, i) => i !== a))}
                   aria-label={t('work.removeActivity', { n: a + 1 })}
-                >✕</button>
+                ><Icon name="close" size={16} /></button>
               )}
             </div>
 
@@ -190,7 +191,7 @@ export function WorkDoneForm({
                                 className="btn ghost small icon-btn"
                                 onClick={() => change(a, { lines: activity.lines.filter((_, i) => i !== l) })}
                                 aria-label={t('work.removeLine')}
-                              >✕</button>
+                              ><Icon name="close" size={16} /></button>
                             )}
                           </td>
                         </tr>

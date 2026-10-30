@@ -1,5 +1,6 @@
 import type { AppRole } from '@/lib/auth';
 import { COST_HEADS } from '@/lib/ledger/types';
+import type { IconName } from '@/components/icons';
 
 /** Choices for enum fields. Mirrors the Postgres enums in supabase/migrations. Keep both in sync. */
 export const ENUMS = {
@@ -158,7 +159,7 @@ const items: Field = { name: 'items', kind: 'items', required: true };
  */
 export const ENTRY_FORMS = {
   'vendor-bill': {
-    icon: '🧾',
+    icon: 'bill' as IconName,
     roles: ['owner', 'office'],
     fields: [
       // Details on the top row, then the items, then the notes and deductions in the foot.
@@ -175,7 +176,7 @@ export const ENTRY_FORMS = {
     ],
   },
   'pay-vendor': {
-    icon: '💸',
+    icon: 'payOut' as IconName,
     roles: ['owner', 'office'],
     fields: [
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
@@ -184,7 +185,7 @@ export const ENTRY_FORMS = {
     ],
   },
   'client-bill': {
-    icon: '📄',
+    icon: 'invoice' as IconName,
     roles: ['owner', 'office'],
     fields: [
       // Details on the top row (client, bill number, date), the site, then the items; the cuts sit in the foot.
@@ -201,13 +202,13 @@ export const ENTRY_FORMS = {
     ],
   },
   'client-receipt': {
-    icon: '💰',
+    icon: 'receive' as IconName,
     roles: ['owner', 'office'],
     // The client's money lands in this firm's own bank or cash.
     fields: [client, payMethod, account('to_account_id', 'firmAccounts'), amount, date, reference, note],
   },
   'site-spend': {
-    icon: '🛠️',
+    icon: 'tool' as IconName,
     roles: ['owner', 'supervisor'],
     fields: [
       from,
@@ -220,7 +221,7 @@ export const ENTRY_FORMS = {
     ],
   },
   'day-close': {
-    icon: '🧮',
+    icon: 'calc' as IconName,
     roles: ['owner', 'supervisor'],
     fields: [
       { name: 'account_id', kind: 'ref', ref: 'moneyAccounts', required: true },
@@ -229,7 +230,7 @@ export const ENTRY_FORMS = {
     ],
   },
   'owner-money': {
-    icon: '🏦',
+    icon: 'bank' as IconName,
     roles: ['owner'],
     fields: [
       { name: 'direction', kind: 'enum', enum: 'owner_money', required: true },
@@ -237,7 +238,7 @@ export const ENTRY_FORMS = {
       amount, date, note,
     ],
   },
-} satisfies Record<string, { icon: string; roles: AppRole[]; fields: Field[] }>;
+} satisfies Record<string, { icon: IconName; roles: AppRole[]; fields: Field[] }>;
 export type EntryFormSlug = keyof typeof ENTRY_FORMS;
 
 /**
