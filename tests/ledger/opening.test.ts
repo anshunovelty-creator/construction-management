@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openingClientBalance, openingMoneyBalance, openingVendorBalance } from '@/lib/ledger/posting/opening';
-import { CLIENT, JI, JI_BANK, SVG, VENDOR, WO } from './fixtures';
+import { CLIENT, JI, JI_BANK, SVG, VENDOR, SVG_CLIENT } from './fixtures';
 
 describe('opening balances', () => {
   it('records what a firm owes a vendor on the opening date', () => {
@@ -17,8 +17,8 @@ describe('opening balances', () => {
       { account: 'money', amountPaise: 62_000_000, firmId: JI, moneyAccountId: JI_BANK.id },
       { account: 'opening_balance', amountPaise: -62_000_000 },
     ]);
-    expect(openingClientBalance({ workOrder: WO, amountPaise: -1_000, asOf: '2026-10-21' }).lines).toEqual([
-      { account: 'client_receivable', amountPaise: -1_000, firmId: JI, partyId: CLIENT, siteId: SVG, workOrderId: WO.id },
+    expect(openingClientBalance({ client: SVG_CLIENT, amountPaise: -1_000, asOf: '2026-10-21' }).lines).toEqual([
+      { account: 'client_receivable', amountPaise: -1_000, firmId: JI, partyId: CLIENT, siteId: SVG },
       { account: 'opening_balance', amountPaise: 1_000 },
     ]);
   });

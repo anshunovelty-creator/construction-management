@@ -20,7 +20,7 @@ export type EnumName = keyof typeof ENUMS;
  * and common cash; `firmAccounts` lists only that firm's own banks and cash, for payments and receipts: firms never share money.
  */
 export type RefSource =
-  | 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'workOrders' | 'materials' | 'gstRates' | 'tdsRates'
+  | 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'materials' | 'units' | 'gstRates' | 'tdsRates'
   | 'moneyAccounts' | 'firmAccounts';
 
 /** One choice in a dropdown. Choices with a `group` come last, under that heading. */
@@ -74,24 +74,6 @@ export const MASTERS: Record<string, MasterDef> = {
       active,
     ],
   },
-  'work-orders': {
-    table: 'work_orders',
-    ownerOnly: true,
-    list: ['ref', 'firm_id', 'client_id', 'site_id', 'contract_type', 'is_active'],
-    fields: [
-      { name: 'firm_id', kind: 'ref', ref: 'firms', required: true },
-      { name: 'client_id', kind: 'ref', ref: 'clients', required: true },
-      { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
-      { name: 'ref', kind: 'text', required: true },
-      { name: 'contract_type', kind: 'enum', enum: 'contract_type', required: true },
-      { name: 'contract_value_paise', kind: 'rupees' },
-      { name: 'tds_bp', kind: 'percent' },
-      { name: 'retention_bp', kind: 'percent' },
-      { name: 'security_deposit_bp', kind: 'percent' },
-      { name: 'start_date', kind: 'date', required: true },
-      active,
-    ],
-  },
   'money-accounts': {
     table: 'money_accounts',
     ownerOnly: true,
@@ -106,6 +88,12 @@ export const MASTERS: Record<string, MasterDef> = {
   },
   materials: {
     table: 'materials',
+    ownerOnly: false,
+    list: ['name', 'unit_id', 'is_active'],
+    fields: [{ name: 'name', kind: 'text', required: true }, { name: 'unit_id', kind: 'ref', ref: 'units' }, active],
+  },
+  units: {
+    table: 'units',
     ownerOnly: false,
     list: ['name', 'is_active'],
     fields: [{ name: 'name', kind: 'text', required: true }, active],
@@ -157,7 +145,7 @@ const reference: Field = { name: 'reference', kind: 'text' };
 const account = (name: string, ref: RefSource = 'moneyAccounts'): Field => ({ name, kind: 'ref', ref, required: true });
 const from = account('from_account_id');
 const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', required: true };
-const workOrder: Field = { name: 'work_order_id', kind: 'ref', ref: 'workOrders', required: true };
+const client: Field = { name: 'client_id', kind: 'ref', ref: 'clients', required: true };
 const payMethod: Field = { name: 'payment_method', kind: 'enum', enum: 'payment_method', required: true };
 const items: Field = { name: 'items', kind: 'items', required: true };
 
@@ -197,10 +185,13 @@ export const ENTRY_FORMS = {
     icon: '📄',
     roles: ['owner', 'office'],
     fields: [
-      workOrder,
+      // Details on the top row (client, bill number, date), the site, then the items; the cuts sit in the foot.
+      client,
       { name: 'bill_no', kind: 'text', required: true },
-      date, items,
-      // Left empty, the work order's TDS % is used; 0% means the client deducts none.
+      date,
+      { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
+      items,
+      // Left empty, no TDS is deducted. Retention and deposit left empty mean none.
       { name: 'tds_rate', kind: 'ref', ref: 'tdsRates' },
       { name: 'retention', kind: 'rupees', allowZero: true },
       { name: 'security_deposit', kind: 'rupees', allowZero: true },
@@ -210,8 +201,8 @@ export const ENTRY_FORMS = {
   'client-receipt': {
     icon: '💰',
     roles: ['owner', 'office'],
-    // The client's money may land in another firm's bank: that firm then owes this one.
-    fields: [workOrder, payMethod, account('to_account_id', 'firmAccounts'), amount, date, reference, note],
+    // The client's money lands in this firm's own bank or cash.
+    fields: [client, payMethod, account('to_account_id', 'firmAccounts'), amount, date, reference, note],
   },
   'site-spend': {
     icon: '🛠️',

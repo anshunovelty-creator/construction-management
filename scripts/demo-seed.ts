@@ -12,7 +12,7 @@ import { cashCloseDifference, cashTransfer, ownerCapital, ownerDrawing, siteCash
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { openingClientBalance, openingMoneyBalance, openingVendorBalance } from '@/lib/ledger/posting/opening';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
-import type { EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
+import type { ClientRef, EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
 import { percentOf } from '@/lib/money';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -62,20 +62,9 @@ await party('worker', 'Worker 1', '97000 10001');
 await party('staff', 'Staff 1 (site engineer)', '97000 20002');
 const colony = await party('other', 'Labour colony landlord', '97000 30003');
 
-const wo1 = await one('work_orders', {
-  firm_id: firmA, client_id: client1, site_id: site1, ref: 'WO-1', contract_type: 'item_rate',
-  contract_value_paise: rupees(50_00_000), tds_bp: 200, retention_bp: 500, security_deposit_bp: 0, start_date: '2026-09-15',
-});
-const wo2 = await one('work_orders', {
-  firm_id: firmB, client_id: client2, site_id: site2, ref: 'WO-2', contract_type: 'fixed',
-  contract_value_paise: rupees(20_00_000), tds_bp: 100, retention_bp: 500, security_deposit_bp: 250, start_date: '2026-09-20',
-});
-await one('work_orders', {
-  firm_id: firmA, client_id: client2, site_id: site2, ref: 'WO-OLD', contract_type: 'fixed',
-  contract_value_paise: rupees(5_00_000), tds_bp: 100, retention_bp: 0, start_date: '2026-04-01', is_active: false,
-});
-const WO1: WorkOrderRef = { id: wo1.id, firmId: firmA, clientId: client1, siteId: site1 };
-const WO2: WorkOrderRef = { id: wo2.id, firmId: firmB, clientId: client2, siteId: site2 };
+// Clients are billed by site directly (no work orders).
+const C1: ClientRef = { firmId: firmA, clientId: client1, siteId: site1 };
+const C2: ClientRef = { firmId: firmB, clientId: client2, siteId: site2 };
 
 // ---------- Logins ----------
 const logins: string[] = [];
@@ -128,7 +117,7 @@ const opening = [
   await post(owner, openingMoneyBalance({ account: ownerCash, amountPaise: rupees(30_000), asOf })),
   await post(owner, openingVendorBalance({ firmId: firmA, vendorId: vendor3, amountPaise: rupees(2_50_000), asOf, reference: 'Statement 30-Sep' })),
   await post(owner, openingVendorBalance({ firmId: firmB, vendorId: vendor4, amountPaise: rupees(-20_000), asOf, reference: 'Advance paid in Sept' })),
-  await post(owner, openingClientBalance({ workOrder: WO2, amountPaise: rupees(1_00_000), asOf })),
+  await post(owner, openingClientBalance({ client: C2, amountPaise: rupees(1_00_000), asOf })),
 ];
 
 // The Playground's twelve steps (step 2, the work order, is a master above).
@@ -157,11 +146,11 @@ const s8 = await post(sup1, siteCashExpense({
 }));
 const s9 = await post(sup1, cashCloseDifference({ account: cash1, expectedPaise: rupees(5_000), countedPaise: rupees(4_800), closeDate: '2026-10-07' }));
 const s10 = await post(office1, clientBill({
-  workOrder: WO1, billDate: '2026-10-15', billNo: 'RA-1', grossPaise: rupees(3_00_000), narration: 'Work done till 15 Oct',
+  client: C1, billDate: '2026-10-15', billNo: 'RA-1', grossPaise: rupees(3_00_000), narration: 'Work done till 15 Oct',
   deductions: { tdsPaise: percentOf(rupees(3_00_000), 200), retentionPaise: percentOf(rupees(3_00_000), 500) },
 }));
 const s11 = await post(office1, clientReceipt({
-  workOrder: WO1, to: bankA, amountPaise: rupees(2_79_000), receiptDate: '2026-10-20', reference: 'NEFT-88812',
+  client: C1, to: bankA, amountPaise: rupees(2_79_000), receiptDate: '2026-10-20', reference: 'NEFT-88812',
 }));
 await post(office1, cashTransfer({
   from: bankB, to: bankA, amountPaise: rupees(50_000), transferDate: '2026-10-21', reference: 'UTR9900', narration: 'Firm B pays Firm A back',
@@ -188,7 +177,7 @@ await post(sup2, siteCashExpense({
 }));
 await post(sup2, cashCloseDifference({ account: cash2, expectedPaise: rupees(7_550), countedPaise: rupees(7_700), closeDate: '2026-10-11' }));
 const e19 = await post(office2, clientBill({
-  workOrder: WO2, billDate: '2026-10-16', billNo: 'B-RA-1', grossPaise: rupees(2_00_000), narration: 'Stage 1: foundation',
+  client: C2, billDate: '2026-10-16', billNo: 'B-RA-1', grossPaise: rupees(2_00_000), narration: 'Stage 1: foundation',
   deductions: {
     tdsPaise: percentOf(rupees(2_00_000), 100),
     retentionPaise: percentOf(rupees(2_00_000), 500),
@@ -196,7 +185,7 @@ const e19 = await post(office2, clientBill({
   },
 }));
 await post(office2, clientReceipt({
-  workOrder: WO2, to: bankB, amountPaise: rupees(1_50_000), receiptDate: '2026-10-22', reference: 'RTGS-5521', narration: 'Part payment',
+  client: C2, to: bankB, amountPaise: rupees(1_50_000), receiptDate: '2026-10-22', reference: 'RTGS-5521', narration: 'Part payment',
 }));
 const e21 = await post(owner, cashTransfer({ from: bankA, to: ownerCash, amountPaise: rupees(50_000), transferDate: '2026-10-12', reference: 'CASH-WD-1' }));
 const e22 = await post(owner, ownerDrawing({ account: ownerCash, amountPaise: rupees(25_000), date: '2026-10-13', narration: 'Personal use' }));

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { CellValue, Workbook } from 'exceljs';
 import { openingClientBalance, openingMoneyBalance, openingVendorBalance } from '@/lib/ledger/posting/opening';
-import type { EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
+import type { ClientRef, EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
 import { formatPaise, rupeesToPaise, type Paise } from '@/lib/money';
 
 /** The date of the vendor statements in the two outstanding workbooks (spec section 8). */
@@ -155,7 +155,7 @@ export function openingEntryId(row: Pick<OpeningRow, 'kind' | 'firm' | 'name'>):
 export type OpeningRefs =
   | { kind: 'vendor'; firmId: string; vendorId: string }
   | { kind: 'money'; account: MoneyAccountRef }
-  | { kind: 'client'; workOrder: WorkOrderRef };
+  | { kind: 'client'; client: ClientRef };
 
 export function openingDraft(row: OpeningRow, refs: OpeningRefs): EntryDraft {
   const id = openingEntryId(row);
@@ -168,6 +168,6 @@ export function openingDraft(row: OpeningRow, refs: OpeningRefs): EntryDraft {
     case 'money':
       return openingMoneyBalance({ id, account: refs.account, amountPaise: row.amountPaise, asOf: OPENING_DATE });
     case 'client':
-      return openingClientBalance({ id, workOrder: refs.workOrder, amountPaise: row.amountPaise, asOf: OPENING_DATE });
+      return openingClientBalance({ id, client: refs.client, amountPaise: row.amountPaise, asOf: OPENING_DATE });
   }
 }

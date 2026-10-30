@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { billTotals, priceItem } from '@/lib/ledger/bill-items';
 import { clientBill } from '@/lib/ledger/posting/client';
 import { vendorBill } from '@/lib/ledger/posting/vendor';
-import { AB, CLIENT, JI, SVG, sumOf, VENDOR, WO } from './fixtures';
+import { AB, CLIENT, JI, SVG, sumOf, VENDOR, SVG_CLIENT } from './fixtures';
 
 const items = [
   priceItem({ materialId: 'cement', quantityMilli: 100_000, ratePaise: 35_000, gstBp: 2_800 }),
@@ -49,7 +49,7 @@ describe('TDS on bills', () => {
 
   it('records a client bill’s TDS on the amount before GST, as claimable from the client', () => {
     const draft = clientBill({
-      workOrder: WO, billDate: '2026-10-29', billNo: 'RA-10', grossPaise: 100_000_00, gstPaise: 18_000_00,
+      client: SVG_CLIENT, billDate: '2026-10-29', billNo: 'RA-10', grossPaise: 100_000_00, gstPaise: 18_000_00,
       deductions: { tdsPaise: 1_000_00 }, tds: { rateBp: 100, section: '194C, company' },
     });
     expect(draft.tds).toEqual({ rateBp: 100, section: '194C, company', basePaise: 100_000_00, tdsPaise: 1_000_00 });

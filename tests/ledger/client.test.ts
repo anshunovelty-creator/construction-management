@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
-import { AB, AB_BANK, CLIENT, JI, JI_BANK, SVG, WO } from './fixtures';
+import { AB, AB_BANK, CLIENT, JI, JI_BANK, SVG, SVG_CLIENT } from './fixtures';
 
 describe('clientBill', () => {
   it('books gross income, TDS and retention as ours, and the net as receivable (spec example)', () => {
     const draft = clientBill({
-      workOrder: WO,
+      client: SVG_CLIENT,
       billDate: '2026-10-31',
       billNo: 'RA-1',
       grossPaise: 100_000_000,
       deductions: { tdsPaise: 1_000_000, retentionPaise: 5_000_000 },
     });
-    const dims = { firmId: JI, partyId: CLIENT, siteId: SVG, workOrderId: WO.id };
+    const dims = { firmId: JI, partyId: CLIENT, siteId: SVG };
     expect(draft).toMatchObject({ entryType: 'client_bill', firmId: JI, partyId: CLIENT, reference: 'RA-1' });
     expect(draft.lines).toEqual([
       { account: 'client_receivable', amountPaise: 94_000_000, ...dims },
@@ -23,7 +23,7 @@ describe('clientBill', () => {
 
   it('treats material recovery and penalties as site costs', () => {
     const draft = clientBill({
-      workOrder: WO,
+      client: SVG_CLIENT,
       billDate: '2026-10-31',
       billNo: 'RA-2',
       grossPaise: 1_000_000,
@@ -38,7 +38,7 @@ describe('clientBill', () => {
 
   it('refuses deductions larger than the gross amount', () => {
     expect(() =>
-      clientBill({ workOrder: WO, billDate: '2026-10-31', billNo: 'RA-3', grossPaise: 100, deductions: { tdsPaise: 101 } }),
+      clientBill({ client: SVG_CLIENT, billDate: '2026-10-31', billNo: 'RA-3', grossPaise: 100, deductions: { tdsPaise: 101 } }),
     ).toThrow('deductions are more than the bill amount');
   });
 });
@@ -46,18 +46,18 @@ describe('clientBill', () => {
 describe('clientReceipt', () => {
   it('reduces what the client owes', () => {
     const draft = clientReceipt({
-      workOrder: WO, to: JI_BANK, amountPaise: 94_000_000, receiptDate: '2026-11-15', reference: 'UTR5',
+      client: SVG_CLIENT, to: JI_BANK, amountPaise: 94_000_000, receiptDate: '2026-11-15', reference: 'UTR5',
     });
     expect(draft.lines).toHaveLength(2);
     expect(draft.lines[1]).toMatchObject({ account: 'client_receivable', amountPaise: -94_000_000 });
   });
 
   it('refuses a receipt into another firm’s account: firms are independent', () => {
-    expect(() => clientReceipt({ workOrder: WO, to: AB_BANK, amountPaise: 500, receiptDate: '2026-11-15', reference: 'UTR6' })).toThrow('own bank or cash');
+    expect(() => clientReceipt({ client: SVG_CLIENT, to: AB_BANK, amountPaise: 500, receiptDate: '2026-11-15', reference: 'UTR6' })).toThrow('own bank or cash');
   });
 
   it('requires a UTR or cheque number for bank receipts', () => {
-    expect(() => clientReceipt({ workOrder: WO, to: JI_BANK, amountPaise: 1, receiptDate: '2026-11-15' })).toThrow(
+    expect(() => clientReceipt({ client: SVG_CLIENT, to: JI_BANK, amountPaise: 1, receiptDate: '2026-11-15' })).toThrow(
       'UTR or cheque number is required',
     );
   });

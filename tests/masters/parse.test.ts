@@ -1,12 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { moneyAccountErrors, parseFields, parseItems, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
-import { EDIT_USER_FIELDS, getEntryForm, MASTERS, NEW_USER_FIELDS } from '@/lib/masters/registry';
+import { EDIT_USER_FIELDS, getEntryForm, MASTERS, NEW_USER_FIELDS, type Field } from '@/lib/masters/registry';
 
 const form = (entries: [string, string][]) => {
   const data = new FormData();
   for (const [key, value] of entries) data.append(key, value);
   return data;
 };
+
+/** A form with every kind of field: the old work-order form, kept here as a parsing sample. */
+const WORK_ORDER_FIELDS: Field[] = [
+  { name: 'firm_id', kind: 'ref', ref: 'firms', required: true },
+  { name: 'client_id', kind: 'ref', ref: 'clients', required: true },
+  { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
+  { name: 'ref', kind: 'text', required: true },
+  { name: 'contract_type', kind: 'enum', enum: 'contract_type', required: true },
+  { name: 'contract_value_paise', kind: 'rupees' },
+  { name: 'tds_bp', kind: 'percent' },
+  { name: 'retention_bp', kind: 'percent' },
+  { name: 'security_deposit_bp', kind: 'percent' },
+  { name: 'start_date', kind: 'date', required: true },
+  { name: 'is_active', kind: 'checkbox' },
+];
 
 const FIRM = '0b6c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
 const CLIENT = '1b6c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
@@ -28,7 +43,7 @@ describe('percentToBasisPoints', () => {
 });
 
 describe('parseFields', () => {
-  const workOrder = MASTERS['work-orders']!.fields;
+  const workOrder = WORK_ORDER_FIELDS;
 
   it('turns a work-order form into column values', () => {
     const result = parseFields(
@@ -112,7 +127,7 @@ describe('bank and cash account rules', () => {
 
 describe('form values', () => {
   it('shows stored values the way the form takes them', () => {
-    const [, , , , , value, tds] = MASTERS['work-orders']!.fields;
+    const [, , , , , value, tds] = WORK_ORDER_FIELDS;
     expect(toFormValue(value!, 619_957_800)).toBe('6199578.00');
     expect(toFormValue(value!, null)).toBe('');
     expect(toFormValue(tds!, 50)).toBe('0.5');

@@ -11,7 +11,7 @@ import { getEntryForm } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadChoices } from '../masters/options';
-import { postClientBill, postEntryRows } from '../entries/actions';
+import { postClientBill, postClientRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
 import { MoneyCell, Stat, StatusPill } from '../party/shared';
@@ -24,7 +24,6 @@ interface ClientRow {
   reference: string;
   narration: string;
   status: 'verified' | 'unverified';
-  work_order_id: string;
   site_id: string;
   gross_paise: number | string;
   tds_paise: number | string;
@@ -37,13 +36,13 @@ interface ClientRow {
 
 type Slug = 'client-bill' | 'client-receipt';
 /** The bill form's questions: the bill's details, its items, then what the client cuts. */
-const BILL_FIELDS = ['work_order_id', 'bill_no', 'entry_date', 'items', 'tds_rate', 'retention', 'security_deposit', 'narration'];
+const BILL_FIELDS = ['bill_no', 'entry_date', 'site_id', 'items', 'tds_rate', 'retention', 'security_deposit', 'narration'];
 /** Sheet columns in reading order. Bills have items, so they are typed in a form, not a sheet. */
-const RECEIPT_COLUMNS = ['entry_date', 'work_order_id', 'amount', 'to_account_id', 'reference', 'narration'];
+const RECEIPT_COLUMNS = ['entry_date', 'amount', 'to_account_id', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them. */
 const LABELS: Record<string, string> = {
-  bill_no: 'party.billNo', work_order_id: 'client.workOrder', gross: 'client.gross', tds: 'client.tds',
+  bill_no: 'party.billNo', gross: 'client.gross', tds: 'client.tds',
   retention: 'client.retention', security_deposit: 'client.deposit', narration: 'party.remarks',
   amount: 'party.amount', to_account_id: 'client.receivedIn', reference: 'party.reference',
 };
@@ -59,19 +58,14 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
   const billFields = fieldsOf('client-bill', BILL_FIELDS);
   const receiptFields = fieldsOf('client-receipt', RECEIPT_COLUMNS);
   // The client is looked up alongside their entries rather than before them: one trip to the database, not two.
-  const [{ data: client }, { data }, { data: orders }, names, choices] = await Promise.all([
+  const [{ data: client }, { data }, names, choices] = await Promise.all([
     db.from('parties').select('id, name, gst_number').eq('id', id).eq('kind', 'client').maybeSingle(),
     db.from('client_rows').select('*').eq('firm_id', firm.id).eq('party_id', id)
       .order('entry_date').order('serial').returns<ClientRow[]>(),
-    db.from('work_orders').select('id, ref, is_active, site:sites(name)').eq('firm_id', firm.id).eq('client_id', id)
-      .order('ref').returns<{ id: string; ref: string; is_active: boolean; site: { name: string } | null }[]>(),
     loadNames(db),
     loadChoices(db, [...billFields, ...receiptFields], { working, t }),
   ]);
   if (!client) notFound();
-  // Only this client's own work orders for this firm, named by their site.
-  const orderLabel = new Map((orders ?? []).map((o) => [o.id, `${o.ref} · ${o.site?.name ?? ''}`]));
-  choices.workOrders = (orders ?? []).filter((o) => o.is_active).map((o) => ({ value: o.id, label: orderLabel.get(o.id)! }));
 
   const rows = (data ?? []).map((r) => ({
     ...r,
@@ -105,18 +99,12 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
 
   const columns = (slug: Slug, fields: typeof billFields, dateKey: string) =>
     sheetColumns(slug, fields, choices, t).map((c) => ({ ...c, label: t(c.name === 'entry_date' ? dateKey : LABELS[c.name]!) }));
-  const onlyOrder: Record<string, string> = choices.workOrders.length === 1 ? { work_order_id: choices.workOrders[0]!.value } : {};
   const lastTo = receipts.at(-1)?.money_account_id;
   const entryLink = (r: ClientRow) => (
     <>
       <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
       {r.status === 'unverified' && <span className="pill unverified small-pill" title={t('party.notCheckedHint')}>{t('party.notChecked')}</span>}
     </>
-  );
-  const noOrders = choices.workOrders.length === 0 && (
-    <p className="banner bad">
-      {t('client.needWorkOrder')} <Link href="/masters/work-orders" className="underline">{t('party.goSetup')}</Link>
-    </p>
   );
   const sum = (key: 'tds_paise' | 'retention_paise' | 'deposit_paise' | 'other_cut_paise') => bills.reduce((s, r) => s + Number(r[key]), 0);
 
@@ -159,7 +147,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
                       <th className="num">{t('party.sr')}</th>
                       <th>{t('party.billDate')}</th>
                       <th>{t('party.billNo')}</th>
-                      <th>{t('client.workOrder')}</th>
+                      <th>{t('client.site')}</th>
                       <th className="num">{t('client.gross')}</th>
                       <th className="num">{t('client.tds')}</th>
                       <th className="num">{t('client.retention')}</th>
@@ -175,7 +163,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
                         <td className="num muted">{i + 1}</td>
                         <td className="nowrap">{showDate(r.entry_date)}</td>
                         <td>{r.entry_type === 'opening' ? <strong>{t('client.opening')}</strong> : r.reference}</td>
-                        <td>{orderLabel.get(r.work_order_id) ?? names.sites.get(r.site_id)}</td>
+                        <td>{names.sites.get(r.site_id)}</td>
                         <MoneyCell paise={r.gross} />
                         <MoneyCell paise={Number(r.tds_paise)} />
                         <MoneyCell paise={Number(r.retention_paise)} />
@@ -203,13 +191,12 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             )}
             <details className="add-rows">
               <summary className="btn">＋ {t('client.addBills')}</summary>
-              {noOrders}
               <p className="hint">{t('client.addBillsHint')}</p>
               <Form
                 fields={billFields}
-                defaults={{ ...onlyOrder, entry_date: todayInIndia() }}
+                defaults={{ entry_date: todayInIndia() }}
                 choices={choices}
-                action={postClientBill.bind(null, firm.id)}
+                action={postClientBill.bind(null, firm.id, client.id)}
                 submitLabel={t('entries.save')}
                 hintPrefix="entryForms.client-bill.hints"
               />
@@ -258,7 +245,6 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             )}
             <details className="add-rows">
               <summary className="btn">＋ {t('client.addReceipts')}</summary>
-              {noOrders}
               {(choices.firmAccounts ?? []).length === 0 && (
                 <p className="banner bad">
                   {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
@@ -269,8 +255,8 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
                 columns={columns('client-receipt', receiptFields, 'client.receiptDate')}
                 today={todayInIndia()}
                 start={3}
-                defaults={lastTo ? { ...onlyOrder, to_account_id: lastTo } : onlyOrder}
-                save={postEntryRows.bind(null, 'client-receipt', firm.id)}
+                defaults={lastTo ? { to_account_id: lastTo } : {}}
+                save={postClientRows.bind(null, firm.id, client.id)}
               />
             </details>
           </>

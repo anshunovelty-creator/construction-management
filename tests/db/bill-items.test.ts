@@ -79,7 +79,7 @@ it('never changes stored items', async () => {
 it('counts a client bill’s GST in what the client owes, but not in the site’s income', async () => {
   const billItems = [priceItem({ materialId: cement, quantityMilli: 1_000, ratePaise: 100_000_00, gstBp: 1_800 })];
   await postEntry(db, clientBill({
-    workOrder: seed.workOrder, billDate: '2026-10-29', billNo: 'RA-9', grossPaise: 100_000_00, gstPaise: 18_000_00, billItems,
+    client: seed.client, billDate: '2026-10-29', billNo: 'RA-9', grossPaise: 100_000_00, gstPaise: 18_000_00, billItems,
     deductions: { tdsPaise: 1_000_00 },
   }), OWNER);
   const { rows } = await db.query('select gross_paise, gst_paise, tds_paise, receivable_paise from client_rows');

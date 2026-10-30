@@ -44,7 +44,7 @@ export function accountChoices(rows: AccountRow[], scope: AccountScope, firmId: 
 /**
  * What stops a form filled in `firmId` from being saved, as field errors (keys under `errors.*`); null when nothing does.
  * `allowed`: the firms this person may use, or null when they work without one (supervisors).
- * `picked`: for each work order or bank/cash field filled in, the firm of the row chosen (null = common cash).
+ * `picked`: for each bank/cash field filled in, the firm of the row chosen (null = common cash).
  */
 export function firmErrors(
   slug: string,
@@ -59,8 +59,7 @@ export function firmErrors(
     if (field.kind !== 'ref' || !(field.name in picked)) continue;
     const rowFirm = picked[field.name] ?? null;
     const scope = accountScope(field.ref);
-    const fits = field.ref === 'workOrders' ? rowFirm === firmId : !scope || inScope(scope, rowFirm, firmId);
-    if (!fits) return { [field.name]: 'other_firm' };
+    if (scope && !inScope(scope, rowFirm, firmId)) return { [field.name]: 'other_firm' };
   }
   return null;
 }

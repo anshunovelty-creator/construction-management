@@ -21,16 +21,16 @@ beforeEach(async () => {
 
 it('adds up opening, bills (gross, deductions) and receipts per firm and client, leaving out cancelled entries', async () => {
   const post = (draft: Parameters<typeof postEntry>[1]) => postEntry(db, draft, OWNER);
-  await post(openingClientBalance({ workOrder: seed.workOrder, amountPaise: 2_000_00, asOf: '2026-10-21' }));
+  await post(openingClientBalance({ client: seed.client, amountPaise: 2_000_00, asOf: '2026-10-21' }));
   await post(clientBill({
-    workOrder: seed.workOrder, billDate: '2026-10-22', billNo: 'RA-1', grossPaise: 10_000_00,
+    client: seed.client, billDate: '2026-10-22', billNo: 'RA-1', grossPaise: 10_000_00,
     deductions: { tdsPaise: 100_00, retentionPaise: 500_00, securityDepositPaise: 200_00, otherPaise: 50_00 },
   }));
   await post(clientReceipt({
-    workOrder: seed.workOrder, to: seed.jayrajBank, amountPaise: 4_000_00, receiptDate: '2026-10-23', reference: 'UTR9',
+    client: seed.client, to: seed.jayrajBank, amountPaise: 4_000_00, receiptDate: '2026-10-23', reference: 'UTR9',
   }));
   const wrong = await post(clientReceipt({
-    workOrder: seed.workOrder, to: seed.jayrajBank, amountPaise: 999_00, receiptDate: '2026-10-24', reference: 'UTR-WRONG',
+    client: seed.client, to: seed.jayrajBank, amountPaise: 999_00, receiptDate: '2026-10-24', reference: 'UTR-WRONG',
   }));
   await reverseEntry(db, wrong.id, OWNER, 'typed twice');
 

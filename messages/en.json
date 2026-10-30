@@ -19,6 +19,8 @@
     "menu": "Menu",
     "overview": "Overview",
     "clients": "Clients",
+    "stock": "Stock",
+    "report": "Daily report",
     "tds": "TDS record"
   },
   "login": {
@@ -66,6 +68,7 @@
       }
     },
     "materials": "Materials",
+    "units": "Units",
     "gst-rates": "GST rates",
     "tds-rates": "TDS rates"
   },
@@ -117,7 +120,11 @@
     "section": "Section",
     "tds_rate": "TDS",
     "gst_number": "GST number (GSTIN)",
-    "payment_method": "How paid"
+    "payment_method": "How paid",
+    "unit_id": "Unit",
+    "use_date": "Date",
+    "quantity": "Quantity used",
+    "remark": "Remark"
   },
   "options": {
     "party_kind": {
@@ -636,7 +643,7 @@
     "receiptsHint": "Payments that came in from this client.",
     "noBills": "No bills given yet.",
     "noReceipts": "No money received yet.",
-    "workOrder": "Work order · site",
+    "site": "Site",
     "gross": "Bill amount",
     "tds": "TDS",
     "retention": "Retention",
@@ -648,8 +655,7 @@
     "balanceAfter": "Balance after receipt",
     "addBills": "Add bills given",
     "addReceipts": "Add money received",
-    "addBillsHint": "Add each item with its GST. Leave TDS empty to use the work order’s TDS %, and retention or deposit empty to use the work order’s %. Type 0 if none was cut. Then press Save.",
-    "needWorkOrder": "This client has no work order for this firm yet. A work order says which site the bills are for."
+    "addBillsHint": "Add each item with its GST. Leave TDS, retention or deposit empty if the client cut none. Then press Save."
   },
   "quick": {
     "addBill": "Add bill",
@@ -690,6 +696,57 @@
     "tds": "TDS at {rate}%",
     "netVendor": "Net payable to party",
     "details": "Bill details"
+  },
+  "stock": {
+    "title": "Stock",
+    "lede": "Stock at each site, whichever firm bought it. Everything bought on a party’s bill comes in by itself; what supervisors report used on the daily report goes out. Cancel a bill and it comes out again.",
+    "value": "Value of stock left (before GST)",
+    "boughtQty": "Bought",
+    "usedQty": "Used",
+    "left": "Left",
+    "avgRate": "Average rate",
+    "leftValue": "Value left",
+    "belowZero": "More was reported used than bought here. A party bill may not be entered yet.",
+    "inStock": "In stock",
+    "bought": "Bought",
+    "none": "Nothing bought yet. Add a party bill with its items and it shows here.",
+    "material": "Material",
+    "site": "Site",
+    "quantity": "Quantity",
+    "cost": "Cost (before GST)",
+    "rate": "Rate",
+    "lastBought": "Last bought",
+    "date": "Date",
+    "bill": "Bill",
+    "party": "Party"
+  },
+  "report": {
+    "title": "Daily report",
+    "lede": "What each site used today. Supervisors fill it for their sites; every line comes out of that site’s stock.",
+    "noSites": "No sites given to you yet. Ask the office to add you to a site in People.",
+    "site": "Site",
+    "date": "Date",
+    "open": "Open",
+    "materialTitle": "Material used · {site} · {date}",
+    "noneUsed": "Nothing reported for this day yet.",
+    "material": "Material",
+    "unit": "Unit",
+    "used": "Quantity used",
+    "rate": "Rate",
+    "amount": "Amount",
+    "left": "Left at site",
+    "remark": "Remark",
+    "remove": "Remove this line",
+    "total": "Material total",
+    "addTitle": "Add material used",
+    "addHint": "Pick the material and type how much was used. Leave lines you don’t need empty. A material’s unit is set in Setup → Materials.",
+    "save": "Save",
+    "errors": {
+      "pick_material": "A line has a quantity but no material.",
+      "bad_quantity": "A quantity is not a number above zero, like 0.45 or 483.",
+      "nothing": "Type at least one line.",
+      "not_removed": "That line could not be removed. Supervisors can remove only their own lines, on the day they added them."
+    }
   },
   "tds": {
     "title": "TDS record",

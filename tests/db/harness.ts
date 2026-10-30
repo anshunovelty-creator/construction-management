@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite, type PGliteInterface, type Transaction } from '@electric-sql/pglite';
-import type { EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
+import type { EntryDraft, MoneyAccountRef, ClientRef } from '@/lib/ledger/types';
 
 const MIGRATIONS_DIR = join(import.meta.dirname, '..', '..', 'supabase', 'migrations');
 const SUPABASE_STUB = join(import.meta.dirname, 'supabase-stub.sql');
@@ -27,7 +27,8 @@ export interface Seed {
   svgSite: string;
   ansari: string;
   svgClient: string;
-  workOrder: WorkOrderRef;
+  workOrder: { id: string };
+  client: ClientRef;
   jayrajBank: MoneyAccountRef;
   abBank: MoneyAccountRef;
   ownerCash: MoneyAccountRef;
@@ -63,7 +64,8 @@ export async function seedBasics(db: PGliteInterface): Promise<Seed> {
     svgSite,
     ansari,
     svgClient,
-    workOrder: { id: workOrderId, firmId: jayraj, clientId: svgClient, siteId: svgSite },
+    workOrder: { id: workOrderId },
+    client: { firmId: jayraj, clientId: svgClient, siteId: svgSite },
     jayrajBank: await account('bank', 'Jayraj Infra - Bank', jayraj),
     abBank: await account('bank', 'A B Infra - Bank', ab),
     ownerCash: await account('owner_cash', 'Owner cash', null),

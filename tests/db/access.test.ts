@@ -125,7 +125,7 @@ describe('supervisor', () => {
       post(tx, cashTransfer({ from: seed.ownerCash, to: seed.rameshCash, amountPaise: 2_000_000, transferDate: '2026-10-22' })),
     );
     await asUser(db, owner, (tx) =>
-      post(tx, clientBill({ workOrder: seed.workOrder, billDate: '2026-10-22', billNo: 'RA-1', grossPaise: 100_000, deductions: {} })),
+      post(tx, clientBill({ client: seed.client, billDate: '2026-10-22', billNo: 'RA-1', grossPaise: 100_000, deductions: {} })),
     );
     const spent = await asUser(db, supervisor, (tx) => post(tx, rameshSpend()));
     await asUser(db, supervisor, async (tx) => {

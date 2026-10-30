@@ -1,6 +1,6 @@
 // Posts reviewed opening balances to Supabase. Safe to run again: each row has a fixed entry id.
 import ExcelJS from 'exceljs';
-import type { MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
+import type { MoneyAccountRef } from '@/lib/ledger/types';
 import { formatPaise } from '@/lib/money';
 import {
   checkVendorTotals,
@@ -61,12 +61,13 @@ for (const row of rows) {
     const account: MoneyAccountRef = { id: a.id, kind: a.kind, firmId: a.firm_id };
     resolved.push({ row, refs: { kind: 'money', account } });
   } else {
-    const w = must(
-      await db.from('work_orders').select('id, firm_id, client_id, site_id').eq('firm_id', firmId!).eq('ref', row.name).maybeSingle(),
-      `${where}: no work order with this number for firm ${row.firm}`,
-    );
-    const workOrder: WorkOrderRef = { id: w.id, firmId: w.firm_id, clientId: w.client_id, siteId: w.site_id };
-    resolved.push({ row, refs: { kind: 'client', workOrder } });
+    // A client is found by name, or added, the same way as a vendor.
+    const existing = await db.from('parties').select('id').eq('kind', 'client').eq('name', row.name).maybeSingle();
+    const clientId =
+      (existing.data?.id as string | undefined) ??
+      (must(await db.from('parties').insert({ kind: 'client', name: row.name }).select('id').single(), `${where}: add client`)
+        .id as string);
+    resolved.push({ row, refs: { kind: 'client', client: { firmId: firmId!, clientId } } });
   }
 }
 

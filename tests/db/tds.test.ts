@@ -74,7 +74,7 @@ it('never changes a stored TDS record', async () => {
 it('books a client bill’s TDS as claimable and lists it on the TDS record; a cancelled bill drops off', async () => {
   const billItems = [priceItem({ materialId: cement, quantityMilli: 1_000, ratePaise: 100_000_00, gstBp: 1_800 })];
   const saved = await postEntry(db, clientBill({
-    workOrder: seed.workOrder, billDate: '2026-10-29', billNo: 'RA-9', grossPaise: 100_000_00, gstPaise: 18_000_00, billItems,
+    client: seed.client, billDate: '2026-10-29', billNo: 'RA-9', grossPaise: 100_000_00, gstPaise: 18_000_00, billItems,
     deductions: { tdsPaise: 1_000_00 }, tds: { rateBp: 100, section: '194C, company' },
   }), OWNER);
   const register = await db.query('select entry_type, tds_paise from tds_rows');

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { billTotals, priceItem, quantityToMilli } from '@/lib/ledger/bill-items';
 import { clientBill } from '@/lib/ledger/posting/client';
 import { vendorBill } from '@/lib/ledger/posting/vendor';
-import { AB, CLIENT, JI, SVG, sumOf, VENDOR, WO } from './fixtures';
+import { AB, CLIENT, JI, SVG, sumOf, VENDOR, SVG_CLIENT } from './fixtures';
 
 describe('bill items', () => {
   it('reads quantities with up to three decimals', () => {
@@ -42,10 +42,10 @@ describe('bill items', () => {
 
   it('books a client bill: income before GST, GST owed to the government, the client owing the total after cuts', () => {
     const draft = clientBill({
-      workOrder: WO, billDate: '2026-10-29', billNo: 'RA-9', grossPaise: 100_000_00, gstPaise: 18_000_00,
+      client: SVG_CLIENT, billDate: '2026-10-29', billNo: 'RA-9', grossPaise: 100_000_00, gstPaise: 18_000_00,
       deductions: { tdsPaise: 1_000_00 },
     });
-    const dims = { firmId: JI, partyId: CLIENT, siteId: SVG, workOrderId: WO.id };
+    const dims = { firmId: JI, partyId: CLIENT, siteId: SVG };
     expect(draft.lines).toEqual([
       { account: 'client_receivable', amountPaise: 117_000_00, ...dims },
       { account: 'tds_claimable', amountPaise: 1_000_00, ...dims },

@@ -93,9 +93,9 @@ export interface MoneyAccountRef {
   firmId: string | null;
 }
 
-export interface WorkOrderRef {
-  id: string;
+/** A client of one firm. A bill names the site the work was done at; a receipt may leave it out. */
+export interface ClientRef {
   firmId: string;
   clientId: string;
-  siteId: string;
+  siteId?: string;
 }

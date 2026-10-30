@@ -1,6 +1,6 @@
 import { assertPaise, type Paise } from '@/lib/money';
 import { assertBalanced, assertDate } from '../balance';
-import type { EntryDraft, MoneyAccountRef, WorkOrderRef } from '../types';
+import type { ClientRef, EntryDraft, MoneyAccountRef } from '../types';
 
 function assertNonZero(amount: Paise, label: string): void {
   assertPaise(amount, label);
@@ -68,33 +68,26 @@ export function openingMoneyBalance(input: OpeningMoneyInput): EntryDraft {
 
 export interface OpeningClientInput {
   id?: string;
-  workOrder: WorkOrderRef;
+  client: ClientRef;
   /** Positive = client owes us. Negative = client advance not yet billed. */
   amountPaise: Paise;
   asOf: string;
 }
 
-/** Starting amount a client owes on a work order. */
+/** Starting amount a client owes one firm. */
 export function openingClientBalance(input: OpeningClientInput): EntryDraft {
   assertDate(input.asOf, 'opening date');
   assertNonZero(input.amountPaise, 'opening client balance');
-  const wo = input.workOrder;
+  const c = input.client;
   const draft: EntryDraft = {
     id: input.id ?? crypto.randomUUID(),
     entryType: 'opening',
     entryDate: input.asOf,
-    firmId: wo.firmId,
-    partyId: wo.clientId,
+    firmId: c.firmId,
+    partyId: c.clientId,
     narration: 'Opening client balance',
     lines: [
-      {
-        account: 'client_receivable',
-        amountPaise: input.amountPaise,
-        firmId: wo.firmId,
-        partyId: wo.clientId,
-        siteId: wo.siteId,
-        workOrderId: wo.id,
-      },
+      { account: 'client_receivable', amountPaise: input.amountPaise, firmId: c.firmId, partyId: c.clientId, siteId: c.siteId },
       { account: 'opening_balance', amountPaise: -input.amountPaise },
     ],
   };

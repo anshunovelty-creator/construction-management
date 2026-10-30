@@ -9,7 +9,7 @@ import { cashCloseDifference, ownerCapital, ownerDrawing, siteCashExpense } from
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import { billTotals, type PricedItem } from '@/lib/ledger/bill-items';
-import type { CostHead, EntryDraft, MoneyAccountRef, WorkOrderRef } from '@/lib/ledger/types';
+import type { CostHead, EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
 import { showPaise, percentOf } from '@/lib/money';
 import { parseFields, submittedValues, type Value } from '@/lib/masters/parse';
 import { getEntryForm, type EntryFormSlug, type Field } from '@/lib/masters/registry';
@@ -21,17 +21,6 @@ async function moneyAccount(db: Db, id: string): Promise<MoneyAccountRef> {
   const { data } = await db.from('money_accounts').select('id, kind, firm_id').eq('id', id).maybeSingle();
   if (!data) throw new Error('bank or cash account not found');
   return { id: data.id, kind: data.kind, firmId: data.firm_id };
-}
-
-async function workOrder(db: Db, id: string) {
-  const { data } = await db
-    .from('work_orders')
-    .select('id, firm_id, client_id, site_id, tds_bp, retention_bp, security_deposit_bp')
-    .eq('id', id)
-    .maybeSingle();
-  if (!data) throw new Error('work order not found');
-  const ref: WorkOrderRef = { id: data.id, firmId: data.firm_id, clientId: data.client_id, siteId: data.site_id };
-  return { ref, tdsBp: data.tds_bp as number, retentionBp: data.retention_bp as number, depositBp: data.security_deposit_bp as number };
 }
 
 /** A bill's TDS rate for the TDS record: the rate in basis points, and the section it comes from (Setup → TDS rates). */
@@ -63,7 +52,7 @@ function materialAndType(s: (name: string) => string): { materialId?: string; co
 }
 
 /**
- * For each work order or bank/cash field filled in, the firm of the row picked (null = common cash).
+ * For each bank/cash field filled in, the firm of the row picked (null = common cash).
  * Rows the person may not see are left out; buildDraft then reports them as not found.
  */
 async function firmsPicked(fields: Field[], v: Record<string, Value>, db: Db): Promise<Record<string, string | null>> {
@@ -71,9 +60,8 @@ async function firmsPicked(fields: Field[], v: Record<string, Value>, db: Db): P
   for (const field of fields) {
     const id = v[field.name];
     if (field.kind !== 'ref' || typeof id !== 'string') continue;
-    const table = field.ref === 'workOrders' ? 'work_orders' : accountScope(field.ref) ? 'money_accounts' : null;
-    if (!table) continue;
-    const { data } = await db.from(table).select('firm_id').eq('id', id).maybeSingle();
+    if (!accountScope(field.ref)) continue;
+    const { data } = await db.from('money_accounts').select('firm_id').eq('id', id).maybeSingle();
     if (data) picked[field.name] = data.firm_id as string | null;
   }
   return picked;
@@ -106,20 +94,19 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
       });
     }
     case 'client-bill': {
-      const wo = await workOrder(db, s('work_order_id'));
       const billItems = v.items as PricedItem[];
       const { base: gross, gst } = billTotals(billItems);
-      // An empty deduction box means "use the work order's percentage", worked out on the bill before GST.
-      const pick = (name: string, bp: number) => (v[name] === null ? percentOf(gross, bp) : n(name));
-      // The TDS rate the client deducts: the one picked, or the work order's when left empty.
-      const tds = await tdsFor(db, v.tds_rate === null ? wo.tdsBp : Number(v.tds_rate));
+      // Left empty, no TDS, retention or deposit is cut. TDS is worked out on the bill before GST.
+      const tds = v.tds_rate === null ? undefined : await tdsFor(db, Number(v.tds_rate));
+      const cut = (name: string) => (v[name] === null ? undefined : n(name));
       return clientBill({
-        workOrder: wo.ref, billDate: s('entry_date'), billNo: s('bill_no'), grossPaise: gross, gstPaise: gst, billItems,
+        client: { firmId: firmId!, clientId: s('client_id'), siteId: s('site_id') },
+        billDate: s('entry_date'), billNo: s('bill_no'), grossPaise: gross, gstPaise: gst, billItems,
         narration: s('narration'),
         deductions: {
-          tdsPaise: percentOf(gross, tds.rateBp),
-          retentionPaise: pick('retention', wo.retentionBp),
-          securityDepositPaise: pick('security_deposit', wo.depositBp),
+          tdsPaise: tds && percentOf(gross, tds.rateBp),
+          retentionPaise: cut('retention'),
+          securityDepositPaise: cut('security_deposit'),
         },
         tds,
       });
@@ -128,7 +115,7 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
       const to = await moneyAccount(db, s('to_account_id'));
       checkMethod(s('payment_method'), to);
       return clientReceipt({
-        workOrder: (await workOrder(db, s('work_order_id'))).ref, to,
+        client: { firmId: firmId!, clientId: s('client_id') }, to,
         amountPaise: n('amount'), receiptDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
     }
@@ -252,7 +239,8 @@ export async function postPartyEntry(
 }
 
 /** A bill from the client page. Stays on the page, which then shows the new totals. */
-export async function postClientBill(firmId: string, _state: FormState, data: FormData): Promise<FormState> {
+export async function postClientBill(firmId: string, clientId: string, _state: FormState, data: FormData): Promise<FormState> {
+  data.set('client_id', clientId);
   const saved = await saveEntry('client-bill', firmId, data, await createClient());
   if (!('id' in saved)) return saved;
   revalidatePath('/', 'layout');
@@ -267,6 +255,15 @@ export async function postPartyRows(
   rows: { id: string; cells: Record<string, string> }[],
 ): Promise<Record<string, Saved | FormState>> {
   return postEntryRows(slug, firmId, rows.map((row) => ({ ...row, cells: { ...row.cells, vendor_id: vendorId } })));
+}
+
+/** Receipt rows on a client's page: every row is for the same firm and client. */
+export async function postClientRows(
+  firmId: string,
+  clientId: string,
+  rows: { id: string; cells: Record<string, string> }[],
+): Promise<Record<string, Saved | FormState>> {
+  return postEntryRows('client-receipt', firmId, rows.map((row) => ({ ...row, cells: { ...row.cells, client_id: clientId } })));
 }
 
 const backTo = (id: string, error?: { message: string } | null) =>

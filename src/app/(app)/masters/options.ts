@@ -41,6 +41,10 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
       const { data } = await query.order('name');
       return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
     }
+    case 'units': {
+      const { data } = await db.from('units').select('id, name').eq('is_active', true).order('name');
+      return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
+    }
     case 'materials': {
       const { data } = await db.from('materials').select('id, name').eq('is_active', true).order('name');
       return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
@@ -66,17 +70,6 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
       const { data } = await query.returns<AccountRow[]>();
       if (!scope) return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
       return accountChoices(data ?? [], accountScope(source)!, scope.working.firm.id);
-    }
-    case 'workOrders': {
-      let query = db
-        .from('work_orders')
-        .select('id, ref, client:parties!client_id(name), site:sites(name)')
-        .eq('is_active', true);
-      if (scope) query = query.eq('firm_id', scope.working.firm.id);
-      const { data } = await query
-        .order('ref')
-        .returns<{ id: string; ref: string; client: { name: string } | null; site: { name: string } | null }[]>();
-      return (data ?? []).map((r) => ({ value: r.id, label: `${r.ref} · ${r.client?.name} · ${r.site?.name}` }));
     }
   }
 }

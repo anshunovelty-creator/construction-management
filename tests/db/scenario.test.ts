@@ -44,10 +44,10 @@ beforeAll(async () => {
     cashCloseDifference({ account: s.rameshCash, expectedPaise: 894_000, countedPaise: 870_000, closeDate: '2026-10-22' }),
     // RA-1 to the SVG client: ₹10,00,000 gross, TDS 1% and retention 5% from the work order.
     clientBill({
-      workOrder: s.workOrder, billDate: '2026-10-31', billNo: 'RA-1', grossPaise: 100_000_000,
+      client: s.client, billDate: '2026-10-31', billNo: 'RA-1', grossPaise: 100_000_000,
       deductions: { tdsPaise: percentOf(100_000_000, 100), retentionPaise: percentOf(100_000_000, 500) },
     }),
-    clientReceipt({ workOrder: s.workOrder, to: s.jayrajBank, amountPaise: 94_000_000, receiptDate: '2026-11-15', reference: 'UTR-9001' }),
+    clientReceipt({ client: s.client, to: s.jayrajBank, amountPaise: 94_000_000, receiptDate: '2026-11-15', reference: 'UTR-9001' }),
   ];
   for (const draft of drafts) {
     await postEntry(db, draft, draft.entryType === 'site_cash_expense' ? SUPERVISOR : OFFICE);
@@ -90,7 +90,7 @@ describe('a realistic sequence of postings', () => {
   });
 
   it('shows the client has paid the bill, with TDS and retention still ours', async () => {
-    const wo = { work_order_id: seed.workOrder.id };
+    const wo = { party_id: seed.svgClient };
     expect(await balanceOf(db, 'client_receivable', wo)).toBe(0);
     expect(await balanceOf(db, 'tds_claimable', wo)).toBe(1_000_000);
     expect(await balanceOf(db, 'retention_held', wo)).toBe(5_000_000);

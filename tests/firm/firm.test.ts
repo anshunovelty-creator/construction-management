@@ -85,9 +85,9 @@ describe('firmErrors (checked on save)', () => {
     expect(firmErrors('site-spend', fields('site-spend'), AB, null, {})).toEqual({ _form: 'not_allowed' });
   });
 
-  it('refuses the other firm’s work order', () => {
-    expect(firmErrors('client-bill', fields('client-bill'), AB, [AB, JI], { work_order_id: JI })).toEqual({ work_order_id: 'other_firm' });
-    expect(firmErrors('client-bill', fields('client-bill'), JI, [AB, JI], { work_order_id: JI })).toBeNull();
+  it('refuses a client receipt into the other firm’s account', () => {
+    expect(firmErrors('client-receipt', fields('client-receipt'), AB, [AB, JI], { to_account_id: JI })).toEqual({ to_account_id: 'other_firm' });
+    expect(firmErrors('client-receipt', fields('client-receipt'), JI, [AB, JI], { to_account_id: JI })).toBeNull();
   });
 
   it('never lets a payment or receipt use another firm’s account, and site spending uses only its own', () => {
