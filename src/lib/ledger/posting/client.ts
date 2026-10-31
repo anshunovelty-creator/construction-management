@@ -96,7 +96,7 @@ export interface ClientReceiptInput {
   to: MoneyAccountRef;
   amountPaise: Paise;
   receiptDate: string;
-  /** UTR or cheque number. Required for bank receipts. */
+  /** UTR or cheque number, when there is one (optional, owner decision 2026-10-31). */
   reference?: string;
   narration?: string;
 }
@@ -114,9 +114,6 @@ export function clientReceipt(input: ClientReceiptInput): EntryDraft {
     throw new Error('a receipt must go to this firm’s own bank or cash account');
   }
   const reference = (input.reference ?? '').trim();
-  if (input.to.kind === 'bank' && reference === '') {
-    throw new Error('UTR or cheque number is required for bank receipts');
-  }
   const draft: EntryDraft = {
     id: input.id ?? crypto.randomUUID(),
     entryType: 'client_receipt',

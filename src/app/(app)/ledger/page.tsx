@@ -190,7 +190,6 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                     <td className="nowrap">{showDate(r.date)}</td>
                     <td className="nowrap">
                       <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
-                      {r.status === 'unverified' && <span className="pill unverified small-pill no-print" title={t('party.notCheckedHint')}>{t('party.notChecked')}</span>}
                     </td>
                     <td className="particulars">
                       <strong>{t(`entryTypes.${r.entry_type}.title`)}{r.reference && ` ${r.reference}`}</strong>

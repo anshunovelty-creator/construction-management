@@ -27,5 +27,12 @@ const DAY = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', y
 /** "2026-10-17" -> "17 Oct 2026". */
 export const showDate = (ymd: string) => DAY.format(new Date(`${ymd}T00:00:00Z`));
 
+const MOMENT = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata',
+});
+
+/** A saved time, in India: "31 Oct 2026, 11:42 am". */
+export const showMoment = (iso: string) => MOMENT.format(new Date(iso));
+
 /** Today in India, as YYYY-MM-DD. */
 export const todayInIndia = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());

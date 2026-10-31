@@ -34,11 +34,11 @@ export const accountScope = (source: RefSource): AccountScope | undefined => SCO
 export const inScope = (scope: AccountScope, accountFirmId: string | null, firmId: string): boolean =>
   scope === 'firm' ? accountFirmId === firmId : accountFirmId === null || accountFirmId === firmId;
 
-export type AccountRow = { id: string; name: string; firm_id: string | null };
+export type AccountRow = { id: string; name: string; firm_id: string | null; kind: string };
 
 /** A money account list in the working firm: its own banks, and common cash too when the list allows it. */
 export function accountChoices(rows: AccountRow[], scope: AccountScope, firmId: string): Choice[] {
-  return rows.filter((r) => inScope(scope, r.firm_id, firmId)).map((r) => ({ value: r.id, label: r.name }));
+  return rows.filter((r) => inScope(scope, r.firm_id, firmId)).map((r) => ({ value: r.id, label: r.name, kind: r.kind }));
 }
 
 /**

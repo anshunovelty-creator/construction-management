@@ -97,7 +97,6 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
   const entryLink = (r: PartyRow) => (
     <>
       <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
-      {r.status === 'unverified' && <span className="pill unverified small-pill" title={t('party.notCheckedHint')}>{t('party.notChecked')}</span>}
     </>
   );
   // Without a site or a bank/cash account the sheet cannot save, so say where to add one.

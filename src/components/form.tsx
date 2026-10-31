@@ -160,6 +160,12 @@ function Fields({
   const valueOf = (name: string) => state.values?.[name] ?? defaults[name];
   // The vendor picked so far, so the amount box can say what they are still owed.
   const [vendor, setVendor] = useState(vendorId ?? String(valueOf('vendor_id') ?? ''));
+  // How the money moved, on payment forms: the bank/cash box then lists only accounts that fit (cash: cash accounts;
+  // online or cheque: banks), the same rule the save checks.
+  const paidHow = fields.some((f) => f.name === 'payment_method');
+  const [method, setMethod] = useState(String(valueOf('payment_method') ?? ''));
+  const fits = (c: Choice) => !paidHow || !method || c.kind === undefined || (method === 'cash') === (c.kind !== 'bank');
+  const onPick = (name: string) => (name === 'vendor_id' ? setVendor : name === 'payment_method' ? setMethod : undefined);
 
   const renderField = (field: Field) => {
         // The items table is drawn by BillItems, below.
@@ -216,16 +222,27 @@ function Fields({
                   {hint}
                 </p>
               )}
-              {field.kind === 'enum' || field.kind === 'ref' ? (
+              {field.kind === 'enum' ? (
                 <SearchSelect
                   {...shared}
                   placeholder={emptyLabel}
-                  onChange={field.name === 'vendor_id' ? setVendor : undefined}
-                  options={field.kind === 'enum'
-                    ? ENUMS[field.enum].map((option) => ({ value: option, label: t(`options.${field.enum}.${option}`) }))
-                    : choices[field.ref] ?? []}
+                  onChange={onPick(field.name)}
+                  options={ENUMS[field.enum].map((option) => ({ value: option, label: t(`options.${field.enum}.${option}`) }))}
                 />
-              ) : field.kind === 'rupees' ? (
+              ) : field.kind === 'ref' ? (() => {
+                const options = (choices[field.ref] ?? []).filter(fits);
+                // A new key when the method changes starts the box afresh, dropping an account that no longer fits.
+                const keep = options.some((o) => o.value === shared.defaultValue) ? shared.defaultValue : '';
+                return (
+                  <>
+                    <SearchSelect key={method} {...shared} defaultValue={keep} placeholder={emptyLabel}
+                      onChange={onPick(field.name)} options={options} />
+                    {paidHow && method && options.length === 0 && (choices[field.ref] ?? []).some((c) => c.kind) && (
+                      <p className="hint">{t(method === 'cash' ? 'form.noCashAccount' : 'form.noBankAccount')}</p>
+                    )}
+                  </>
+                );
+              })() : field.kind === 'rupees' ? (
                 <RupeesInput input={shared} owed={field.name === 'amount' && owed ? owed[vendor] : undefined} />
               ) : (
                 <input

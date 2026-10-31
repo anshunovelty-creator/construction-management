@@ -103,7 +103,6 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
   const entryLink = (r: ClientRow) => (
     <>
       <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
-      {r.status === 'unverified' && <span className="pill unverified small-pill" title={t('party.notCheckedHint')}>{t('party.notChecked')}</span>}
     </>
   );
   const sum = (key: 'tds_paise' | 'retention_paise' | 'deposit_paise' | 'other_cut_paise') => bills.reduce((s, r) => s + Number(r[key]), 0);

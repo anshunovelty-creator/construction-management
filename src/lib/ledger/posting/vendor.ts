@@ -81,7 +81,7 @@ export interface VendorPaymentInput {
   from: MoneyAccountRef;
   amountPaise: Paise;
   paymentDate: string;
-  /** Cheque number or UTR. Required for bank payments. */
+  /** Cheque number or UTR, when there is one (optional, owner decision 2026-10-31). */
   reference?: string;
   narration?: string;
 }
@@ -98,9 +98,6 @@ export function vendorPayment(input: VendorPaymentInput): EntryDraft {
     throw new Error('a payment must come from this firm’s own bank or cash account');
   }
   const reference = (input.reference ?? '').trim();
-  if (input.from.kind === 'bank' && reference === '') {
-    throw new Error('cheque number or UTR is required for bank payments');
-  }
   const draft: EntryDraft = {
     id: input.id ?? crypto.randomUUID(),
     entryType: 'vendor_payment',

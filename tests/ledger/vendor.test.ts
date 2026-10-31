@@ -52,9 +52,9 @@ describe('vendorPayment', () => {
     })).toThrow('own bank or cash');
   });
 
-  it('requires a cheque number or UTR for bank payments but not for cash', () => {
+  it('takes a payment without a cheque number or UTR, from the bank or the firm’s cash', () => {
     const input = { billFirmId: JI, vendorId: VENDOR, amountPaise: 100, paymentDate: '2026-10-22' };
-    expect(() => vendorPayment({ ...input, from: JI_BANK })).toThrow('cheque number or UTR is required');
+    expect(vendorPayment({ ...input, from: JI_BANK }).reference).toBe('');
     // A firm pays cash from its own cash account; common owner cash is not a firm's.
     expect(vendorPayment({ ...input, billFirmId: JI, from: { id: 'acct-ji-cash', kind: 'owner_cash', firmId: JI } }).firmId).toBe(JI);
   });

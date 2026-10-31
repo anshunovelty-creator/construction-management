@@ -9,7 +9,7 @@ import { isCommonEntry } from '@/lib/firm';
 import { describeAll, type LineRow } from '@/lib/ledger/plain';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { loadNames, showDate } from './data';
+import { loadNames, showDate, showMoment } from './data';
 
 interface Row {
   id: string;
@@ -19,6 +19,7 @@ interface Row {
   party_id: string | null;
   narration: string;
   created_at: string;
+  created_by: string;
   lines: { account: string; amount_paise: number; firm_id: string | null }[];
 }
 
@@ -27,16 +28,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // ponytail: latest 200 only; add paging when the books outgrow it.
 const LIMIT = 200;
 
-type Params = { waiting?: string; date?: string; site?: string };
+type Params = { date?: string; site?: string };
 
 /**
  * Every entry, newest first. Owner and office staff see the working firm's entries plus the Common ones (no firm on
  * any line, e.g. cash handed to a supervisor), which carry a tag. Supervisors see the entries they may see.
- * Filters: ?waiting=1 (not yet checked), ?date=YYYY-MM-DD, ?site=<id>. A firm or site adds a summary of its books.
+ * Each row says who typed it and when. Filters: ?date=YYYY-MM-DD, ?site=<id>. A firm or site adds a summary of its books.
  */
 export default async function DayBookPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
-  const { waiting } = params;
   const date = params.date && DATE.test(params.date) ? params.date : undefined;
   const site = params.site && UUID.test(params.site) ? params.site : undefined;
   const profile = await requireProfile();
@@ -44,12 +44,10 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
   const firm = working?.firm.id;
   const db = await createClient();
 
-  // Only entries that are not simply checked: a list that stays short as entries get checked, where the whole table
-  // grew with every entry (and was cut off at 1,000 rows, showing older checked entries as waiting).
-  // ponytail: past 1,000 unchecked or cancelled entries this list is cut off too; join the status into the list query then.
-  const { data: statuses } = await db.from('entry_status').select('entry_id, status').neq('status', 'verified');
+  // Only cancelled entries and the entries that cancel them carry a tag; a short list, unlike every entry's status.
+  // ponytail: past 1,000 cancellations this list is cut off; join the status into the list query then.
+  const { data: statuses } = await db.from('entry_status').select('entry_id, status').in('status', ['cancelled', 'reversal']);
   const statusOf = new Map((statuses ?? []).map((s) => [s.entry_id as string, s.status as string]));
-  const waitingIds = [...statusOf].filter(([, s]) => s === 'unverified').map(([id]) => id);
 
   // `lines` sizes the entry and shows whether it names a firm; `match` (an inner join on the same lines) keeps only
   // entries touching the firm/site. Common entries all have the CM serial (no entry firm); `lines` tells which of those
@@ -57,11 +55,10 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
   const list = (only?: 'firm' | 'common') => {
     let query = db
       .from('entries')
-      .select(`id, serial, entry_type, entry_date, party_id, narration, created_at, lines:entry_lines(account, amount_paise, firm_id)${only === 'firm' || site ? ', match:entry_lines!inner(firm_id, site_id)' : ''}`)
+      .select(`id, serial, entry_type, entry_date, party_id, narration, created_at, created_by, lines:entry_lines(account, amount_paise, firm_id)${only === 'firm' || site ? ', match:entry_lines!inner(firm_id, site_id)' : ''}`)
       .order('created_at', { ascending: false })
       .limit(LIMIT);
     if (date) query = query.eq('entry_date', date);
-    if (waiting) query = query.in('id', waitingIds);
     if (only === 'firm') query = query.eq('match.firm_id', firm!);
     if (only === 'common') query = query.is('firm_id', null);
     if (site) query = query.eq('match.site_id', site);
@@ -88,10 +85,6 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
   // The size of an entry: its plus lines, leaving out the automatic between-firm pair.
   const amountOf = (r: Row) =>
     r.lines.filter((l) => l.account !== 'inter_firm' && l.amount_paise > 0).reduce((s, l) => s + Number(l.amount_paise), 0);
-  const href = (change: Partial<Params>) => {
-    const next = new URLSearchParams(Object.entries({ site, date, waiting, ...change }).filter(([, v]) => v) as [string, string][]);
-    return `/entries${next.size ? `?${next}` : ''}`;
-  };
   const firmName = working?.firm.name;
   const siteName = site && names.sites.get(site);
   const title = firmName && siteName ? t('daybook.at', { firm: firmName, site: siteName }) : (firmName || siteName || t('nav.daybook'));
@@ -111,8 +104,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
           options={[...names.sites].map(([id, name]) => ({ value: id, label: name }))} />
         <label htmlFor="date" className="sr-only">{t('daybook.onDate')}</label>
         <input id="date" type="date" name="date" defaultValue={date ?? ''} />
-        {waiting && <input type="hidden" name="waiting" value="1" />}
-        {(site || date || waiting) && <Link href="/entries" className="chip">{t('daybook.clear')}</Link>}
+        {(site || date) && <Link href="/entries" className="chip">{t('daybook.clear')}</Link>}
       </AutoForm>
 
       {summary && (
@@ -137,11 +129,6 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
       )}
 
       <div className="filters">
-        <Link href={href({ waiting: undefined })} className={`chip ${!waiting ? 'on' : ''}`}>{t('daybook.all')}</Link>
-        <Link href={href({ waiting: '1' })} className={`chip ${waiting ? 'on' : ''}`}>
-          {t('daybook.waiting')}{' '}
-          <b>{firm || site || date ? rows.filter((r) => statusOf.get(r.id) === 'unverified').length : waitingIds.length}</b>
-        </Link>
         <span className="muted">{t('daybook.count', { count: rows.length })}</span>
       </div>
       {rows.length > 0 ? (
@@ -153,12 +140,12 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
                 <th>{t('daybook.date')}</th>
                 <th>{t('daybook.what')}</th>
                 <th className="num">{t('daybook.amount')}</th>
-                <th>{t('daybook.status')}</th>
+                <th>{t('daybook.enteredBy')}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
-                const status = statusOf.get(r.id) ?? 'verified';
+                const status = statusOf.get(r.id);
                 return (
                   <tr key={r.id}>
                     <td>
@@ -175,7 +162,11 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
                       )}
                     </td>
                     <td className="num">{showPaise(amountOf(r))}</td>
-                    <td><span className={`pill ${status}`}>{t(`entries.status.${status}`)}</span></td>
+                    <td className="nowrap">
+                      {names.people.get(r.created_by) ?? '?'}
+                      <span className="muted block">{showMoment(r.created_at)}</span>
+                      {status && <span className={`pill ${status}`}>{t(`entries.status.${status}`)}</span>}
+                    </td>
                   </tr>
                 );
               })}

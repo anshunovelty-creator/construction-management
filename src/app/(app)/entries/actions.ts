@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { redirect, RedirectType } from 'next/navigation';
 import type { FormState } from '@/components/form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { accountScope, firmErrors } from '@/lib/firm';
@@ -30,11 +30,12 @@ async function tdsFor(db: Db, rateBp: number): Promise<{ rateBp: number; section
 }
 
 /**
- * How a payment or receipt was made must match its account: cash goes through a cash account, online and cheque through a bank.
+ * How a payment or receipt was made, when given, must match its account: cash goes through a cash account, online and
+ * cheque through a bank. Left out (the Pay card, the sheets), the account alone says how.
  * Throws a marker that saveEntry turns into a message under the method box.
  */
 function checkMethod(method: string, account: MoneyAccountRef): void {
-  if ((method === 'cash') !== (account.kind !== 'bank')) throw new Error('payment_method');
+  if (method && (method === 'cash') !== (account.kind !== 'bank')) throw new Error('payment_method');
 }
 
 /** What the books say is in a bank or cash account right now. */
@@ -266,27 +267,17 @@ export async function postClientRows(
   return postEntryRows('client-receipt', firmId, rows.map((row) => ({ ...row, cells: { ...row.cells, client_id: clientId } })));
 }
 
+// Replace, not push: after a cancel the browser's back (and the page's Back link) still returns to where the entry was opened from.
 const backTo = (id: string, error?: { message: string } | null) =>
-  redirect(`/entries/${id}${error ? `?error=${encodeURIComponent(error.message)}` : ''}`);
+  redirect(`/entries/${id}${error ? `?error=${encodeURIComponent(error.message)}` : ''}`, RedirectType.replace);
 
-/** Marks someone else's entry as checked. Errors come back to the entry page in the address. */
-export async function verifyEntry(id: string): Promise<void> {
-  await requireProfile('owner', 'office');
-  const db = await createClient();
-  const { error } = await db.rpc('app_verify_entry', { p_entry_id: id });
-  revalidatePath('/', 'layout');
-  backTo(id, error);
-}
-
-/** Rejects (someone else's unchecked entry) or cancels an entry. Both post an exact opposite entry. */
+/** Cancels an entry: posts its exact opposite, recording who, when and why. Errors come back to the entry page. */
 export async function cancelEntry(id: string, data: FormData): Promise<void> {
   await requireProfile();
   const reason = String(data.get('reason') ?? '').trim();
   if (reason === '') backTo(id, { message: 'reason_required' });
   const db = await createClient();
-  const { error } = data.get('do') === 'reject'
-    ? await db.rpc('app_reject_entry', { p_entry_id: id, p_reason: reason })
-    : await db.rpc('app_reverse_entry', { p_entry_id: id, p_reason: reason });
+  const { error } = await db.rpc('app_reverse_entry', { p_entry_id: id, p_reason: reason });
   revalidatePath('/', 'layout');
   backTo(id, error);
 }

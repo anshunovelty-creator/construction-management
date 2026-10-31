@@ -29,7 +29,8 @@ export type RefSource =
   | 'moneyAccounts' | 'firmAccounts';
 
 /** One choice in a dropdown. Choices with a `group` come last, under that heading. */
-export type Choice = { value: string; label: string; group?: string };
+/** `kind`: a money account's kind (bank, owner_cash, ...), so a payment form can list only accounts that fit how it was paid. */
+export type Choice = { value: string; label: string; group?: string; kind?: string };
 
 export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
@@ -167,7 +168,8 @@ const account = (name: string, ref: RefSource = 'moneyAccounts'): Field => ({ na
 const from = account('from_account_id');
 const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', required: true };
 const client: Field = { name: 'client_id', kind: 'ref', ref: 'clients', required: true };
-const payMethod: Field = { name: 'payment_method', kind: 'enum', enum: 'payment_method', required: true };
+// Optional: the account already says bank or cash. The vendor page's Pay card and the payment sheets have no such box.
+const payMethod: Field = { name: 'payment_method', kind: 'enum', enum: 'payment_method' };
 const items: Field = { name: 'items', kind: 'items', required: true };
 
 /**

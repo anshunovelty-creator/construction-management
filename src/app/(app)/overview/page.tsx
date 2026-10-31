@@ -18,9 +18,8 @@ const QUICK: Record<string, EntryFormSlug[]> = {
 export default async function HomePage() {
   const profile = await requireProfile();
   const db = await createClient();
-  const [{ data: rows }, { count: waiting }, names, t] = await Promise.all([
+  const [{ data: rows }, names, t] = await Promise.all([
     db.from('balances').select('*').returns<LineRow[]>(),
-    db.from('entry_status').select('entry_id', { count: 'exact', head: true }).eq('status', 'unverified'),
     loadNames(db),
     getTranslations(),
   ]);
@@ -49,16 +48,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {!supervisor && (waiting ?? 0) > 0 && (
-        <Link href="/entries?waiting=1" className="notice">
-          <span className="notice-count">{waiting}</span>
-          <span>
-            <b>{t('home.waitingTitle')}</b>
-            <span className="block muted">{t('home.waitingHint')}</span>
-          </span>
-          <Icon name="chevronRight" size={20} />
-        </Link>
-      )}
 
       {balances.length === 0 ? (
         <section className="card empty-board">

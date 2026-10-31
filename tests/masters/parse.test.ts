@@ -186,3 +186,13 @@ describe('GST number of a party', () => {
     expect(gst('27AAAAA0000A1Z')).toEqual({ ok: false, errors: { gst_number: 'invalid_gstin' } });
   });
 });
+
+it('takes a vendor payment with no "How paid" or UTR, as the Pay card and the payment sheet send it', () => {
+  const data = new FormData();
+  for (const [k, v] of Object.entries({
+    vendor_id: '00000000-0000-4000-8000-0000000000aa', from_account_id: '00000000-0000-4000-8000-0000000000bb',
+    amount: '500', entry_date: '2026-10-31',
+  })) data.set(k, v);
+  const parsed = parseFields(getEntryForm('pay-vendor')!.fields, data);
+  expect(parsed.ok).toBe(true);
+});

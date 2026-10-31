@@ -65,10 +65,10 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
     case 'moneyAccounts':
     case 'firmAccounts': {
       // Payments and receipts (firmAccounts) never offer supervisor cash; only the firm's own accounts are listed.
-      let query = db.from('money_accounts').select('id, name, firm_id').eq('is_active', true).order('name');
+      let query = db.from('money_accounts').select('id, name, firm_id, kind').eq('is_active', true).order('name');
       if (source === 'firmAccounts') query = query.neq('kind', 'supervisor_cash');
       const { data } = await query.returns<AccountRow[]>();
-      if (!scope) return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
+      if (!scope) return (data ?? []).map((r) => ({ value: r.id, label: r.name, kind: r.kind }));
       return accountChoices(data ?? [], accountScope(source)!, scope.working.firm.id);
     }
   }

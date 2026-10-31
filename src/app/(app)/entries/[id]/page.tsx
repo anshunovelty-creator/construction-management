@@ -5,8 +5,9 @@ import { requireProfile } from '@/lib/auth';
 import { lineLabel, type LineRow } from '@/lib/ledger/plain';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { cancelEntry, verifyEntry } from '../actions';
-import { loadNames, showDate } from '../data';
+import { cancelEntry } from '../actions';
+import { loadNames, showDate, showMoment } from '../data';
+import { BackLink } from '@/components/back-link';
 import { Icon } from '@/components/icons';
 
 interface Entry {
@@ -19,6 +20,7 @@ interface Entry {
   narration: string;
   reverses_entry_id: string | null;
   created_by: string;
+  created_at: string;
 }
 
 interface BillTdsRow {
@@ -56,22 +58,21 @@ export default async function EntryPage({
       .eq('entry_id', id).order('line_no').returns<BillItemRow[]>(),
     db.from('bill_tds').select('rate_bp, section, tds_paise').eq('entry_id', id).maybeSingle<BillTdsRow>(),
     db.from('entry_status').select('status').eq('entry_id', id).maybeSingle<{ status: string }>(),
-    db.from('entry_events').select('kind, actor, reason').eq('entry_id', id).order('id'),
+    db.from('entry_events').select('kind, actor, reason, created_at').eq('entry_id', id).order('id'),
     db.from('entries').select('id, serial').eq('reverses_entry_id', id).maybeSingle(),
     loadNames(db),
     getTranslations(),
   ]);
   const total = (lines ?? []).reduce((sum, l) => sum + Number(l.amount_paise), 0);
   const state = status?.status ?? 'unverified';
-  const canCheck = state === 'unverified' && entry.created_by !== profile.user_id && profile.role !== 'supervisor';
-  // Only the owner changes checked entries (the database enforces it too).
+  // Entries are no longer checked. Ones checked before that stay owner-only to cancel (the database enforces it too).
   const canCancel = state === 'unverified' || (state === 'verified' && profile.role === 'owner');
   const date = showDate(entry.entry_date);
 
   return (
     <>
       <p className="mb-2">
-        <Link href="/entries" className="back"><Icon name="chevronLeft" size={16} /> {t('nav.daybook')}</Link>
+        <BackLink fallback="/entries" label={t('common.back')} />
       </p>
       {saved && (
         <p className="banner" role="status">
@@ -90,9 +91,9 @@ export default async function EntryPage({
           </span>
           <span>{date}</span>
           <span>
-            {t('entries.typedBy')} <b>{names.people.get(entry.created_by) ?? '?'}</b>
+            {t('entries.typedBy')} <b>{names.people.get(entry.created_by) ?? '?'}</b> · {showMoment(entry.created_at)}
           </span>
-          <span className={`pill ${state}`}>{t(`entries.status.${state}`)}</span>
+          {(state === 'cancelled' || state === 'reversal') && <span className={`pill ${state}`}>{t(`entries.status.${state}`)}</span>}
         </div>
         <h1>{t(`entryTypes.${entry.entry_type}.title`)}</h1>
         {(entry.narration || entry.party_id || entry.reference) && (
@@ -155,44 +156,35 @@ export default async function EntryPage({
           </p>
         )}
 
-        {(canCheck || canCancel) && (
+        {canCancel && (
           <div className="actions">
-            {canCheck && (
-              <form action={verifyEntry.bind(null, id)}>
-                <button type="submit" className="btn"><Icon name="check" /> {t('entries.check')}</button>
+            <details className="cancel">
+              <summary>{t('entries.cancelTitle')}</summary>
+              <form action={cancelEntry.bind(null, id)} className="form">
+                <div className="field">
+                  <label htmlFor="reason">{t('entries.reason')}</label>
+                  <input id="reason" name="reason" required />
+                </div>
+                <div className="row-buttons">
+                  <button type="submit" className="btn ghost">{t('entries.cancel')}</button>
+                </div>
+                <p className="hint">{t('entries.cancelHint')}</p>
               </form>
-            )}
-            {canCancel && (
-              <details className="cancel">
-                <summary>{t(canCheck ? 'entries.somethingWrong' : 'entries.cancelTitle')}</summary>
-                <form action={cancelEntry.bind(null, id)} className="form">
-                  <div className="field">
-                    <label htmlFor="reason">{t('entries.reason')}</label>
-                    <input id="reason" name="reason" required />
-                  </div>
-                  <div className="row-buttons">
-                    {canCheck && (
-                      <button type="submit" name="do" value="reject" className="btn danger">{t('entries.reject')}</button>
-                    )}
-                    <button type="submit" name="do" value="cancel" className="btn ghost">{t('entries.cancel')}</button>
-                  </div>
-                  <p className="hint">{t('entries.cancelHint')}</p>
-                </form>
-              </details>
-            )}
+            </details>
           </div>
         )}
 
-        {events && events.length > 0 && (
-          <ul className="events">
-            {events.map((e, i) => (
-              <li key={i}>
-                {t(`entries.event.${e.kind}`, { who: names.people.get(e.actor) ?? '?' })}
-                {e.reason && <> · “{e.reason}”</>}
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* The entry's history: who typed it, then every change, each with who and when. Nothing is ever overwritten. */}
+        <h2 className="section-title">{t('entries.history')}</h2>
+        <ul className="events">
+          <li>{t('entries.event.created', { who: names.people.get(entry.created_by) ?? '?' })} · {showMoment(entry.created_at)}</li>
+          {(events ?? []).map((e, i) => (
+            <li key={i}>
+              {t(`entries.event.${e.kind}`, { who: names.people.get(e.actor) ?? '?' })} · {showMoment(e.created_at)}
+              {e.reason && <> · “{e.reason}”</>}
+            </li>
+          ))}
+        </ul>
       </article>
     </>
   );

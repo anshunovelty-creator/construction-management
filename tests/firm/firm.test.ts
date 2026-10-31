@@ -34,9 +34,9 @@ describe('pickWorkingFirm', () => {
 
 describe('money account lists', () => {
   const rows: AccountRow[] = [
-    { id: AB_BANK.id, name: 'AB Infra - Bank', firm_id: AB },
-    { id: JI_BANK.id, name: 'Jayraj Infra - Bank', firm_id: JI },
-    { id: OWNER_CASH.id, name: 'Owner cash', firm_id: null },
+    { id: AB_BANK.id, name: 'AB Infra - Bank', firm_id: AB, kind: 'bank' },
+    { id: JI_BANK.id, name: 'Jayraj Infra - Bank', firm_id: JI, kind: 'bank' },
+    { id: OWNER_CASH.id, name: 'Owner cash', firm_id: null, kind: 'owner_cash' },
   ];
 
   it('reads the scope from the field source', () => {
@@ -47,13 +47,13 @@ describe('money account lists', () => {
 
   it('lists the firm’s own banks and common cash for owner money and site spending', () => {
     expect(accountChoices(rows, 'own', AB)).toEqual([
-      { value: AB_BANK.id, label: 'AB Infra - Bank' },
-      { value: OWNER_CASH.id, label: 'Owner cash' },
+      { value: AB_BANK.id, label: 'AB Infra - Bank', kind: 'bank' },
+      { value: OWNER_CASH.id, label: 'Owner cash', kind: 'owner_cash' },
     ]);
   });
 
   it('lists only the firm’s own banks for payments and receipts: never common cash or another firm’s', () => {
-    expect(accountChoices(rows, 'firm', AB)).toEqual([{ value: AB_BANK.id, label: 'AB Infra - Bank' }]);
+    expect(accountChoices(rows, 'firm', AB)).toEqual([{ value: AB_BANK.id, label: 'AB Infra - Bank', kind: 'bank' }]);
   });
 
   it('checks a chosen account the same way on save', () => {

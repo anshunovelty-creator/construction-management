@@ -37,8 +37,6 @@
     "lede": "This is where every rupee sits right now. Add an entry whenever money moves.",
     "ledeSupervisor": "Record what you spend at the site, and count your cash at the end of the day.",
     "addEntry": "Add an entry",
-    "waitingTitle": "entries waiting to be checked",
-    "waitingHint": "Someone other than the person who typed an entry should check it.",
     "emptyTitle": "No entries yet",
     "emptyHint": "Start in Setup: add your firms, sites, parties, clients and bank accounts. Then add your first entry.",
     "emptySupervisor": "Nothing here yet. When the office gives you cash, it shows up here."
@@ -265,7 +263,8 @@
     "no": "No",
     "none": "—",
     "choose": "Choose…",
-    "optional": "(optional)"
+    "optional": "(optional)",
+    "back": "Back"
   },
   "plain": {
     "vendorPayable": "{firm} owes {vendor}",
@@ -352,11 +351,8 @@
     "balanced": "= ₹0, balanced ✓",
     "cancelledBy": "Cancelled by entry",
     "seeOriginal": "See the entry this cancels",
-    "check": "Mark as checked",
-    "somethingWrong": "Something wrong?",
     "cancelTitle": "Cancel this entry",
     "reason": "What is wrong?",
-    "reject": "Reject",
     "cancel": "Cancel entry",
     "cancelHint": "Nothing is deleted. The app adds an exact opposite entry, so the history stays.",
     "status": {
@@ -370,14 +366,14 @@
       "rejected": "Rejected by {who}",
       "reversed": "Cancelled by {who}",
       "replaced": "Replaced by {who}",
-      "lock_override": "Saved in locked books by {who}"
-    }
+      "lock_override": "Saved in locked books by {who}",
+      "created": "Typed in by {who}"
+    },
+    "history": "History"
   },
   "daybook": {
     "eyebrow": "Every entry",
     "lede": "Everything typed into the app, newest first. Tap a serial number to see what it changed.",
-    "all": "All",
-    "waiting": "Waiting to be checked",
     "onDate": "On date",
     "serial": "Serial",
     "date": "Date",
@@ -394,7 +390,8 @@
     "sitesHintFirm": "Only this firm’s share. Profit = billed − costs.",
     "costs": "Where the money went",
     "costsHint": "Costs at this site, by kind of work.",
-    "count": "{count, plural, one {# entry} other {# entries}}"
+    "count": "{count, plural, one {# entry} other {# entries}}",
+    "enteredBy": "Typed in by"
   },
   "entryForms": {
     "vendor-bill": {
@@ -418,7 +415,7 @@
       "hints": {
         "firm_id": "The firm whose bill this pays.",
         "from_account_id": "The bank or cash the money left from.",
-        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash.",
+        "reference": "Optional. Fill it in when you have it: it helps match the bank statement later.",
         "payment_method": "Online or cheque: the firm’s bank. Cash: the firm’s cash."
       }
     },
@@ -443,7 +440,7 @@
       "what": "Money in the bank goes up, and what the client owes us goes down. Profit does not change: it was earned when the work was billed.",
       "hints": {
         "to_account_id": "Where the money arrived.",
-        "reference": "Required when money moves through a bank or UPI. Leave empty only for cash.",
+        "reference": "Optional. Fill it in when you have it: it helps match the bank statement later.",
         "payment_method": "Online or cheque: the firm’s bank. Cash: the firm’s cash."
       }
     },
@@ -595,8 +592,6 @@
     "lastOn": "Last paid on {date}",
     "nothingPaid": "Nothing paid yet",
     "costType": "Type",
-    "notChecked": "not checked",
-    "notCheckedHint": "Nobody has checked this entry yet. Click the entry number to check it, or to cancel it if it is wrong.",
     "needSite": "Add your sites first: every bill needs the site it was for.",
     "needAccount": "Add this firm's bank and cash accounts first: every payment needs where the money came from.",
     "goSetup": "Go to Setup →",
@@ -1006,5 +1001,9 @@
     "placeholder": "Type to search…",
     "none": "Nothing matches",
     "more": "{count} more: keep typing to narrow the list"
+  },
+  "form": {
+    "noCashAccount": "This firm has no cash account yet. Add one in Setup → Money accounts (kind: Owner cash, firm: this firm).",
+    "noBankAccount": "This firm has no bank account yet. Add one in Setup → Money accounts."
   }
 }

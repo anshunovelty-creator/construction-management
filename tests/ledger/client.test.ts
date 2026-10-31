@@ -56,9 +56,7 @@ describe('clientReceipt', () => {
     expect(() => clientReceipt({ client: SVG_CLIENT, to: AB_BANK, amountPaise: 500, receiptDate: '2026-11-15', reference: 'UTR6' })).toThrow('own bank or cash');
   });
 
-  it('requires a UTR or cheque number for bank receipts', () => {
-    expect(() => clientReceipt({ client: SVG_CLIENT, to: JI_BANK, amountPaise: 1, receiptDate: '2026-11-15' })).toThrow(
-      'UTR or cheque number is required',
-    );
+  it('takes a bank receipt without a UTR or cheque number: it is optional', () => {
+    expect(clientReceipt({ client: SVG_CLIENT, to: JI_BANK, amountPaise: 1, receiptDate: '2026-11-15' }).reference).toBe('');
   });
 });
