@@ -5,6 +5,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { showPaise } from '@/lib/money';
 import { QTY, valueOf } from '@/lib/stock';
 import { Icon } from '@/components/icons';
+import { SearchSelect } from '@/components/search-select';
 
 export interface MaterialLine {
   materialId: string;
@@ -103,14 +104,13 @@ export function MaterialUseForm({
                   <tr key={l} className={state.line === l ? 'wrong' : undefined}>
                     <td className="box muted line-no">{l + 1}</td>
                     <td className="box wide" data-label={t('use.material')}>
-                      <select
+                      <SearchSelect
                         value={line.materialId}
-                        onChange={(e) => change(l, { materialId: e.target.value })}
+                        onChange={(v) => change(l, { materialId: v })}
                         aria-label={`${t('use.material')}, ${t('work.lineNo', { n: l + 1 })}`}
-                      >
-                        <option value="">{t('use.pickMaterial')}</option>
-                        {materials.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                      </select>
+                        placeholder={t('use.pickMaterial')}
+                        options={materials.map((x) => ({ value: x.id, label: x.name }))}
+                      />
                     </td>
                     <td className="box qty" data-label={t('use.quantity')}>
                       <span className="qty-with-unit">

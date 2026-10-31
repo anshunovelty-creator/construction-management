@@ -116,6 +116,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
         <p className="muted">{t('party.gst', { number: client.gst_number || t('party.noGst') })}</p>
         {/* With no entries there is nothing to be settled, so no "fully received" either. */}
         {rows.length > 0 && <StatusPill status={f.status} t={t} side="client" />}
+        <Link href={`/ledger?of=party:${client.id}`} className="btn ghost small">{t('nav.ledger')}</Link>
       </div>
       <p className="lede">
         {opening

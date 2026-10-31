@@ -6,6 +6,7 @@ import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
 import { amountPaise, DIMENSIONS, quantityMilli, type MeasurementLine, type Measure } from '@/lib/work';
 import { Icon } from '@/components/icons';
+import { SearchSelect } from '@/components/search-select';
 
 export interface WorkActivity {
   description: string;
@@ -124,10 +125,8 @@ export function WorkDoneForm({
               </label>
               <label className="activity-field">
                 <span>{t('work.unit')}</span>
-                <select value={activity.unitId} onChange={(e) => change(a, { unitId: e.target.value })}>
-                  <option value="">{t('work.pickUnit')}</option>
-                  {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                <SearchSelect value={activity.unitId} onChange={(v) => change(a, { unitId: v })} placeholder={t('work.pickUnit')}
+                  options={units.map((u) => ({ value: u.id, label: u.name }))} />
               </label>
               <label className="activity-field">
                 <span>{t('work.rate')}</span>

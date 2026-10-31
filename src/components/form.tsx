@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { BillItems } from '@/components/bill-items';
-import { ChoiceOptions } from '@/components/choice-options';
+import { SearchSelect } from '@/components/search-select';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
@@ -217,16 +217,14 @@ function Fields({
                 </p>
               )}
               {field.kind === 'enum' || field.kind === 'ref' ? (
-                <select {...shared} onChange={field.name === 'vendor_id' ? (e) => setVendor(e.target.value) : undefined}>
-                  <option value="">{emptyLabel}</option>
-                  {field.kind === 'enum'
-                    ? ENUMS[field.enum].map((option) => (
-                        <option key={option} value={option}>
-                          {t(`options.${field.enum}.${option}`)}
-                        </option>
-                      ))
-                    : <ChoiceOptions choices={choices[field.ref] ?? []} />}
-                </select>
+                <SearchSelect
+                  {...shared}
+                  placeholder={emptyLabel}
+                  onChange={field.name === 'vendor_id' ? setVendor : undefined}
+                  options={field.kind === 'enum'
+                    ? ENUMS[field.enum].map((option) => ({ value: option, label: t(`options.${field.enum}.${option}`) }))
+                    : choices[field.ref] ?? []}
+                />
               ) : field.kind === 'rupees' ? (
                 <RupeesInput input={shared} owed={field.name === 'amount' && owed ? owed[vendor] : undefined} />
               ) : (

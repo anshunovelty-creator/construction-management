@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { LabourForm, OtherCostForm, type Person } from '@/components/labour-form';
 import { MaterialUseForm } from '@/components/material-use-form';
+import { SearchSelect } from '@/components/search-select';
 import { WorkDoneForm } from '@/components/work-done-form';
 import { requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
@@ -163,9 +164,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <AutoForm action="/report" className="card report-bar">
         <label className="activity-field grow">
           <span>{t('report.site')}</span>
-          <select key={site.id} name="site" defaultValue={site.id}>
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          <SearchSelect key={site.id} name="site" defaultValue={site.id} required submitOnPick options={sites.map((s) => ({ value: s.id, label: s.name }))} />
         </label>
         <div className="activity-field">
           <span>{t('report.date')}</span>

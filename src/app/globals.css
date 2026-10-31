@@ -755,6 +755,48 @@ section > .bill-totals { margin-top: 10px; }
 
 /* Printing a salary slip: only the slip on paper. */
 @media print {
-  .sidebar, .tabbar, .topbar, .no-print { display: none !important; }
-  body, .slip { background: #fff; box-shadow: none; border: 0; }
+  .slip { background: #fff; box-shadow: none; border: 0; }
 }
+
+/* Ledger: a vendor's, client's or site's statement, printable on A4. */
+.ledger-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+.ledger-head h1 { margin: 2px 0 4px; }
+.ledger-head p { margin: 0; }
+.ledger-firm { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+.ledger-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; margin-bottom: 18px; }
+.ledger-filters .field:first-child { flex: 1 1 18rem; }
+.ledger-filters select, .ledger-filters input, .ledger-filters .btn { min-height: 44px; }
+table.statement td.particulars { white-space: normal; min-width: 18rem; max-width: 34rem; }
+table.statement .pill { margin-left: 6px; }
+.ledger-note { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.ledger-closing { margin: 16px 0 4px; font-size: 15px; }
+.ledger-printed { margin: 0; font-size: 12.5px; }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .sidebar, .tabbar, .topbar, .no-print { display: none !important; }
+  body { background: #fff; }
+  .shell, .main-col { display: block; margin: 0; }
+  .wrap { padding: 0; max-width: none; }
+  .card { box-shadow: none; }
+  .table-wrap { overflow: visible; }
+  table.statement { width: 100%; table-layout: auto; }
+  table.statement th, table.statement td, table.statement .serial { padding: 6px 8px; font-size: 11px; white-space: normal; }
+  table.statement td.particulars { min-width: 0; max-width: none; }
+  table.statement td.num, table.statement td.nowrap { white-space: nowrap; }
+  table.statement tr { break-inside: avoid; }
+  table.statement thead { display: table-header-group; }
+  table.statement a { color: inherit; text-decoration: none; }
+}
+
+/* Search select: a dropdown you can type into. The list floats (fixed) so tables cannot clip it. */
+.search-select { position: relative; display: block; min-width: 0; }
+.search-select input { padding-right: 32px; }
+.search-select::after { content: ''; position: absolute; right: 13px; top: 50%; width: 7px; height: 7px; margin-top: -5px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); pointer-events: none; }
+.search-list { position: fixed; z-index: 1000; margin: 4px 0; padding: 4px; list-style: none; max-height: 280px; overflow-y: auto; background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); font-size: 15px; }
+.search-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--ink); }
+.search-list li[aria-selected='true'] { background: var(--accent-soft); }
+.search-list li.current { font-weight: 600; }
+.search-list .search-group { color: var(--muted); font-size: 12.5px; font-weight: 400; white-space: nowrap; }
+.search-list li.search-none { cursor: default; color: var(--muted); font-size: 13.5px; }
+.sheet .search-select::after { right: 10px; }

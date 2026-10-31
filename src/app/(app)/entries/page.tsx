@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { AutoForm } from '@/components/auto-form';
 import { GroupCards, GROUPS, SitesTable } from '@/components/board';
 import { ListLink } from '@/components/list-link';
+import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { isCommonEntry } from '@/lib/firm';
 import { describeAll, type LineRow } from '@/lib/ledger/plain';
@@ -106,10 +107,8 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
 
       <AutoForm action="/entries" className="filters book-filter">
         <label className="sr-only" htmlFor="site">{t('daybook.site')}</label>
-        <select id="site" name="site" defaultValue={site ?? ''}>
-          <option value="">{t('daybook.allSites')}</option>
-          {[...names.sites].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-        </select>
+        <SearchSelect id="site" name="site" defaultValue={site ?? ''} emptyLabel={t('daybook.allSites')} submitOnPick
+          options={[...names.sites].map(([id, name]) => ({ value: id, label: name }))} />
         <label htmlFor="date" className="sr-only">{t('daybook.onDate')}</label>
         <input id="date" type="date" name="date" defaultValue={date ?? ''} />
         {waiting && <input type="hidden" name="waiting" value="1" />}

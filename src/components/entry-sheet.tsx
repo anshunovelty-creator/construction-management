@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition, type ClipboardEvent, type KeyboardEvent } from 'react';
-import { ChoiceOptions } from '@/components/choice-options';
+import { SearchSelect } from '@/components/search-select';
 import type { FormState } from '@/components/form';
 import type { Choice } from '@/lib/masters/registry';
 import { Icon } from '@/components/icons';
@@ -203,10 +203,7 @@ export function EntrySheet({
                     return (
                       <td key={col.name} className={col.kind === 'rupees' ? 'num' : undefined}>
                         {col.kind === 'select' ? (
-                          <select {...common} onChange={(e) => setCell(r, col.name, e.target.value)}>
-                            <option value="" />
-                            <ChoiceOptions choices={col.options ?? []} />
-                          </select>
+                          <SearchSelect {...common} placeholder="" options={col.options ?? []} onChange={(v) => setCell(r, col.name, v)} />
                         ) : (
                           <input
                             {...common}

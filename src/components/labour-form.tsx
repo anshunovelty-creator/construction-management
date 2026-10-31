@@ -8,6 +8,7 @@ import { rupeesToPaise, showPaise } from '@/lib/money';
 import { dayAmount, dayPay, otCenti, type PersonKind } from '@/lib/wages';
 import { amountPaise } from '@/lib/work';
 import { Icon } from '@/components/icons';
+import { SearchSelect } from '@/components/search-select';
 
 /** What saving comes back with: when it was saved, or the mistake and the line it is on (from 0). */
 export interface LineState {
@@ -225,13 +226,12 @@ export function OtherCostForm({ action }: { action: Action }) {
                     />
                   </td>
                   <td className="box" data-label={t('other.head')}>
-                    <select
+                    <SearchSelect
                       value={line.costHead}
-                      onChange={(e) => change(l, { costHead: e.target.value })}
+                      onChange={(v) => change(l, { costHead: v })}
                       aria-label={`${t('other.head')}, ${t('work.lineNo', { n: l + 1 })}`}
-                    >
-                      {HEADS.map((h) => <option key={h} value={h}>{tAll(`options.cost_head.${h}`)}</option>)}
-                    </select>
+                      options={HEADS.map((h) => ({ value: h, label: tAll(`options.cost_head.${h}`) }))}
+                    />
                   </td>
                   <td className="box" data-label={t('other.quantity')}>
                     <input
