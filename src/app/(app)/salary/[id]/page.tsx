@@ -72,15 +72,15 @@ export default async function SalarySlipPage({
           <p className="empty-state">{t('salary.noDays')}</p>
         ) : (
           <div className="table-wrap">
-            <table className="ledger">
+            <table className="ledger salary-table">
               <thead>
                 <tr>
                   <th>{t('salary.date')}</th>
-                  <th>{t('salary.site')}</th>
-                  <th>{t('report.labour.attendance')}</th>
+                  <th className="wide-only">{t('salary.site')}</th>
+                  <th>{t('salary.mark')}</th>
                   <th className="num">{t('salary.otHours')}</th>
-                  <th className="num">{t('salary.dayPay')}</th>
-                  <th className="num">{t('salary.otPay')}</th>
+                  <th className="num wide-only">{t('salary.dayPay')}</th>
+                  <th className="num wide-only">{t('salary.otPay')}</th>
                   <th className="num">{t('salary.amount')}</th>
                 </tr>
               </thead>
@@ -90,11 +90,11 @@ export default async function SalarySlipPage({
                   return (
                     <tr key={r.id}>
                       <td className="whitespace-nowrap">{showDate(r.work_date)}</td>
-                      <td>{siteName.get(r.site_id)}</td>
-                      <td><span className={`pill ${r.present ? 'verified' : 'pending'}`}>{t(`report.labour.mark.${r.present ? 'P' : 'A'}`)}</span></td>
+                      <td className="wide-only">{siteName.get(r.site_id)}</td>
+                      <td><span className={`pill ${r.present ? 'verified' : 'pending'}`} title={t(`report.labour.mark.${r.present ? 'P' : 'A'}`)}>{r.present ? 'P' : 'A'}</span></td>
                       <td className="num">{Number(r.ot_hours) || '–'}</td>
-                      <td className="num">{dayPart ? showPaise(dayPart) : '–'}</td>
-                      <td className="num">{Number(r.amount_paise) - dayPart ? showPaise(Number(r.amount_paise) - dayPart) : '–'}</td>
+                      <td className="num wide-only">{dayPart ? showPaise(dayPart) : '–'}</td>
+                      <td className="num wide-only">{Number(r.amount_paise) - dayPart ? showPaise(Number(r.amount_paise) - dayPart) : '–'}</td>
                       <td className="num">{showPaise(Number(r.amount_paise))}</td>
                     </tr>
                   );
@@ -102,11 +102,12 @@ export default async function SalarySlipPage({
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={2}>{t('salary.total')}</td>
+                  <td>{t('salary.total')}</td>
+                  <td className="wide-only" />
                   <td>{t('salary.daysSummary', { p: totals.present, a: totals.absent })}</td>
                   <td className="num">{totals.otHours || '–'}</td>
-                  <td className="num">{showPaise(totals.dayPaise)}</td>
-                  <td className="num">{totals.otPaise ? showPaise(totals.otPaise) : '–'}</td>
+                  <td className="num wide-only">{showPaise(totals.dayPaise)}</td>
+                  <td className="num wide-only">{totals.otPaise ? showPaise(totals.otPaise) : '–'}</td>
                   <td className="num"><strong>{showPaise(totals.totalPaise)}</strong></td>
                 </tr>
               </tfoot>

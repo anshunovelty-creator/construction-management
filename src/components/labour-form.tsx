@@ -123,7 +123,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                       <strong>{p.name}</strong>
                       {p.kind === 'staff' && <span className="pill common small-pill">{t('labour.staff')}</span>}
                     </td>
-                    <td data-label={t('labour.attendance')}>
+                    <td className="mark" data-label={t('labour.attendance')}>
                       <span className="quick-time">
                         {(['P', 'A'] as const).map((mark) => (
                           <button
@@ -152,7 +152,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                         <span className="unit-tag">{t('labour.hrs')}</span>
                       </span>
                     </td>
-                    <td className={p.rate === null ? 'num minus' : 'num'} data-label={t('labour.rate')}>
+                    <td className={p.rate === null ? 'num rate minus' : 'num rate'} data-label={t('labour.rate')}>
                       {p.rate === null ? t('labour.noRate') : `${showPaise(p.rate)} ${t(`labour.per.${p.kind}`)}`}
                     </td>
                     <td className="num result" data-label={t('use.amount')}>{amounts[l] == null ? '—' : showPaise(amounts[l])}</td>

@@ -48,15 +48,15 @@ export default async function SalaryPage({ searchParams }: { searchParams: Promi
         <p className="card empty-state">{t('salary.none')}</p>
       ) : (
         <div className="card table-wrap flush">
-          <table className="ledger">
+          <table className="ledger salary-table">
             <thead>
               <tr>
                 <th>{t('salary.name')}</th>
                 <th className="num">{t('salary.present')}</th>
-                <th className="num">{t('salary.absent')}</th>
-                <th className="num">{t('salary.otHours')}</th>
-                <th className="num">{t('salary.dayPay')}</th>
-                <th className="num">{t('salary.otPay')}</th>
+                <th className="num wide-only">{t('salary.absent')}</th>
+                <th className="num wide-only">{t('salary.otHours')}</th>
+                <th className="num wide-only">{t('salary.dayPay')}</th>
+                <th className="num wide-only">{t('salary.otPay')}</th>
                 <th className="num">{t('salary.salary')}</th>
               </tr>
             </thead>
@@ -68,17 +68,18 @@ export default async function SalaryPage({ searchParams }: { searchParams: Promi
                     {r.kind === 'staff' && <span className="pill common small-pill">{t('report.labour.staff')}</span>}
                   </td>
                   <td className="num">{r.present}</td>
-                  <td className={r.absent ? 'num minus' : 'num muted'}>{r.absent}</td>
-                  <td className="num">{r.otHours || '–'}</td>
-                  <td className="num">{showPaise(r.dayPaise)}</td>
-                  <td className="num">{r.otPaise ? showPaise(r.otPaise) : '–'}</td>
+                  <td className={r.absent ? 'num wide-only minus' : 'num wide-only muted'}>{r.absent}</td>
+                  <td className="num wide-only">{r.otHours || '–'}</td>
+                  <td className="num wide-only">{showPaise(r.dayPaise)}</td>
+                  <td className="num wide-only">{r.otPaise ? showPaise(r.otPaise) : '–'}</td>
                   <td className="num"><strong>{showPaise(r.totalPaise)}</strong></td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={6}>{t('salary.total')}</td>
+                <td colSpan={2}>{t('salary.total')}</td>
+                <td className="wide-only" colSpan={4} />
                 <td className="num"><strong>{showPaise(sum())}</strong></td>
               </tr>
             </tfoot>

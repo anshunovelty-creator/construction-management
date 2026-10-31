@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { requireProfile } from '@/lib/auth';
-import { describeChanges, lineLabel, type LineRow } from '@/lib/ledger/plain';
+import { lineLabel, type LineRow } from '@/lib/ledger/plain';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { cancelEntry, verifyEntry } from '../actions';
@@ -50,7 +50,7 @@ export default async function EntryPage({
   const { data: entry } = await db.from('entries').select('*').eq('id', id).maybeSingle<Entry>();
   if (!entry) notFound();
 
-  const [{ data: lines }, { data: items }, { data: tds }, { data: status }, { data: events }, { data: reversal }, { data: pairs }, names, t] = await Promise.all([
+  const [{ data: lines }, { data: items }, { data: tds }, { data: status }, { data: events }, { data: reversal }, names, t] = await Promise.all([
     db.from('entry_lines').select('*').eq('entry_id', id).order('line_no').returns<LineRow[]>(),
     db.from('bill_items').select('line_no, quantity, rate_paise, gst_bp, amount_paise, gst_paise, material:materials(name)')
       .eq('entry_id', id).order('line_no').returns<BillItemRow[]>(),
@@ -58,11 +58,9 @@ export default async function EntryPage({
     db.from('entry_status').select('status').eq('entry_id', id).maybeSingle<{ status: string }>(),
     db.from('entry_events').select('kind, actor, reason').eq('entry_id', id).order('id'),
     db.from('entries').select('id, serial').eq('reverses_entry_id', id).maybeSingle(),
-    db.from('balances').select('*').eq('account', 'inter_firm').returns<LineRow[]>(),
     loadNames(db),
     getTranslations(),
   ]);
-  const changes = describeChanges(lines ?? [], pairs ?? [], names, t);
   const total = (lines ?? []).reduce((sum, l) => sum + Number(l.amount_paise), 0);
   const state = status?.status ?? 'unverified';
   const canCheck = state === 'unverified' && entry.created_by !== profile.user_id && profile.role !== 'supervisor';
@@ -113,26 +111,8 @@ export default async function EntryPage({
           <BillItemsTable items={items} tds={tds} vendorBill={entry.entry_type === 'vendor_bill'} t={t} />
         )}
 
-        <section>
-          <h2 className="section-title">{t('entries.whatChanges')}</h2>
-          <ul className="effects">
-            {changes.map((c) => (
-              <li key={c.key}>
-                <span className={`arrow ${c.shown > 0 ? 'up' : 'down'}`} aria-hidden="true">{c.shown > 0 ? '↑' : '↓'}</span>
-                <span>{c.label}</span>
-                <span className={`amount ${c.shown > 0 ? 'up' : 'down'}`}>
-                  {t(c.shown > 0 ? 'entries.up' : 'entries.down', { amount: showPaise(Math.abs(c.shown)) })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <p className="why">{t(`entryTypes.${entry.entry_type}.why`)}</p>
-
         <div className="table-wrap">
           <table>
-            <caption>{t('entries.linesCaption')}</caption>
             <thead>
               <tr>
                 <th>{t('entries.line')}</th>

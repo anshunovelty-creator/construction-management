@@ -357,6 +357,18 @@ table.saved-work tr.subtotal td.num { color: var(--ink); }
 .quick-time .chip.mark-A.on { background: var(--minus-soft); border-color: var(--minus); color: var(--minus); }
 .labour-table .qty-with-unit input { width: 4.5rem; }
 .labour-table input:disabled { background: var(--sunken); }
+/* Phone: name and rate on top, then P/A, OT and the amount on one line. */
+@media (max-width: 640px) {
+  .measure-table.labour-table tr { grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; padding: 12px 14px; }
+  .measure-table.labour-table .wide { grid-area: 1 / 1 / 2 / 3; white-space: normal; }
+  .measure-table.labour-table .rate { grid-area: 1 / 3; text-align: right; }
+  .measure-table.labour-table .mark { grid-area: 2 / 1; }
+  .measure-table.labour-table td.box { grid-area: 2 / 2; }
+  .measure-table.labour-table .result { grid-area: 2 / 3; text-align: right; min-width: 0; }
+  .measure-table.labour-table .unit-tag { display: none; }
+  .measure-table.labour-table .wide::before, .measure-table.labour-table .rate::before, .measure-table.labour-table .mark::before { display: none !important; }
+  .measure-table.labour-table .quick-time { flex-wrap: nowrap; }
+}
 @media (max-width: 640px) {
   .activity-head { grid-template-columns: auto minmax(0, 1fr) auto; }
   .activity-head .activity-field:not(.grow) { grid-column: 2 / -1; }
@@ -752,6 +764,16 @@ section > .bill-totals { margin-top: 10px; }
 .slip-words { font-weight: 600; margin: 8px 0 0; }
 .slip-sign { display: flex; justify-content: space-between; gap: 24px; margin-top: 56px; color: var(--muted); font-size: 13.5px; }
 .slip-sign span { border-top: 1px solid var(--rule-strong); padding-top: 6px; min-width: 12rem; }
+@media (max-width: 640px) {
+  /* Phone: each date on its own line, label beside it, so nothing runs off the screen. */
+  .salary-bar .date-filter { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); width: 100%; }
+  .salary-bar .date-filter input { width: 100%; min-width: 0; }
+  /* The slip's summary and Salary already add these up, so a phone shows only the columns that fit. */
+  .ledger .wide-only { display: none; }
+  table.salary-table th, table.salary-table td { padding-left: 6px; padding-right: 6px; }
+  .slip { padding-left: 12px; padding-right: 12px; }
+  .slip-sign span { min-width: 0; flex: 1; }
+}
 
 /* Printing a salary slip: only the slip on paper. */
 @media print {

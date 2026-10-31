@@ -347,10 +347,6 @@
     "serial": "Serial",
     "typedBy": "Typed in by",
     "ref": "Ref: {ref}",
-    "whatChanges": "What changes",
-    "up": "up {amount}",
-    "down": "down {amount}",
-    "linesCaption": "The entry as the app stores it. Every rupee is written twice: once as a plus, once as a minus.",
     "line": "Line",
     "together": "Plus and minus together",
     "balanced": "= ₹0, balanced ✓",
@@ -941,7 +937,8 @@
     "forOt": "{n} OT hrs",
     "signWorker": "Received by (worker)",
     "signOffice": "Paid by",
-    "inWords": "In words:"
+    "inWords": "In words:",
+    "mark": "P / A"
   },
   "ledger": {
     "title": "Ledger",
