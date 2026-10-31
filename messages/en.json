@@ -22,7 +22,8 @@
     "clients": "Clients",
     "stock": "Stock",
     "report": "Daily report",
-    "tds": "TDS record"
+    "tds": "TDS record",
+    "ledger": "Ledger"
   },
   "login": {
     "title": "Sign in",
@@ -843,5 +844,72 @@
     "deducted": "We deducted",
     "clientDeducted": "Client deducted",
     "total": "Total"
+  },
+  "ledger": {
+    "title": "Ledger",
+    "titleOf": "Ledger of {name}",
+    "of": "Ledger of",
+    "pick": "Pick a vendor, client or site",
+    "groups": {
+      "vendor": "Vendors",
+      "client": "Clients",
+      "site": "Sites"
+    },
+    "from": "From",
+    "to": "To",
+    "show": "Show",
+    "print": "Print or save as PDF",
+    "hint": "Pick a vendor, client or site to see every entry in date order, with the balance after each one.",
+    "notFound": "That vendor, client or site is not in this firm’s list.",
+    "period": "{from} to {to}",
+    "start": "the start",
+    "allEntries": "All entries up to {to}",
+    "date": "Date",
+    "entry": "Entry",
+    "particulars": "Particulars",
+    "balance": "Balance",
+    "debit": {
+      "vendor": "Paid (Dr)",
+      "client": "Billed (Dr)",
+      "site": "Spent (Dr)"
+    },
+    "credit": {
+      "vendor": "Billed (Cr)",
+      "client": "Received (Cr)",
+      "site": "Billed (Cr)"
+    },
+    "dr": "Dr",
+    "cr": "Cr",
+    "broughtForward": "Balance brought forward",
+    "none": "No entries in this period.",
+    "totals": "Totals",
+    "common": "Common",
+    "closingTitle": "Closing balance:",
+    "settled": "Nothing is due either way.",
+    "closing": {
+      "vendor": {
+        "cr": "{firm} owes {name} {amount}.",
+        "dr": "{name} has been paid {amount} more than billed (advance)."
+      },
+      "client": {
+        "dr": "{name} owes {firm} {amount}.",
+        "cr": "{name} has paid {amount} more than billed (advance)."
+      },
+      "site": {
+        "cr": "Billed {amount} more than spent at {name}.",
+        "dr": "Spent {amount} more than billed at {name}."
+      }
+    },
+    "printedOn": "Printed on {date}",
+    "bill": {
+      "gross": "Gross {amount}",
+      "gst": "+ GST {amount}",
+      "cut": "− cut by client {amount}"
+    }
+  },
+  "search": {
+    "placeholder": "Type to search…",
+    "none": "Nothing matches",
+    "more": "{count} more: keep typing to narrow the list"
   }
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { ListLink } from '@/components/list-link';
 import { RowFilter } from '@/components/row-filter';
+import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
@@ -102,12 +103,7 @@ export default async function ClientIndexPage() {
 
       <form action="/client" className="open-other card">
         <label htmlFor="open-id">{t('client.openOther')}</label>
-        <select id="open-id" name="id" required defaultValue="">
-          <option value="" disabled>{t('common.choose')}</option>
-          {(all ?? []).map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <SearchSelect id="open-id" name="id" required options={(all ?? []).map((c) => ({ value: c.id, label: c.name }))} />
         <button type="submit" className="btn ghost">{t('party.open')} ►</button>
         <p className="hint">
           {t('client.openOtherHint')} <Link href="/masters/parties" className="underline">{t('client.addClient')}</Link>

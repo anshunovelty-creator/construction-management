@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { MaterialUseForm } from '@/components/material-use-form';
+import { SearchSelect } from '@/components/search-select';
 import { WorkDoneForm } from '@/components/work-done-form';
 import { requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
@@ -112,9 +113,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       <form className="card report-bar" method="get">
         <label className="activity-field grow">
           <span>{t('report.site')}</span>
-          <select name="site" defaultValue={site.id}>
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          <SearchSelect name="site" defaultValue={site.id} required options={sites.map((s) => ({ value: s.id, label: s.name }))} />
         </label>
         <div className="activity-field">
           <span>{t('report.date')}</span>

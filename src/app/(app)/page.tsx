@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ListLink } from '@/components/list-link';
 import { RowFilter } from '@/components/row-filter';
+import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
@@ -99,12 +100,7 @@ export default async function PartyIndexPage() {
 
       <form action="/party" className="open-other card">
         <label htmlFor="open-id">{t('party.openOther')}</label>
-        <select id="open-id" name="id" required defaultValue="">
-          <option value="" disabled>{t('common.choose')}</option>
-          {(vendors ?? []).map((v) => (
-            <option key={v.id} value={v.id}>{v.name}</option>
-          ))}
-        </select>
+        <SearchSelect id="open-id" name="id" required options={(vendors ?? []).map((v) => ({ value: v.id, label: v.name }))} />
         <button type="submit" className="btn ghost">{t('party.open')} <Icon name="arrowRight" size={16} /></button>
         <p className="hint">
           {t('party.openOtherHint')} <Link href="/masters/parties" className="underline">{t('party.addParty')}</Link>

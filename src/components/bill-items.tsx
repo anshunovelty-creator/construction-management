@@ -8,6 +8,7 @@ import type { Choice } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
 import { Icon } from '@/components/icons';
+import { SearchSelect } from '@/components/search-select';
 
 type Row = { key: number; material: string; qty: string; rate: string; gst: string };
 type Typed = string | string[] | undefined;
@@ -104,11 +105,9 @@ export function BillItems({
                 <tr key={row.key} aria-invalid={error ? true : undefined}>
                   <td className="num muted">{i + 1}</td>
                   <td>
-                    <select name={ITEM_INPUTS.material} aria-label={label('item')} value={row.material}
-                      onChange={(e) => set(row.key, { material: e.target.value })}>
-                      <option value="">{t('common.choose')}</option>
-                      {materials.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
+                    <SearchSelect name={ITEM_INPUTS.material} aria-label={label('item')} value={row.material}
+                      placeholder={t('common.choose')} options={materials}
+                      onChange={(v) => set(row.key, { material: v })} />
                     {error && <p className="error">{t(`errors.${error}`)}</p>}
                   </td>
                   <td className="num">
@@ -121,10 +120,8 @@ export function BillItems({
                   </td>
                   <td className="num">{money(p?.amountPaise)}</td>
                   <td>
-                    <select name={ITEM_INPUTS.gst} aria-label={label('gst')} value={row.gst}
-                      onChange={(e) => set(row.key, { gst: e.target.value })}>
-                      {gstRates.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
+                    <SearchSelect name={ITEM_INPUTS.gst} aria-label={label('gst')} value={row.gst} options={gstRates}
+                      onChange={(v) => set(row.key, { gst: v })} />
                   </td>
                   <td className="num">{money(p?.gstPaise)}</td>
                   <td className="num"><b>{money(p ? p.amountPaise + p.gstPaise : undefined)}</b></td>
