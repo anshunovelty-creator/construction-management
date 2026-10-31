@@ -5,7 +5,7 @@ import { siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import { postEntry } from '@/lib/ledger/repo';
-import { createMigratedDb, OWNER, seedBasics, SUPERVISOR, type Seed } from './harness';
+import { asUser, createMigratedDb, createUser, OWNER, seedBasics, SUPERVISOR, type Seed } from './harness';
 
 let template: PGlite;
 let db: PGliteInterface;
@@ -55,4 +55,14 @@ it('lists what was spent at a site and what the client was billed, leaving out p
     // Gross before GST is billed; material the client supplied and cut from the bill is a cost of the site.
     { entry_type: 'client_bill', firm_id: seed.jayraj, party_id: seed.svgClient, cost_paise: 40_00, billed_paise: 2_000_00 },
   ]);
+});
+
+it('can be read by a signed-in office user, as the ledger page reads it', async () => {
+  await postEntry(db, vendorBill({
+    firmId: seed.jayraj, vendorId: seed.ansari, siteId: seed.svgSite, billDate: '2026-10-22', billNo: 'B-1',
+    items: [{ costHead: 'material', amountPaise: 500_00 }],
+  }), OWNER);
+  const office = await createUser(db, 'office', 'Office', { firms: [seed.jayraj] });
+  const { rows } = await asUser(db, office, (tx) => tx.query('select cost_paise from site_rows where site_id = $1', [seed.svgSite]));
+  expect(rows).toEqual([{ cost_paise: 500_00 }]);
 });
