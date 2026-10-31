@@ -34,3 +34,21 @@ it('refuses a new entry that moves money from one firm to another, even if the l
   const { rows } = await db.query('select count(*)::int as n from entries');
   expect(rows[0]).toEqual({ n: 0 });
 });
+
+it('lets a firm keep its own cash and pay a vendor from it; banks still need a firm, supervisor cash still has none', async () => {
+  const add = (kind: string, name: string, firmId: string | null) =>
+    db.query<{ id: string }>('insert into money_accounts (kind, name, firm_id) values ($1, $2, $3) returning id', [kind, name, firmId]);
+  const cash = (await add('owner_cash', 'Jayraj Infra - Cash', seed.jayraj)).rows[0]!.id;
+  // Common owner cash (no firm) is still allowed.
+  await add('owner_cash', 'Owner cash 2', null);
+  await expect(add('bank', 'Bank with no firm', null)).rejects.toThrow(/money_accounts_check/);
+  await expect(add('supervisor_cash', 'Supervisor cash with a firm', seed.jayraj)).rejects.toThrow(/money_accounts_check/);
+
+  const { vendorPayment } = await import('@/lib/ledger/posting/vendor');
+  await postEntry(db, vendorPayment({
+    billFirmId: seed.jayraj, vendorId: seed.ansari, from: { id: cash, kind: 'owner_cash', firmId: seed.jayraj },
+    amountPaise: 1_000_00, paymentDate: '2026-10-31',
+  }), OWNER);
+  const { rows } = await db.query('select firm_id, amount_paise from entry_lines where money_account_id = $1', [cash]);
+  expect(rows).toEqual([{ firm_id: seed.jayraj, amount_paise: -1_000_00 }]);
+});

@@ -22,13 +22,14 @@ describe('masters', () => {
     );
   });
 
-  it('requires bank accounts to belong to a firm and cash accounts not to', async () => {
+  it('requires bank accounts to belong to a firm and supervisor cash not to; owner cash may (a firm\'s own cash)', async () => {
     await expect(
       db.query(`insert into money_accounts (kind, name) values ('bank', 'Orphan bank')`),
     ).rejects.toThrow('money_accounts_check');
     await expect(
-      db.query(`insert into money_accounts (kind, name, firm_id) values ('owner_cash', 'Firm cash', $1)`, [seed.jayraj]),
+      db.query(`insert into money_accounts (kind, name, firm_id) values ('supervisor_cash', 'Firm supervisor cash', $1)`, [seed.jayraj]),
     ).rejects.toThrow('money_accounts_check');
+    await db.query(`insert into money_accounts (kind, name, firm_id) values ('owner_cash', 'Firm cash', $1)`, [seed.jayraj]);
   });
 
   it('only allows a client party as the client of a work order', async () => {
