@@ -266,6 +266,7 @@ summary.firm-pill:hover { border-color: color-mix(in srgb, var(--muted) 55%, var
 .up { color: var(--plus); }
 .down { color: var(--minus); }
 .minus { color: var(--minus); }
+.plus { color: var(--plus); }
 .strong { font-weight: 600; }
 .amount, .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 
@@ -349,6 +350,13 @@ table.saved-work tr.subtotal td.num { color: var(--ink); }
 .unit-tag { min-width: 2.5rem; font-size: 13px; font-weight: 600; color: var(--muted); }
 .use-table select { min-width: 12rem; min-height: 38px; padding: 6px 30px 6px 8px; font-size: 15px; }
 .use-table .remark-input { width: 100%; min-width: 10rem; }
+/* Attendance: P / A taps; P fills green, A red. */
+.quick-time { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.quick-time .chip { min-width: 44px; min-height: 38px; justify-content: center; padding: 0 10px; cursor: pointer; font-family: var(--font-num); }
+.quick-time .chip.mark-P.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); }
+.quick-time .chip.mark-A.on { background: var(--minus-soft); border-color: var(--minus); color: var(--minus); }
+.labour-table .qty-with-unit input { width: 4.5rem; }
+.labour-table input:disabled { background: var(--sunken); }
 @media (max-width: 640px) {
   .activity-head { grid-template-columns: auto minmax(0, 1fr) auto; }
   .activity-head .activity-field:not(.grow) { grid-column: 2 / -1; }
@@ -730,4 +738,23 @@ section > .bill-totals { margin-top: 10px; }
   .stat { padding: 14px 16px; }
   .stat-value, .stats.big .stat-value { font-size: 20px; }
   h1 { font-size: 1.4375rem; }
+}
+
+/* ---------- Salary ---------- */
+.salary-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.salary-bar .filters { margin: 0; }
+.slip { margin-top: 18px; }
+.slip-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.slip-head h1 { margin: 2px 0; }
+.slip-head p { margin: 0; }
+.slip-period { text-align: right; display: grid; gap: 4px; justify-items: end; }
+.slip-totals { margin-top: 16px; }
+.slip-words { font-weight: 600; margin: 8px 0 0; }
+.slip-sign { display: flex; justify-content: space-between; gap: 24px; margin-top: 56px; color: var(--muted); font-size: 13.5px; }
+.slip-sign span { border-top: 1px solid var(--rule-strong); padding-top: 6px; min-width: 12rem; }
+
+/* Printing a salary slip: only the slip on paper. */
+@media print {
+  .sidebar, .tabbar, .topbar, .no-print { display: none !important; }
+  body, .slip { background: #fff; box-shadow: none; border: 0; }
 }

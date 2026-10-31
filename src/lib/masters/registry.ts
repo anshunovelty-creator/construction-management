@@ -15,6 +15,8 @@ export const ENUMS = {
   payment_method: ['online', 'cash', 'cheque'],
   /** How a unit is measured on the daily report: see src/lib/work.ts. */
   unit_measure: ['quantity', 'length', 'area', 'volume'],
+  /** The party kinds kept on the Workers and staff list: a worker is paid by the hour, staff by the day. */
+  worker_kind: ['worker', 'staff'],
 } as const;
 export type EnumName = keyof typeof ENUMS;
 
@@ -44,6 +46,8 @@ export interface MasterDef {
   /** Columns shown in the list, in order. */
   list: string[];
   fields: Field[];
+  /** Only these party kinds: a second view of the parties table. */
+  kinds?: readonly string[];
 }
 
 const active: Field = { name: 'is_active', kind: 'checkbox' };
@@ -74,6 +78,20 @@ export const MASTERS: Record<string, MasterDef> = {
       { name: 'name', kind: 'text', required: true },
       { name: 'phone', kind: 'text' },
       { name: 'gst_number', kind: 'text' },
+      active,
+    ],
+  },
+  workers: {
+    table: 'parties',
+    ownerOnly: false,
+    kinds: ENUMS.worker_kind,
+    list: ['name', 'kind', 'rate_paise', 'site_id', 'phone', 'is_active'],
+    fields: [
+      { name: 'kind', kind: 'enum', enum: 'worker_kind', required: true },
+      { name: 'name', kind: 'text', required: true },
+      { name: 'rate_paise', kind: 'rupees', required: true },
+      { name: 'site_id', kind: 'ref', ref: 'sites' },
+      { name: 'phone', kind: 'text' },
       active,
     ],
   },

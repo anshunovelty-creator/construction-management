@@ -15,8 +15,9 @@ export default async function MasterListPage({ params }: { params: Promise<{ tab
   const profile = await requireProfile('owner', 'office');
   const canEdit = !def.ownerOnly || profile.role === 'owner';
   const db = await createClient();
+  const query = db.from(def.table).select('*');
   const [{ data: rows }, choices, t] = await Promise.all([
-    db.from(def.table).select('*').order(def.list[0]!),
+    (def.kinds ? query.in('kind', def.kinds) : query).order(def.list[0]!),
     loadChoices(db, def.fields),
     getTranslations(),
   ]);

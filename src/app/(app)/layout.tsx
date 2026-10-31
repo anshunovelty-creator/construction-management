@@ -53,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLink href="/report" section="/report"><Icon name="report" /><span>{t('nav.report')}</span></NavLink>
           <NavLink href="/entries" exact><Icon name="daybook" /><span>{t('nav.daybook')}</span></NavLink>
           {office && <NavLink href="/stock" section="/stock"><Icon name="stock" /><span>{t('nav.stock')}</span></NavLink>}
+          {office && <NavLink href="/salary" section="/salary"><Icon name="payOut" /><span>{t('nav.salary')}</span></NavLink>}
           {office && <NavLink href="/tds" section="/tds"><Icon name="tds" /><span>{t('nav.tds')}</span></NavLink>}
         </nav>
         {office && (

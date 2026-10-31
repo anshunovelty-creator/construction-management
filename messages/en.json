@@ -22,7 +22,8 @@
     "clients": "Clients",
     "stock": "Stock",
     "report": "Daily report",
-    "tds": "TDS record"
+    "tds": "TDS record",
+    "salary": "Salary"
   },
   "login": {
     "title": "Sign in",
@@ -71,7 +72,8 @@
     "materials": "Materials",
     "units": "Units",
     "gst-rates": "GST rates",
-    "tds-rates": "TDS rates"
+    "tds-rates": "TDS rates",
+    "workers": "Workers and staff"
   },
   "fields": {
     "code": "Short code (2–4 capital letters)",
@@ -126,7 +128,8 @@
     "measure": "Measured by",
     "use_date": "Date",
     "quantity": "Quantity used",
-    "remark": "Remark"
+    "remark": "Remark",
+    "rate_paise": "Rate (₹) — per hour for a worker, per day for staff"
   },
   "options": {
     "party_kind": {
@@ -174,6 +177,10 @@
       "online": "Online",
       "cash": "Cash",
       "cheque": "Cheque"
+    },
+    "worker_kind": {
+      "worker": "Worker (paid by the hour)",
+      "staff": "Staff (paid by the day)"
     }
   },
   "users": {
@@ -730,11 +737,9 @@
   },
   "report": {
     "title": "Daily report",
-    "lede": "One site, one day: the work done and the material used. Supervisors fill it for their sites; material comes out of that site’s stock.",
+    "lede": "One site, one day: the work done, the material used, labour and staff, other costs, and what the day made. Supervisors fill it for their sites.",
     "prevDay": "Previous day",
     "nextDay": "Next day",
-    "workLessMaterial": "Work done less material",
-    "labourNext": "Labour and staff will come off this next",
     "workHeading": "Work done",
     "materialHeading": "Material used",
     "materialNote": "Comes out of this site’s stock, at the average rate it was bought at",
@@ -742,7 +747,6 @@
     "noSites": "No sites given to you yet. Ask the office to add you to a site in People.",
     "site": "Site",
     "date": "Date",
-    "open": "Open",
     "noWork": "No work entered for this day yet. Add it below.",
     "no": "No.",
     "activity": "Activity",
@@ -823,7 +827,66 @@
       "need_activity": "Write what work was done.",
       "pick_unit": "Pick the unit.",
       "bad_rate": "The rate is not a rupee amount, like 600 or 2,500.",
-      "not_removed": "That line could not be removed. Supervisors can remove only their own lines, on the day they added them."
+      "not_removed": "That line could not be removed. Supervisors can remove only their own lines, on the day they added them.",
+      "already_marked": "Someone here is already marked for this day, or present at another site. Open the day again to see who is left.",
+      "need_description": "Write what the cost was, like Tractor.",
+      "pick_head": "Pick what the cost was for.",
+      "bad_ot": "Type OT hours as a number from 0 to 16, like 2 or 1.5.",
+      "ot_absent": "OT can only be given on a day the person was present.",
+      "no_rate": "This person has no rate in Setup → Workers and staff. Add it there first."
+    },
+    "costTotal": "Day’s costs",
+    "costNote": "Material, labour, staff and other costs",
+    "profit": "Profit or loss",
+    "profitNote": "Work done less the day’s costs",
+    "labourHeading": "Labour and staff",
+    "labourNote": "{p} present · {a} absent. A day is 8 hours; OT is paid per hour on top",
+    "noLabour": "Nobody marked for this day yet. Mark who came below.",
+    "noWorkers": "No workers or staff on the list for this site yet.",
+    "allMarked": "Everyone on the list is marked for this day.",
+    "workerList": "Add them in Setup → Workers and staff",
+    "labourTotal": "Labour",
+    "staffTotal": "Staff",
+    "otherHeading": "Other costs",
+    "otherNote": "Tractor, labour colony, room, light, petrol: anything else the site cost today",
+    "profitHeading": "Day’s profit or loss",
+    "less": "Less: {what}",
+    "labour": {
+      "addTitle": "Mark attendance",
+      "addHint": "Tap P (present) or A (absent) for each person, and type OT hours worked past the 8-hour day. The pay comes from the rate in Setup: a worker’s day is 8 hours at their hourly rate; staff get their day rate. Each OT hour pays a day ÷ 8. Anyone not marked is not saved.",
+      "name": "Name",
+      "rate": "Rate",
+      "staff": "Staff",
+      "per": {
+        "worker": "/ hr",
+        "staff": "/ day"
+      },
+      "dayTotal": "Labour and staff",
+      "save": "Save attendance",
+      "allPresent": "Mark everyone left as present",
+      "attendance": "Attendance",
+      "ot": "OT",
+      "hrs": "hrs",
+      "dayPay": "Day’s pay",
+      "mark": {
+        "P": "Present",
+        "A": "Absent"
+      },
+      "otHours": "{n, plural, one {# hr} other {# hrs}}",
+      "noRate": "No rate in Setup",
+      "marked": "{p} present · {a} absent"
+    },
+    "other": {
+      "addTitle": "Add other costs",
+      "addHint": "Write what it was, pick what it was for, and type how many and the rate. Tractor is machine hire, not labour. Leave how many empty for 1.",
+      "description": "What",
+      "example": "e.g. Tractor, labour colony",
+      "head": "What for",
+      "quantity": "How many",
+      "rate": "Rate (₹)",
+      "addLine": "Add a cost",
+      "dayTotal": "Total other costs",
+      "save": "Save other costs"
     }
   },
   "tds": {
@@ -843,5 +906,40 @@
     "deducted": "We deducted",
     "clientDeducted": "Client deducted",
     "total": "Total"
+  },
+  "salary": {
+    "title": "Salary",
+    "lede": "What each worker and staff member has earned, from the attendance marked on the daily reports at every site: days present at their day’s pay, plus OT hours. Open a name for their salary slip.",
+    "period": "Period",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "month": "Month",
+    "from": "From",
+    "to": "to",
+    "showing": "{from} to {to}",
+    "labour": "Labour",
+    "staff": "Staff",
+    "total": "Total",
+    "none": "No attendance marked in this period. Mark it on the Daily report.",
+    "name": "Name",
+    "present": "Present",
+    "absent": "Absent",
+    "otHours": "OT hrs",
+    "dayPay": "Day’s pay",
+    "otPay": "OT pay",
+    "salary": "Salary",
+    "slip": "Salary slip",
+    "periodLabel": "Period",
+    "print": "Print or save as PDF",
+    "noDays": "No days marked for this person in this period.",
+    "date": "Date",
+    "site": "Site",
+    "amount": "Amount",
+    "daysSummary": "{p} P · {a} A",
+    "forDays": "{n, plural, one {# day present} other {# days present}}",
+    "forOt": "{n} OT hrs",
+    "signWorker": "Received by (worker)",
+    "signOffice": "Paid by",
+    "inWords": "In words:"
   }
 }
