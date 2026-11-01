@@ -10,10 +10,11 @@ import { postEntry } from '@/lib/ledger/repo';
 import { asUser, createMigratedDb, createUser, OWNER, seedBasics, type Seed } from './harness';
 
 const SCRIPT = readFileSync(join(import.meta.dirname, '../../scripts/golive-reset.sql'), 'utf8');
-/** The script with the owner's list of test records filled in, as they would edit it. */
-const withList = (list: string) => {
-  expect(SCRIPT).toContain("('party', '__nothing__') -- golive:list");
-  return SCRIPT.replace(/\('party', '__nothing__'\) -- golive:list[^\n]*/, list);
+/** The script with a list of test records filled in, as the owner would edit it on their phone. */
+const withList = (kind: 'parties' | 'sites', names: string[]) => {
+  const blank = `remove_${kind} text[] := array[]::text[];`;
+  expect(SCRIPT).toContain(blank);
+  return SCRIPT.replace(blank, `remove_${kind} text[] := array[${names.map((n) => `'${n}'`).join(', ')}]::text[];`);
 };
 
 let template: PGlite;
@@ -68,7 +69,7 @@ it('empties the books, the daily reports and the test setup records, keeping a b
   const entriesBefore = await count('entries');
   expect(entriesBefore).toBeGreaterThan(5);
 
-  await db.exec(withList(`('party', 'Test Vendor')`));
+  await db.exec(withList('parties', ['Test Vendor']));
 
   for (const table of ['entries', 'entry_lines', 'entry_events', 'bill_items', 'bill_tds', 'serial_counters', 'material_use']) {
     expect([table, await count(table)]).toEqual([table, 0]);
@@ -95,8 +96,14 @@ it('empties the books, the daily reports and the test setup records, keeping a b
 it('changes nothing when a listed name does not exist', async () => {
   await postEntry(db, openingVendorBalance({ firmId: seed.jayraj, vendorId: seed.ansari, amountPaise: 1_00, asOf: '2026-10-21' }), OWNER);
   const before = await count('entries');
-  await expect(db.exec(withList(`('party', 'Test Vendr')`))).rejects.toThrow('not found (check the spelling): party "Test Vendr"');
-  await db.exec('rollback');
+  await expect(db.exec(withList('parties', ['Test Vendr']))).rejects.toThrow('not found (check the spelling): party "Test Vendr"');
   expect(await count('entries')).toBe(before);
   expect(await count(`information_schema.schemata where schema_name = 'golive_backup_20261101'`)).toBe(0);
+});
+
+it('is one statement and keeps nothing between statements, so the SQL Editor runs it all or nothing', () => {
+  const body = SCRIPT.replace(/--[^\n]*/g, '');
+  expect(body).not.toMatch(/\b(begin|commit)\s*;/i);
+  expect(body).not.toMatch(/temp(orary)? table/i);
+  expect(body.match(/do \$\$/g)).toHaveLength(1);
 });
