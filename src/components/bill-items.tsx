@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { billTotals, priceItem, quantityToMilli, type PricedItem } from '@/lib/ledger/bill-items';
+import { billTotals, ITEM_KINDS, priceItem, quantityToMilli, type PricedItem } from '@/lib/ledger/bill-items';
 import { ITEM_INPUTS } from '@/lib/masters/parse';
 import type { Choice } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
@@ -11,7 +11,7 @@ import { Icon } from '@/components/icons';
 import { NewMaterial } from '@/components/new-material';
 import { SearchSelect } from '@/components/search-select';
 
-type Row = { key: number; material: string; qty: string; rate: string; gst: string };
+type Row = { key: number; material: string; qty: string; rate: string; gst: string; kind: string };
 type Typed = string | string[] | undefined;
 
 const list = (v: Typed) => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
@@ -39,6 +39,7 @@ export function BillItems({
   errors = {},
   aside,
   summary,
+  kinds = false,
 }: {
   materials: Choice[];
   /** For a material added from the bill: its unit. */
@@ -51,6 +52,8 @@ export function BillItems({
   aside?: React.ReactNode;
   /** Drawn under the totals, given them: e.g. a client's cuts and what is left to receive. Replaces the total in words. */
   summary?: (totals: { base: number; gst: number; total: number }) => React.ReactNode;
+  /** A party's bill: each line says what it is (stock, asset or rented), starting from its material's kind. */
+  kinds?: boolean;
 }) {
   const t = useTranslations();
   // Materials added from this bill, picked on the line they were typed in.
@@ -65,12 +68,16 @@ export function BillItems({
       qty: list(values[ITEM_INPUTS.quantity])[i] ?? '',
       rate: list(values[ITEM_INPUTS.rate])[i] ?? '',
       gst: list(values[ITEM_INPUTS.gst])[i] ?? defaultGst,
+      kind: list(values[ITEM_INPUTS.kind])[i] ?? 'consumable',
     }));
-    return typed.length ? typed : [{ key: 0, material: '', qty: '', rate: '', gst: defaultGst }];
+    return typed.length ? typed : [{ key: 0, material: '', qty: '', rate: '', gst: defaultGst, kind: 'consumable' }];
   });
   const set = (key: number, change: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...change } : r)));
   // A new line takes the GST rate of the line above: most bills charge one rate throughout.
-  const add = () => setRows((rs) => [...rs, { key: Math.max(...rs.map((r) => r.key)) + 1, material: '', qty: '', rate: '', gst: rs.at(-1)?.gst ?? defaultGst }]);
+  const add = () => setRows((rs) => [...rs, { key: Math.max(...rs.map((r) => r.key)) + 1, material: '', qty: '', rate: '', gst: rs.at(-1)?.gst ?? defaultGst, kind: 'consumable' }]);
+  // Picking a material starts the line at that material's kind (Setup → Materials); it can still be changed.
+  const kindOf = (material: string) => materials.find((m) => m.value === material)?.kind ?? 'consumable';
+  const kindOptions = ITEM_KINDS.map((k) => ({ value: k, label: t(`options.item_kind.${k}`) }));
   const remove = (key: number) => setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.key !== key) : rs));
 
   const prices = rows.map(priced);
@@ -96,6 +103,7 @@ export function BillItems({
             <col className="c-qty" />
             <col className="c-rate" />
             <col className="c-amount" />
+            {kinds && <col className="c-kind" />}
             <col className="c-gst" />
             <col className="c-gstamt" />
             <col className="c-total" />
@@ -108,6 +116,7 @@ export function BillItems({
               <th className="num">{t('items.qty')}</th>
               <th className="num">{t('items.rate')}</th>
               <th className="num">{t('items.amount')}</th>
+              {kinds && <th>{t('items.kind')}</th>}
               <th>{t('items.gst')}</th>
               <th className="num">{t('items.gstAmount')}</th>
               <th className="num">{t('items.total')}</th>
@@ -125,7 +134,7 @@ export function BillItems({
                   <td>
                     <SearchSelect name={ITEM_INPUTS.material} aria-label={label('item')} value={row.material}
                       placeholder={t('common.choose')} options={materials}
-                      onChange={(v) => set(row.key, { material: v })}
+                      onChange={(v) => set(row.key, { material: v, kind: kindOf(v) })}
                       onCreate={(name) => setCreating({ key: row.key, name })}
                       createLabel={(name) => t('newMaterial.addAs', { name })} />
                     {error && <p className="error">{t(`errors.${error}`)}</p>}
@@ -139,6 +148,12 @@ export function BillItems({
                       value={row.rate} onChange={(e) => set(row.key, { rate: e.target.value })} />
                   </td>
                   <td className="num">{money(p?.amountPaise)}</td>
+                  {kinds && (
+                    <td>
+                      <SearchSelect name={ITEM_INPUTS.kind} aria-label={label('kind')} value={row.kind} options={kindOptions}
+                        className={`kind-${row.kind}`} onChange={(v) => set(row.key, { kind: v || 'consumable' })} />
+                    </td>
+                  )}
                   <td>
                     <SearchSelect name={ITEM_INPUTS.gst} aria-label={label('gst')} value={row.gst} options={gstRates}
                       onChange={(v) => set(row.key, { gst: v })} />

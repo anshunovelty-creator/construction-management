@@ -5,7 +5,7 @@ import { showPaise } from '@/lib/money';
 
 type T = Awaited<ReturnType<typeof getTranslations>>;
 
-export const GROUPS: Exclude<Group, 'sites'>[] = ['money', 'weOwe', 'owedToUs', 'betweenFirms', 'heldByClients', 'gst', 'tds', 'owner'];
+export const GROUPS: Exclude<Group, 'sites'>[] = ['money', 'weOwe', 'owedToUs', 'betweenFirms', 'heldByClients', 'assets', 'gst', 'tds', 'owner'];
 /** Long groups show this many rows, the rest behind "show more". */
 const SHOWN = 6;
 

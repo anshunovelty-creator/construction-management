@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { FirmLine } from '@/components/firm-line';
+import { BillSheet } from '@/components/bill-sheet';
 import { Form } from '@/components/form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { getEntryForm } from '@/lib/masters/registry';
@@ -34,12 +35,15 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
         <Link href="/entries/new" className="back"><Icon name="chevronLeft" size={16} /> {t('entries.new.title')}</Link>
       </p>
       <div className="form-layout">
-        <section className="card">
+        <section className={slug === 'vendor-bill' || slug === 'client-bill' ? 'bill-page' : 'card'}>
           <h1 className="title-with-icon">
             <span className="title-icon"><Icon name={form.icon} size={22} /></span>{t(`entryForms.${slug}.title`)}</h1>
           <p className="lede">{t(`entryForms.${slug}.when`)}</p>
           {working && <FirmLine slug={slug} firm={working.firm} t={t} />}
-          <Form
+          {(slug === 'vendor-bill' || slug === 'client-bill') && working ? (
+            <BillSheet side={slug === 'vendor-bill' ? 'vendor' : 'client'} action={postEntryForm.bind(null, slug, working.firm.id)}
+              firm={working.firm.name} choices={choices} today={todayInIndia()} />
+          ) : <Form
             fields={form.fields}
             defaults={{ entry_date: todayInIndia() }}
             choices={choices}
@@ -47,7 +51,7 @@ export default async function EntryFormPage({ params }: { params: Promise<{ slug
             submitLabel={t('entries.save')}
             hintPrefix={`entryForms.${slug}.hints`}
             owed={slug === 'pay-vendor' ? owed : undefined}
-          />
+          />}
         </section>
         <aside className="why">
           <h2 className="section-title">{t('entries.whatHappens')}</h2>

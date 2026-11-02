@@ -150,8 +150,15 @@ describe('parseItems', () => {
     const { items, errors } = parseItems(form([...line(CEMENT, '10', '350'), ...line('', '', '')]));
     expect(errors).toEqual({});
     expect(items).toEqual([
-      { materialId: CEMENT, quantityMilli: 10_000, ratePaise: 35_000, gstBp: 1_800, amountPaise: 350_000, gstPaise: 63_000 },
+      { materialId: CEMENT, quantityMilli: 10_000, ratePaise: 35_000, gstBp: 1_800, amountPaise: 350_000, gstPaise: 63_000, kind: 'consumable' },
     ]);
+  });
+
+  it('reads what each line is bought as; anything unknown is consumable', () => {
+    const kinds = (...k: string[]) => parseItems(form([...line(CEMENT, '1', '10'), ...line(CEMENT, '1', '10'), ...k.map((v) => ['item_kind', v] as [string, string])]))
+      .items.map((i) => i.kind);
+    expect(kinds('asset', 'rented')).toEqual(['asset', 'rented']);
+    expect(kinds('bogus')).toEqual(['consumable', 'consumable']);
   });
 
   it('says which line is wrong, and needs at least one line', () => {

@@ -21,6 +21,8 @@ export const ENUMS = {
   party_main: ['vendor', 'client'],
   /** Not a database enum (a checked text column): for information only, pay is unaffected. */
   skill_level: ['skilled', 'unskilled'],
+  /** Not a database enum (a checked text column): what a material is bought as. See ITEM_KINDS. */
+  item_kind: ['consumable', 'asset', 'rented'],
 } as const;
 export type EnumName = keyof typeof ENUMS;
 
@@ -119,8 +121,11 @@ export const MASTERS: Record<string, MasterDef> = {
   materials: {
     table: 'materials',
     ownerOnly: false,
-    list: ['name', 'unit_id', 'is_active'],
-    fields: [{ name: 'name', kind: 'text', required: true }, { name: 'unit_id', kind: 'ref', ref: 'units' }, active],
+    list: ['name', 'unit_id', 'item_kind', 'is_active'],
+    fields: [
+      { name: 'name', kind: 'text', required: true }, { name: 'unit_id', kind: 'ref', ref: 'units' },
+      { name: 'item_kind', kind: 'enum', enum: 'item_kind', required: true }, active,
+    ],
   },
   units: {
     table: 'units',

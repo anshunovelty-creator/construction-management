@@ -1,5 +1,5 @@
 import { assertDate } from '@/lib/ledger/balance';
-import { priceItem, quantityToMilli, type PricedItem } from '@/lib/ledger/bill-items';
+import { ITEM_KINDS, priceItem, quantityToMilli, type ItemKind, type PricedItem } from '@/lib/ledger/bill-items';
 import { rupeesToPaise } from '@/lib/money';
 import { ENUMS, type Field } from './registry';
 
@@ -48,7 +48,7 @@ export function moneyAccountErrors(v: Record<string, Value>): Record<string, str
 }
 
 /** The names a bill's item boxes are posted under, one value per line. */
-export const ITEM_INPUTS = { material: 'item_material', quantity: 'item_qty', rate: 'item_rate', gst: 'item_gst' } as const;
+export const ITEM_INPUTS = { material: 'item_material', quantity: 'item_qty', rate: 'item_rate', gst: 'item_gst', kind: 'item_kind' } as const;
 
 /**
  * A bill's item lines, priced. Lines left blank are skipped; a half-filled line is an error on that line
@@ -60,6 +60,8 @@ export function parseItems(data: FormData): { items: PricedItem[]; errors: Recor
   const quantities = column(ITEM_INPUTS.quantity);
   const rates = column(ITEM_INPUTS.rate);
   const gsts = column(ITEM_INPUTS.gst);
+  // Only a party's bill sends a kind per line; anything else is consumable.
+  const kinds = column(ITEM_INPUTS.kind);
   const items: PricedItem[] = [];
   const errors: Record<string, string> = {};
   materials.forEach((materialId, i) => {
@@ -81,7 +83,8 @@ export function parseItems(data: FormData): { items: PricedItem[]; errors: Recor
         throw new Error('item_rate');
       }
       if (ratePaise <= 0) throw new Error('item_rate');
-      const item = priceItem({ materialId, quantityMilli, ratePaise, gstBp: Number(gst) });
+      const kind = (ITEM_KINDS as readonly string[]).includes(kinds[i] ?? '') ? (kinds[i] as ItemKind) : 'consumable';
+      const item = { ...priceItem({ materialId, quantityMilli, ratePaise, gstBp: Number(gst) }), kind };
       if (item.amountPaise <= 0) throw new Error('item_quantity');
       items.push(item);
     } catch (error) {

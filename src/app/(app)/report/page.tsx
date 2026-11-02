@@ -82,8 +82,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const [{ data: allSites }, { data: mySites }, { data: materials }, { data: units }] = await Promise.all([
     db.from('sites').select('id, name').eq('is_active', true).order('name'),
     office ? Promise.resolve({ data: null }) : db.from('user_sites').select('site_id').eq('user_id', profile.user_id),
-    db.from('materials').select('id, name, is_active, unit:units(name)')
-      .order('name').returns<{ id: string; name: string; is_active: boolean; unit: { name: string } | null }[]>(),
+    db.from('materials').select('id, name, is_active, item_kind, unit:units(name)')
+      .order('name').returns<{ id: string; name: string; is_active: boolean; item_kind: string; unit: { name: string } | null }[]>(),
     db.from('units').select('id, name, measure, is_active').order('name'),
   ]);
   const mine = mySites && new Set(mySites.map((s) => s.site_id as string));
@@ -148,7 +148,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const error = params.error && (ERRORS.has(params.error) ? t(`report.errors.${params.error}`) : params.error);
   const unitChoices = (units ?? []).filter((u) => u.is_active)
     .map((u) => ({ id: u.id as string, name: u.name as string, measure: u.measure as Measure }));
-  const materialChoices = (materials ?? []).filter((m) => m.is_active).map((m) => {
+  // Only stock is used up on a site; assets and rented things are not offered.
+  const materialChoices = (materials ?? []).filter((m) => m.is_active && m.item_kind === 'consumable').map((m) => {
     const s = stock.get(m.id);
     return { id: m.id, name: m.name, unit: m.unit?.name ?? '', rate: s?.rate ?? null, left: s?.left ?? 0 };
   });

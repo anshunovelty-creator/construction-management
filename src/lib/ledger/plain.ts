@@ -20,7 +20,7 @@ export interface Names {
 }
 
 /** Where a balance sits on the home board. */
-export type Group = 'money' | 'weOwe' | 'owedToUs' | 'betweenFirms' | 'heldByClients' | 'gst' | 'tds' | 'sites' | 'owner';
+export type Group = 'money' | 'weOwe' | 'owedToUs' | 'betweenFirms' | 'heldByClients' | 'assets' | 'gst' | 'tds' | 'sites' | 'owner';
 
 export type Translate = (key: string, values?: Record<string, string>) => string;
 
@@ -48,6 +48,7 @@ function keyOf(r: LineRow): string {
     case 'security_deposit_held': return `deposit:${r.party_id}`;
     case 'inter_firm': return `firms:${r.firm_id}:${r.counter_firm_id}`;
     case 'site_cost': return `cost:${r.site_id}:${r.cost_head}`;
+    case 'company_assets': return `assets:${r.firm_id}`;
     case 'contract_income': return `billed:${r.site_id}`;
     case 'owner_capital': return 'capital';
     case 'opening_balance': return 'opening';
@@ -104,6 +105,9 @@ export function describe(row: LineRow, amount: number, names: Names, t: Translat
       return make('sites', t('plain.siteCost', { site, head: t(`options.cost_head.${row.cost_head}`) }), 1);
     case 'contract_income':
       return make('sites', t('plain.billed', { site }), -1);
+    // Tools and the like bought to reuse: the company's, kept apart from every site's cost.
+    case 'company_assets':
+      return make('assets', t('plain.companyAssets', { firm }), 1);
     case 'owner_capital':
       return make('owner', t('plain.capital'), -1);
     case 'opening_balance':

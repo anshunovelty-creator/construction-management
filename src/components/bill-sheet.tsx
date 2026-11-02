@@ -28,8 +28,8 @@ type Side = 'client' | 'vendor';
 export function BillSheet({ side, action, party, partyNote, firm, choices, today, defaults = {} }: {
   side: Side;
   action: FormAction;
-  /** The client or party the bill is with. */
-  party: string;
+  /** The client or party the bill is with; left out, the bill has a box to pick them (Add an entry). */
+  party?: string;
   /** A line under their name, e.g. the party's GSTIN. */
   partyNote?: string;
   firm: string;
@@ -50,7 +50,7 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
   state: FormState;
   formAction: (data: FormData) => void;
   pending: boolean;
-  party: string;
+  party?: string;
   partyNote?: string;
   firm: string;
   choices: Choices;
@@ -107,7 +107,15 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
       {/* The head of the bill: from whom to whom, for which site; its number and date on the right. */}
       <header className="cb-head">
         <div className="cb-party">
-          <h3 className="cb-client"><span className="muted">{say('billTo')}</span> {party}</h3>
+          {party ? (
+            <h3 className="cb-client"><span className="muted">{say('billTo')}</span> {party}</h3>
+          ) : (() => {
+            const name = side === 'vendor' ? 'vendor_id' : 'client_id';
+            return field(name, say('billTo'), (a) => (
+              <SearchSelect id={a.id} name={name} options={(side === 'vendor' ? choices.vendors : choices.clients) ?? []} required
+                defaultValue={value(name)} placeholder={say('pickParty')} aria-invalid={a.invalid} aria-describedby={a.describedBy} />
+            ), { className: 'cb-pick' });
+          })()}
           <p className="muted cb-from">{[partyNote, say('from', { firm })].filter(Boolean).join(' · ')}</p>
           <div className="cb-where">
             {field('site_id', t('fields.site_id'), (a) => (
@@ -141,6 +149,7 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
         gstRates={choices.gstRates ?? []}
         values={state.values ?? {}}
         errors={state.errors}
+        kinds={side === 'vendor'}
         aside={
           <div className="cb-aside">
             <fieldset className="cb-cuts">

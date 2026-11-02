@@ -23,6 +23,8 @@ export type LedgerAccount =
   | 'tds_claimable'
   | 'inter_firm'
   | 'site_cost'
+  /** Things bought to keep and reuse at any site: the company's, not a site's cost. */
+  | 'company_assets'
   | 'contract_income'
   | 'owner_capital'
   | 'opening_balance'

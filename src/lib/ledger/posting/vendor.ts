@@ -10,8 +10,10 @@ export interface VendorBillInput {
   siteId: string;
   billDate: string;
   billNo: string;
-  /** The site's cost, before GST, by type. */
+  /** The site's cost, before GST, by type. May be empty when the whole bill is assets. */
   items: { costHead: CostHead; amountPaise: Paise }[];
+  /** Assets bought (tools and the like, to reuse at any site), before GST: the company's, not the site's cost. */
+  assetsPaise?: Paise;
   /** GST on the bill: the firm can claim it back, so it is not a site cost. */
   gstPaise?: Paise;
   /** The bill's item lines, kept with the entry; their amounts and GST add up to `items` and `gstPaise`. */
@@ -23,7 +25,7 @@ export interface VendorBillInput {
 }
 
 /**
- * A vendor's bill: the site's cost goes up by the amount before GST, the GST is ours to claim, and the firm owes
+ * A vendor's bill: the site's cost goes up by the amount before GST (assets go to the company's assets instead), the GST is ours to claim, and the firm owes
  * the vendor the total less any TDS. The TDS is owed to the government.
  */
 export function vendorBill(input: VendorBillInput): EntryDraft {
@@ -31,7 +33,9 @@ export function vendorBill(input: VendorBillInput): EntryDraft {
   if (input.billNo.trim() === '') {
     throw new Error('bill number is required');
   }
-  if (input.items.length === 0) {
+  const assets = input.assetsPaise ?? 0;
+  if (assets < 0) throw new Error('assets cannot be less than zero');
+  if (input.items.length === 0 && assets === 0) {
     throw new Error('a bill needs at least one item');
   }
   const costLines: LineDraft[] = input.items.map((item, index) => {
@@ -47,7 +51,11 @@ export function vendorBill(input: VendorBillInput): EntryDraft {
   });
   const gst = input.gstPaise ?? 0;
   if (gst < 0) throw new Error('GST cannot be less than zero');
-  const base = costLines.reduce((sum, line) => sum + line.amountPaise, 0);
+  // The assets sit at the bill's site on the assets list, but are not that site's cost.
+  const assetLines: LineDraft[] = assets > 0
+    ? [{ account: 'company_assets', amountPaise: assets, firmId: input.firmId, siteId: input.siteId, partyId: input.vendorId }]
+    : [];
+  const base = [...costLines, ...assetLines].reduce((sum, line) => sum + line.amountPaise, 0);
   const total = base + gst;
   // TDS is worked out on the amount before GST.
   const tdsPaise = input.tds ? percentOf(base, input.tds.rateBp) : 0;
@@ -64,6 +72,7 @@ export function vendorBill(input: VendorBillInput): EntryDraft {
     tds: input.tds && { rateBp: input.tds.rateBp, section: input.tds.section, basePaise: base, tdsPaise },
     lines: [
       ...costLines,
+      ...assetLines,
       ...(gst > 0 ? [{ account: 'gst_input' as const, amountPaise: gst, firmId: input.firmId, partyId: input.vendorId }] : []),
       ...(tdsPaise > 0 ? [{ account: 'tds_payable' as const, amountPaise: -tdsPaise, firmId: input.firmId, partyId: input.vendorId }] : []),
       { account: 'vendor_payable', amountPaise: -(total - tdsPaise), firmId: input.firmId, partyId: input.vendorId },

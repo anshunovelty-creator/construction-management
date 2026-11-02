@@ -76,12 +76,16 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
   switch (slug) {
     case 'vendor-bill': {
       const billItems = v.items as PricedItem[];
-      const { base, gst } = billTotals(billItems);
+      const { gst } = billTotals(billItems);
+      // Assets go to the company's assets; consumables and rented things are the site's cost.
+      const assets = billTotals(billItems.filter((i) => i.kind === 'asset')).base;
+      const cost = billTotals(billItems.filter((i) => i.kind !== 'asset')).base;
       // Left empty, no TDS is deducted.
       const rate = v.tds_rate as string | null;
       return vendorBill({
         firmId: firmId!, vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
-        items: [{ costHead: (s('cost_head') || 'material') as CostHead, amountPaise: base }], gstPaise: gst, billItems,
+        items: cost > 0 ? [{ costHead: (s('cost_head') || 'material') as CostHead, amountPaise: cost }] : [],
+        assetsPaise: assets, gstPaise: gst, billItems,
         tds: rate === null ? undefined : await tdsFor(db, Number(rate)),
         narration: s('narration'),
       });

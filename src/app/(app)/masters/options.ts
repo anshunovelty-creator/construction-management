@@ -46,8 +46,9 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
       return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
     }
     case 'materials': {
-      const { data } = await db.from('materials').select('id, name').eq('is_active', true).order('name');
-      return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
+      // `kind` carries what the material is bought as, so a bill line can start with it.
+      const { data } = await db.from('materials').select('id, name, item_kind').eq('is_active', true).order('name');
+      return (data ?? []).map((r) => ({ value: r.id, label: r.name, kind: r.item_kind as string }));
     }
     case 'gstRates': {
       // A bill line keeps the rate itself, not the row, so the value is the rate in basis points.

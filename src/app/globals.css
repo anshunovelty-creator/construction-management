@@ -962,3 +962,22 @@ table.statement .pill { margin-left: 6px; }
 .quick-dialog .form.bill.bill-sheet { box-shadow: none; margin-top: 12px; }
 .cb-cuts-grid.vendor { grid-template-columns: minmax(0, 360px); }
 .cb-less dd { white-space: nowrap; }
+/* Add an entry → a bill: the bill card stands alone under the title; the party is picked in its head. */
+.bill-page > .bill-sheet { margin-top: 16px; }
+.cb-pick { max-width: 520px; }
+.form.bill .cb-pick > label { font-size: 15px; font-weight: 600; color: var(--ink); }
+/* What saving does reads after the bill, not before its title. */
+.form-layout:has(.bill-page) .why { order: 0; position: static; }
+/* A party's bill: each line says whether it is stock, an asset or rented. */
+.bill-items .c-kind { width: 104px; }
+.quick-dialog:has(.c-kind) { width: min(1160px, calc(100vw - 32px)); }
+@media (max-width: 640px) { .bill-items table:has(.c-kind) { min-width: 890px; } }
+
+/* Assets: the move form above the list of moves. */
+.asset-move { display: grid; gap: 16px; margin-bottom: 16px; }
+.asset-move .bill-section { margin: 0; }
+.asset-move-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.asset-move-grid > .field.wide { grid-column: span 2; }
+.asset-move > .btn { justify-self: start; }
+@media (max-width: 760px) { .asset-move-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .asset-move-grid { grid-template-columns: minmax(0, 1fr); } .asset-move-grid > .field.wide { grid-column: auto; } }

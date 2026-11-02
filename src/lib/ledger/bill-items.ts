@@ -1,7 +1,13 @@
 import { assertPaise, percentOf, type Paise } from '@/lib/money';
 
+/** What a party's bill line is for: stock (consumable), the company's assets, or hired (rented, never stock). */
+export const ITEM_KINDS = ['consumable', 'asset', 'rented'] as const;
+export type ItemKind = (typeof ITEM_KINDS)[number];
+
 /** One line of a bill as typed: which material, how much of it, at what rate, and the GST on it. */
 export interface ItemInput {
+  /** Left out: consumable. Client bills are always consumable (work done). */
+  kind?: ItemKind;
   materialId: string;
   /** Quantity in thousandths, so 2.5 tonnes is 2500. Up to three decimals, like the database column. */
   quantityMilli: number;

@@ -25,7 +25,8 @@
     "tds": "TDS record",
     "salary": "Salary",
     "ledger": "Ledger",
-    "rentals": "Rentals"
+    "rentals": "Rentals",
+    "assets": "Assets"
   },
   "login": {
     "title": "Sign in",
@@ -136,7 +137,8 @@
     "rent_qty": "How many",
     "rent_rate": "Rent per item per day",
     "rented_on": "Rented on",
-    "rented_from": "Rented from"
+    "rented_from": "Rented from",
+    "item_kind": "Bought as"
   },
   "options": {
     "party_kind": {
@@ -197,6 +199,11 @@
     "skill_level": {
       "skilled": "Skilled",
       "unskilled": "Unskilled"
+    },
+    "item_kind": {
+      "consumable": "Stock",
+      "asset": "Asset",
+      "rented": "Rented"
     }
   },
   "users": {
@@ -302,7 +309,8 @@
     "excess": "Extra cash found at day close",
     "gstInput": "{firm} · GST to claim back",
     "gstOutput": "{firm} · GST to pay the government",
-    "tdsPayable": "{firm} · TDS to pay the government"
+    "tdsPayable": "{firm} · TDS to pay the government",
+    "companyAssets": "{firm} · tools and other assets"
   },
   "board": {
     "title": "Where the money is now",
@@ -349,6 +357,10 @@
     "tds": {
       "title": "TDS",
       "hint": "TDS deducted from party bills, to pay to the government."
+    },
+    "assets": {
+      "title": "Company assets",
+      "hint": "Tools and other things bought to reuse at any site; not a site’s cost."
     }
   },
   "entries": {
@@ -414,7 +426,7 @@
     "vendor-bill": {
       "title": "Bill from a party",
       "when": "A party sent a bill for material, machines or work.",
-      "what": "The site’s cost goes up by the bill before GST. The GST is kept apart: the firm claims it back. If TDS is deducted, it is kept apart too: it is owed to the government, so the party is paid less. The firm owes the party the total less TDS, even before anyone pays. Paying it later is a separate entry: “Pay a party”.",
+      "what": "The site’s cost goes up by the bill before GST, except lines marked Asset: those go to the company’s assets, not the site’s cost. Stock lines go into the site’s stock; Rented lines do not. The GST is kept apart: the firm claims it back. If TDS is deducted, it is kept apart too: it is owed to the government, so the party is paid less. The firm owes the party the total less TDS, even before anyone pays. Paying it later is a separate entry: “Pay a party”.",
       "hints": {
         "firm_id": "The firm named on the bill.",
         "vendor_id": "Not in the list? Add them in Setup → Parties.",
@@ -723,7 +735,8 @@
     "grand": "Total (with GST)",
     "tds": "TDS at {rate}%",
     "netVendor": "Net payable to party",
-    "details": "Bill details"
+    "details": "Bill details",
+    "kind": "Type"
   },
   "stock": {
     "title": "Stock",
@@ -1123,7 +1136,8 @@
     "lessDeposit": "Less security deposit",
     "net": "Client pays you",
     "footHint": "Every amount is worked out again when the bill is saved.",
-    "save": "Save bill"
+    "save": "Save bill",
+    "pickParty": "Choose the client"
   },
   "vendorBill": {
     "billTo": "Bill from",
@@ -1134,6 +1148,49 @@
     "cuts": "TDS you keep back",
     "cutsHint": "Leave empty if no TDS is deducted. Worked out on the bill before GST; you pay the party that much less.",
     "notePlaceholder": "e.g. 40 bags cement",
-    "net": "You pay the party"
+    "net": "You pay the party",
+    "pickParty": "Choose the party"
+  },
+  "assets": {
+    "title": "Assets",
+    "lede": "Tools and other things bought to reuse at any site, like axes and bowls. They come from party bills whose lines are marked “Asset”. They are the company’s, not a site’s cost or stock. Move them here when they go to another site.",
+    "value": "Worth of assets held",
+    "valueNote": "At what each cost on average",
+    "kinds": "Kinds of assets",
+    "atSites": "{count, plural, =0 {At no site} one {At # site} other {At # sites}}",
+    "tabNow": "Where they are",
+    "tabBought": "Bought",
+    "tabMoves": "Moves between sites",
+    "none": "No assets yet. Mark a line on a party’s bill as “Asset” and it shows here.",
+    "noneBought": "No assets bought yet.",
+    "asset": "Asset",
+    "site": "Site",
+    "boughtHere": "Bought here",
+    "movedIn": "Moved in",
+    "movedOut": "Moved out",
+    "atSiteNow": "At the site now",
+    "worth": "Worth",
+    "date": "Date",
+    "bill": "Bill",
+    "party": "Party",
+    "qty": "Qty",
+    "rate": "Rate",
+    "cost": "Cost",
+    "moveTitle": "Move assets to another site",
+    "howMany": "How many",
+    "from": "From site",
+    "to": "To site",
+    "move": "Move",
+    "notePlaceholder": "e.g. sent with the tractor",
+    "remove": "Remove this move",
+    "errors": {
+      "pick_all": "Pick the asset and both sites.",
+      "same_site": "The two sites are the same.",
+      "invalid_date": "That date is not valid.",
+      "bad_quantity": "Type how many, e.g. 4.",
+      "not_enough": "That site does not have that many of this asset.",
+      "not_saved": "Could not save the move.",
+      "not_removed": "Could not remove the move."
+    }
   }
 }
