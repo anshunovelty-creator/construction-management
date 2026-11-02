@@ -69,8 +69,9 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
       return { error: 'bad_ot', line: i };
     }
     if (!present && ot > 0) return { error: 'ot_absent', line: i };
+    if (p.kind === 'staff' && ot > 0) return { error: 'staff_no_ot', line: i };
     if (present && p.rate_paise === null) return { error: 'no_rate', line: i };
-    const pay = dayPay(p.kind, Number(p.rate_paise ?? 0));
+    const pay = dayPay(p.kind, Number(p.rate_paise ?? 0), date);
     rows.push({
       site_id: siteId, work_date: date, party_id: p.id, present, ot_hours: ot / 100, day_pay_paise: pay, amount_paise: dayAmount(present, ot, pay),
     });
@@ -160,6 +161,7 @@ export async function addWorkDone(siteId: string, date: string, _state: WorkStat
   for (const [a, activity] of activities.entries()) {
     const lines = activity.lines.filter((l) => Object.values(l).some((v) => (v ?? '').trim() !== ''));
     const description = (activity.description ?? '').trim();
+    const location = (activity.location ?? '').trim() || null;
     if (!description && lines.length === 0 && !activity.rate?.trim()) continue; // an activity left empty
     if (!description) return { error: 'need_activity', activity: a };
     const measure = measureOf.get(activity.unitId);
@@ -180,7 +182,7 @@ export async function addWorkDone(siteId: string, date: string, _state: WorkStat
         return { error: `bad_${(error as Error).message}`, activity: a, line: activity.lines.indexOf(line) };
       }
       rows.push({
-        site_id: siteId, work_date: date, activity: description, measurement: measurementText(measure, line),
+        site_id: siteId, work_date: date, activity: description, location, measurement: measurementText(measure, line),
         quantity: milli / 1000, unit_id: activity.unitId, rate_paise: ratePaise, amount_paise: amountPaise(milli, ratePaise),
       });
     }

@@ -314,7 +314,7 @@ summary.firm-pill:hover { border-color: color-mix(in srgb, var(--muted) 55%, var
 .work-builder-head .hint { margin: 0; max-width: 78ch; }
 .activity { border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--sheet); overflow: hidden; box-shadow: var(--shadow-xs); }
 .activity.wrong { border-color: var(--minus); box-shadow: 0 0 0 3px var(--minus-soft); }
-.activity-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 130px 150px auto; align-items: end; gap: 12px; padding: 14px 16px; background: var(--head); border-bottom: 1px solid var(--rule); }
+.activity-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 180px 130px 150px auto; align-items: end; gap: 12px; padding: 14px 16px; background: var(--head); border-bottom: 1px solid var(--rule); }
 .sr-badge { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 6px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 650; font-size: 14px; font-variant-numeric: tabular-nums; }
 .icon-btn { width: 36px; min-width: 36px; padding: 0; margin-bottom: 4px; }
 .activity-empty { margin: 0; padding: 18px 16px; color: var(--muted); font-size: 14px; }
@@ -349,6 +349,7 @@ table.saved-work tr.subtotal td.num { color: var(--ink); }
 .qty-with-unit { display: inline-flex; align-items: center; gap: 8px; }
 .unit-tag { min-width: 2.5rem; font-size: 13px; font-weight: 600; color: var(--muted); }
 .use-table select { min-width: 12rem; min-height: 38px; padding: 6px 30px 6px 8px; font-size: 15px; }
+.use-table .search-select { min-width: 12rem; }
 .use-table .remark-input { width: 100%; min-width: 10rem; }
 /* Attendance: P / A taps; P fills green, A red. */
 .quick-time { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -382,7 +383,7 @@ table.saved-work tr.subtotal td.num { color: var(--ink); }
   .measure-table tr.wrong { background: var(--minus-soft); }
   .measure-table td, .measure-table .box { display: block; width: auto; padding: 0; border: 0 !important; background: none !important; text-align: left; }
   .measure-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500; color: var(--muted); }
-  .measure-table input, .measure-table select, .use-table select { width: 100%; min-width: 0; }
+  .measure-table input, .measure-table select, .use-table select, .use-table .search-select { width: 100%; min-width: 0; }
   .measure-table .times, .measure-table .line-no { display: none; }
   .measure-table .result { grid-column: span 2; min-width: 0; }
   .measure-table .wide { grid-column: 1 / -1; }
@@ -552,6 +553,8 @@ tr:hover .party-link { color: var(--accent); }
 .row-filter { flex: 0 1 340px; display: grid; gap: 4px; }
 .row-filter input { padding-left: 38px; background: var(--sheet) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238a93a5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 12px center; }
 .row-filter p { margin: 0; font-size: 13.5px; }
+/* A list whose rows are all hidden (only parties with no entries, before a search) takes no space. */
+.hide-when-empty:not(:has(tbody tr:not([hidden]))) { display: none; }
 .open-other { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 24px; padding: 14px 18px; }
 .open-other label { font-weight: 500; font-size: 14px; }
 .open-other select { width: auto; min-width: 16rem; max-width: 100%; }
@@ -811,14 +814,66 @@ table.statement .pill { margin-left: 6px; }
   table.statement a { color: inherit; text-decoration: none; }
 }
 
+/* Daily report on paper (print-sheet.tsx): a document of its own, in fixed ink colours so a dark screen theme never
+   reaches the PDF. Only it is printed from the report page. */
+.print-only { display: none; }
+@media print {
+  .print-only { display: block; }
+  .report-sheet { color: #111827; background: #fff; font-size: 11px; line-height: 1.45; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding-bottom: 10px; border-bottom: 3px solid #3a56d4; }
+  .sheet-firm { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #3a56d4; }
+  .report-sheet h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+  .sheet-meta { display: grid; grid-template-columns: auto auto; gap: 2px 12px; margin: 0; font-size: 11px; }
+  .sheet-meta dt { color: #5b6475; }
+  .sheet-meta dd { margin: 0; font-weight: 600; text-align: right; }
+  .sheet-figures { display: grid; grid-template-columns: repeat(4, 1fr); margin: 12px 0 4px; border: 1px solid #d5d9e0; border-radius: 6px; }
+  .sheet-figures > div { display: grid; gap: 2px; padding: 8px 10px; border-left: 1px solid #d5d9e0; }
+  .sheet-figures > div:first-child { border-left: 0; }
+  .sheet-figures span { color: #5b6475; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .sheet-figures strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .sheet-figures .plus strong { color: #0b7a4e; }
+  .sheet-figures .minus strong { color: #c4321f; }
+  .report-sheet h2 { margin: 16px 0 6px; font-size: 13px; color: #3a56d4; break-after: avoid; }
+  .sheet-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .sheet-table th { padding: 5px 7px; background: #eef1f8; border: 1px solid #d5d9e0; font-size: 10px; font-weight: 600; text-align: left; text-transform: uppercase; letter-spacing: 0.03em; color: #374151; }
+  .sheet-table td { padding: 5px 7px; border: 1px solid #e3e6ec; vertical-align: top; }
+  .sheet-table tbody tr:nth-child(even) td { background: #fafbfc; }
+  .sheet-table .num { text-align: right; white-space: nowrap; }
+  .sheet-table .n { width: 28px; text-align: center; color: #5b6475; }
+  .sheet-table .sub { display: block; color: #5b6475; font-size: 10px; }
+  .sheet-table .tag { margin-left: 6px; padding: 0 5px; border: 1px solid #c7cddb; border-radius: 3px; font-size: 9px; color: #5b6475; }
+  .sheet-table tr.absent td { color: #8a92a3; }
+  .sheet-table tr.sub-total td { background: #f4f6fa; font-style: italic; }
+  .sheet-table tfoot td { background: #eef1f8; border-top: 2px solid #c7cddb; font-weight: 700; }
+  .sheet-table td.nil { text-align: center; color: #8a92a3; font-style: italic; }
+  .sheet-table tr, .sheet-figures, .sheet-sign { break-inside: avoid; }
+  .sheet-table thead { display: table-header-group; }
+  .sheet-summary { width: 55%; margin-left: auto; }
+  .sheet-summary tfoot tr.plus td { color: #0b7a4e; font-size: 13px; }
+  .sheet-summary tfoot tr.minus td { color: #c4321f; font-size: 13px; }
+  .sheet-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 40px; }
+  .sheet-sign div { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid #374151; color: #5b6475; font-size: 10px; }
+  .sheet-sign span { color: #111827; font-size: 11px; font-weight: 600; min-height: 16px; }
+  .sheet-printed { margin: 18px 0 0; color: #8a92a3; font-size: 9px; text-align: center; }
+}
+
 /* Search select: a dropdown you can type into. The list floats (fixed) so tables cannot clip it. */
 .search-select { position: relative; display: block; min-width: 0; }
 .search-select input { padding-right: 32px; }
 .search-select::after { content: ''; position: absolute; right: 13px; top: 50%; width: 7px; height: 7px; margin-top: -5px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); pointer-events: none; }
-.search-list { position: fixed; z-index: 1000; margin: 4px 0; padding: 4px; list-style: none; max-height: 280px; overflow-y: auto; background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); font-size: 15px; }
+.search-list { position: fixed; z-index: 1000; white-space: normal; margin: 4px 0; padding: 4px; list-style: none; max-height: 280px; overflow-y: auto; background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: var(--radius); box-shadow: var(--shadow-lg); font-size: 15px; }
 .search-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--ink); }
 .search-list li[aria-selected='true'] { background: var(--accent-soft); }
 .search-list li.current { font-weight: 600; }
 .search-list .search-group { color: var(--muted); font-size: 12.5px; font-weight: 400; white-space: nowrap; }
 .search-list li.search-none { cursor: default; color: var(--muted); font-size: 13.5px; }
+.search-list li.search-create { color: var(--accent); font-weight: 600; border-top: 1px solid var(--rule); border-radius: 0 0 6px 6px; overflow-wrap: anywhere; }
+
+/* Adding a material from a form (new-material.tsx). */
+.new-material { inset: 0; margin: auto; height: fit-content; width: min(420px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--rule-strong); border-radius: var(--radius); background: var(--sheet); color: var(--ink); box-shadow: var(--shadow-lg); }
+.new-material::backdrop { background: rgb(15 18 25 / 0.45); }
+.new-material h2 { margin: 0 0 14px; font-size: 18px; }
+.new-material .field { margin-bottom: 12px; }
+.new-material .field > span { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.new-material-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .sheet .search-select::after { right: 10px; }

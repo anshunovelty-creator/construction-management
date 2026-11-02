@@ -77,7 +77,7 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
 /** Choices for every reference field in `fields`, as the signed-in user may see them; in `scope`'s firm when given. */
 export async function loadChoices(db: Db, fields: Field[], scope?: ChoiceScope): Promise<Choices> {
   const sources = [...new Set(fields.flatMap((f): RefSource[] =>
-    f.kind === 'ref' || f.kind === 'multi' ? [f.ref] : f.kind === 'items' ? ['materials', 'gstRates'] : []))];
+    f.kind === 'ref' || f.kind === 'multi' ? [f.ref] : f.kind === 'items' ? ['materials', 'gstRates', 'units'] : []))];
   const loaded = await Promise.all(sources.map((source) => load(db, source, scope)));
   return Object.fromEntries(sources.map((source, i) => [source, loaded[i]]));
 }

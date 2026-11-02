@@ -5,7 +5,9 @@ import { useActionState, useEffect, useState } from 'react';
 import { showPaise } from '@/lib/money';
 import { QTY, valueOf } from '@/lib/stock';
 import { Icon } from '@/components/icons';
+import { NewMaterial } from '@/components/new-material';
 import { SearchSelect } from '@/components/search-select';
+import type { Choice } from '@/lib/masters/registry';
 
 export interface MaterialLine {
   materialId: string;
@@ -38,15 +40,23 @@ const NUMBER = /^(\d+(\.\d*)?|\.\d+)$/;
  * at the site once this is used, as you type; below zero is shown in red (a party bill may not be entered yet).
  */
 export function MaterialUseForm({
-  materials,
+  materials: given,
+  units,
   action,
 }: {
   materials: MaterialChoice[];
+  /** For a material added here: its unit. */
+  units: Choice[];
   action: (state: MaterialState, data: FormData) => Promise<MaterialState>;
 }) {
   const t = useTranslations('report');
+  const tNew = useTranslations('newMaterial');
   const [state, formAction, pending] = useActionState(action, {});
   const [lines, setLines] = useState<MaterialLine[]>([emptyLine(), emptyLine(), emptyLine()]);
+  // Materials added from this form: none of this site's stock yet, so no rate and nothing left.
+  const [added, setAdded] = useState<MaterialChoice[]>([]);
+  const [creating, setCreating] = useState<{ line: number; name: string } | null>(null);
+  const materials = [...given, ...added];
   const material = new Map(materials.map((m) => [m.id, m]));
 
   useEffect(() => {
@@ -71,6 +81,13 @@ export function MaterialUseForm({
   return (
     <form action={formAction} className="card work-builder">
       <input type="hidden" name="lines" value={JSON.stringify(lines)} />
+      {creating && (
+        <NewMaterial name={creating.name} units={units} onClose={() => setCreating(null)} onAdded={(m) => {
+          setAdded((all) => [...all, { id: m.id, name: m.name, unit: units.find((u) => u.value === m.unitId)?.label ?? '', rate: null, left: 0 }]);
+          change(creating.line, { materialId: m.id });
+          setCreating(null);
+        }} />
+      )}
       <div className="work-builder-head">
         <h2>{t('use.addTitle')}</h2>
         <p className="hint">{t('use.addHint')}</p>
@@ -110,6 +127,8 @@ export function MaterialUseForm({
                         aria-label={`${t('use.material')}, ${t('work.lineNo', { n: l + 1 })}`}
                         placeholder={t('use.pickMaterial')}
                         options={materials.map((x) => ({ value: x.id, label: x.name }))}
+                        onCreate={(name) => setCreating({ line: l, name })}
+                        createLabel={(name) => tNew('addAs', { name })}
                       />
                     </td>
                     <td className="box qty" data-label={t('use.quantity')}>

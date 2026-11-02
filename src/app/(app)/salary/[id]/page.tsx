@@ -6,7 +6,7 @@ import { PrintButton } from '@/components/print-button';
 import { requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { salaryPeriod, salaryTotals, type AttendanceDay, type PersonKind } from '@/lib/wages';
+import { salaryPeriod, salaryTotals, staffSalary, type AttendanceDay, type PersonKind } from '@/lib/wages';
 import { rupeesInWords } from '@/lib/words';
 import { showDate, todayInIndia } from '../../entries/data';
 import { PeriodBar, periodQuery } from '../period';
@@ -41,7 +41,13 @@ export default async function SalarySlipPage({
   if (!person) notFound();
   const siteName = new Map((sites ?? []).map((s) => [s.id as string, s.name as string]));
   const rows = days ?? [];
+  // Staff: a fixed salary for the period whatever the attendance, which is listed for the record only.
+  const staff = person.kind === 'staff';
   const totals = salaryTotals(rows);
+  if (staff) {
+    const fixed = staffSalary(Number(person.rate_paise ?? 0), period.from, period.to);
+    Object.assign(totals, { otHours: 0, dayPaise: fixed, otPaise: 0, totalPaise: fixed });
+  }
 
   return (
     <>
@@ -86,7 +92,8 @@ export default async function SalarySlipPage({
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const dayPart = r.present ? Number(r.day_pay_paise) : 0;
+                  const dayPart = r.present && !staff ? Number(r.day_pay_paise) : 0;
+                  const amount = staff ? 0 : Number(r.amount_paise);
                   return (
                     <tr key={r.id}>
                       <td className="whitespace-nowrap">{showDate(r.work_date)}</td>
@@ -94,8 +101,8 @@ export default async function SalarySlipPage({
                       <td><span className={`pill ${r.present ? 'verified' : 'pending'}`} title={t(`report.labour.mark.${r.present ? 'P' : 'A'}`)}>{r.present ? 'P' : 'A'}</span></td>
                       <td className="num">{Number(r.ot_hours) || '–'}</td>
                       <td className="num wide-only">{dayPart ? showPaise(dayPart) : '–'}</td>
-                      <td className="num wide-only">{Number(r.amount_paise) - dayPart ? showPaise(Number(r.amount_paise) - dayPart) : '–'}</td>
-                      <td className="num">{showPaise(Number(r.amount_paise))}</td>
+                      <td className="num wide-only">{amount - dayPart ? showPaise(amount - dayPart) : '–'}</td>
+                      <td className="num">{staff ? '–' : showPaise(amount)}</td>
                     </tr>
                   );
                 })}
@@ -116,8 +123,14 @@ export default async function SalarySlipPage({
         )}
 
         <dl className="bill-totals slip-totals">
-          <div><dt>{t('salary.forDays', { n: totals.present })}</dt><dd>{showPaise(totals.dayPaise)}</dd></div>
-          <div><dt>{t('salary.forOt', { n: totals.otHours })}</dt><dd>{showPaise(totals.otPaise)}</dd></div>
+          {staff ? (
+            <div><dt>{t('salary.fixed', { rate: showPaise(Number(person.rate_paise ?? 0)) })}</dt><dd>{showPaise(totals.dayPaise)}</dd></div>
+          ) : (
+            <>
+              <div><dt>{t('salary.forDays', { n: totals.present })}</dt><dd>{showPaise(totals.dayPaise)}</dd></div>
+              <div><dt>{t('salary.forOt', { n: totals.otHours })}</dt><dd>{showPaise(totals.otPaise)}</dd></div>
+            </>
+          )}
           <div><dt>{t('salary.salary')}</dt><dd>{showPaise(totals.totalPaise)}</dd></div>
         </dl>
         <p className="slip-words"><span className="muted">{t('salary.inWords')}</span> {rupeesInWords(totals.totalPaise)}</p>

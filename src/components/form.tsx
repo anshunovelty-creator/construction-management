@@ -277,6 +277,7 @@ function Fields({
       <div className="bill-head">{fields.slice(0, itemsAt).map(renderField)}</div>
       <BillItems
         materials={choices.materials ?? []}
+        units={choices.units ?? []}
         gstRates={choices.gstRates ?? []}
         values={state.values ?? {}}
         errors={state.errors}

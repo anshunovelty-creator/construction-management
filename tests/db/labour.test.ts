@@ -36,6 +36,11 @@ it('lets a supervisor mark P or A with OT at their own site, once a day, paying 
   const roshani = (await db.query<{ id: string }>(`insert into parties (kind, name) values ('worker', 'Roshani') returning id`)).rows[0]!.id;
   await expect(mark(seed.svgSite, roshani, false, '2', 20_000)).rejects.toThrow('check constraint'); // no OT when absent
   await expect(mark(seed.svgSite, roshani, true, '0', 70_000)).rejects.toThrow('check constraint'); // not the day's pay
+
+  // Staff have a fixed salary: marked present or absent, never OT.
+  const sunil = (await db.query<{ id: string }>(`insert into parties (kind, name) values ('staff', 'Sunil') returning id`)).rows[0]!.id;
+  await expect(mark(seed.svgSite, sunil, true, '1', 90_000)).rejects.toThrow('no OT');
+  await mark(seed.svgSite, sunil, true, '0', 80_000);
 });
 
 it('keeps other site costs, but not material, which comes from stock', async () => {

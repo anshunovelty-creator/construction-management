@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { salaryPeriod, salaryTotals, type AttendanceDay, type PersonKind } from '@/lib/wages';
+import { salaryPeriod, salaryTotals, staffSalary, type AttendanceDay, type PersonKind } from '@/lib/wages';
 import { showDate, todayInIndia } from '../entries/data';
 import { PeriodBar, periodQuery } from './period';
 
@@ -12,8 +12,8 @@ interface DayRow extends AttendanceDay {
 }
 
 /**
- * Salary for a period, from the attendance marked on the daily reports at every site: for each worker and staff
- * member, days present and absent, OT hours, and what that comes to. Each name opens their salary slip.
+ * Salary for a period. Workers: from the attendance marked on the daily reports at every site, days present and OT
+ * hours. Staff: their fixed monthly salary, whatever the attendance (shown for the record). Each name opens the slip.
  */
 export default async function SalaryPage({ searchParams }: { searchParams: Promise<{ month?: string; from?: string; to?: string }> }) {
   await requireProfile('owner', 'office');
@@ -24,12 +24,21 @@ export default async function SalaryPage({ searchParams }: { searchParams: Promi
   const [{ data: days }, { data: people }] = await Promise.all([
     db.from('labour_day').select('party_id, present, ot_hours, day_pay_paise, amount_paise')
       .gte('work_date', period.from).lte('work_date', period.to).returns<DayRow[]>(),
-    db.from('parties').select('id, name, kind').in('kind', ['staff', 'worker'])
-      .order('kind', { ascending: false }).order('name').returns<{ id: string; name: string; kind: PersonKind }[]>(),
+    db.from('parties').select('id, name, kind, rate_paise, is_active').in('kind', ['staff', 'worker'])
+      .order('kind', { ascending: false }).order('name')
+      .returns<{ id: string; name: string; kind: PersonKind; rate_paise: number | null; is_active: boolean }[]>(),
   ]);
   const byPerson = new Map<string, DayRow[]>();
   for (const d of days ?? []) byPerson.set(d.party_id, [...(byPerson.get(d.party_id) ?? []), d]);
-  const rows = (people ?? []).filter((p) => byPerson.has(p.id)).map((p) => ({ ...p, ...salaryTotals(byPerson.get(p.id)!) }));
+  // Staff on the list are paid their salary even with no attendance marked.
+  const rows = (people ?? [])
+    .filter((p) => byPerson.has(p.id) || (p.kind === 'staff' && p.is_active && p.rate_paise !== null))
+    .map((p) => {
+      const totals = salaryTotals(byPerson.get(p.id) ?? []);
+      if (p.kind !== 'staff') return { ...p, ...totals };
+      const fixed = staffSalary(Number(p.rate_paise ?? 0), period.from, period.to);
+      return { ...p, ...totals, otHours: 0, dayPaise: fixed, otPaise: 0, totalPaise: fixed };
+    });
   const sum = (kind?: PersonKind) => rows.filter((r) => !kind || r.kind === kind).reduce((total, r) => total + r.totalPaise, 0);
   const query = periodQuery(period);
 

@@ -24,6 +24,9 @@ export default async function ClientIndexPage() {
   const sum = sumFigures(clients.map((c) => c.f));
   const gross = clients.reduce((s, c) => s + c.f.gross, 0);
   const deductions = clients.reduce((s, c) => s + c.f.deductions, 0);
+  // Clients with no entry in this firm yet are listed hidden: a search finds them, so the first bill can be added.
+  const listed = new Set(clients.map((c) => c.id));
+  const quiet = (all ?? []).filter((c) => !listed.has(c.id));
 
   return (
     <>
@@ -34,21 +37,20 @@ export default async function ClientIndexPage() {
         </div>
       </div>
 
-      {clients.length === 0 ? (
-        <p className="card empty">{t('client.empty')}</p>
-      ) : (
+      {clients.length === 0 && <p className="card empty">{t('client.empty')}</p>}
+      {clients.length + quiet.length > 0 && (
         <>
-          <div className="stats">
+          {clients.length > 0 && <div className="stats">
             <Stat label={t('client.total')} value={showPaise(sum.total)} note={t('client.clientCount', { count: clients.length })} />
             <Stat label={t('client.received')} value={showPaise(sum.paid)} note={t('party.percentNote', { percent: sum.percentPaid })} tone="done" />
             <Stat label={t('client.balance')} value={showPaise(sum.balance)} note={t('client.balanceNote')} tone="due" />
-          </div>
+          </div>}
 
           <div className="toolbar">
             <RowFilter table="clients" label={t('client.search')} placeholder={t('client.searchHint')} none={t('client.searchNone')} />
             <p className="hint">{t('client.clickHint')}</p>
           </div>
-          <div className="card table-wrap flush">
+          <div className="card table-wrap flush hide-when-empty">
             <table className="ledger clickable" id="clients">
               <thead>
                 <tr>
@@ -81,8 +83,15 @@ export default async function ClientIndexPage() {
                     <td className="nowrap">{f.lastPayment ? showDate(f.lastPayment) : <span className="muted">–</span>}</td>
                   </tr>
                 ))}
+                {quiet.map(({ id, name }) => (
+                  <tr key={id} data-name={name} data-quiet="" hidden>
+                    <td className="num muted">–</td>
+                    <td><ListLink href={`/client?id=${id}`} className="party-link">{name}</ListLink></td>
+                    <td colSpan={9} className="muted">{t('party.noEntriesYet')}</td>
+                  </tr>
+                ))}
               </tbody>
-              <tfoot>
+              {clients.length > 0 && <tfoot>
                 <tr>
                   <td />
                   <td>{t('party.grandTotal')}</td>
@@ -95,7 +104,7 @@ export default async function ClientIndexPage() {
                   <td className="num">{sum.percentPaid}%</td>
                   <td colSpan={2} />
                 </tr>
-              </tfoot>
+              </tfoot>}
             </table>
           </div>
         </>

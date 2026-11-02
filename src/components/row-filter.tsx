@@ -2,17 +2,20 @@
 
 import { useState } from 'react';
 
-/** A search box that hides the rows of table #`table` whose data-name does not contain the typed text. */
+/**
+ * A search box that hides the rows of table #`table` whose data-name does not contain the typed text. Rows marked
+ * data-quiet (a party with no entries yet) stay hidden until a search finds them.
+ */
 export function RowFilter({ table, label, placeholder, none }: { table: string; label: string; placeholder: string; none: string }) {
   const [empty, setEmpty] = useState(false);
   function filter(text: string) {
     const want = text.trim().toLowerCase();
     let shown = 0;
     document.querySelectorAll<HTMLTableRowElement>(`#${table} tbody tr[data-name]`).forEach((row) => {
-      row.hidden = !row.dataset.name!.toLowerCase().includes(want);
+      row.hidden = !row.dataset.name!.toLowerCase().includes(want) || (!want && row.dataset.quiet !== undefined);
       if (!row.hidden) shown++;
     });
-    setEmpty(shown === 0);
+    setEmpty(want !== '' && shown === 0);
   }
   return (
     <div className="row-filter">

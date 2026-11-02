@@ -4,16 +4,19 @@ import { LabourForm, OtherCostForm, type Person } from '@/components/labour-form
 import { MaterialUseForm } from '@/components/material-use-form';
 import { SearchSelect } from '@/components/search-select';
 import { WorkDoneForm } from '@/components/work-done-form';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
 import { QTY, stockLines, valueOf, type Bought, type Used } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
 import type { Measure } from '@/lib/work';
+import { dayPay } from '@/lib/wages';
 import { Stat } from '../party/shared';
 import { showDate, todayInIndia } from '../entries/data';
 import { addLabour, addMaterialUse, addOtherCost, addWorkDone, removeReportLine } from './actions';
 import { Icon } from '@/components/icons';
 import { AutoForm } from '@/components/auto-form';
+import { PrintButton } from '@/components/print-button';
+import { PrintSheet, type SheetData } from './print-sheet';
 
 interface UseRow extends Used {
   id: string;
@@ -24,6 +27,7 @@ interface UseRow extends Used {
 interface WorkRow {
   id: string;
   activity: string;
+  location: string | null;
   measurement: string;
   quantity: number | string;
   unit_id: string;
@@ -94,7 +98,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     db.from('material_use').select('id, site_id, material_id, use_date, quantity, remark, created_by')
       .eq('site_id', site.id).lte('use_date', date).order('created_at').returns<UseRow[]>(),
     db.rpc('app_site_bought', { p_site_id: site.id, p_upto: date }),
-    db.from('work_done').select('id, activity, measurement, quantity, unit_id, rate_paise, amount_paise, created_by')
+    db.from('work_done').select('id, activity, location, measurement, quantity, unit_id, rate_paise, amount_paise, created_by')
       .eq('site_id', site.id).eq('work_date', date).order('created_at').returns<WorkRow[]>(),
     // Staff first, then workers, by name: the order of the site sheet.
     db.from('parties').select('id, name, kind, rate_paise, site_id').in('kind', ['staff', 'worker']).eq('is_active', true)
@@ -121,7 +125,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   });
   const marked = new Set(labourRows.map((r) => r.party_id));
   const unmarked: Person[] = (workers ?? []).filter((p) => !marked.has(p.id) && (!p.site_id || p.site_id === site.id))
-    .map((p) => ({ id: p.id, name: p.name, kind: p.kind, rate: p.rate_paise === null ? null : Number(p.rate_paise) }));
+    .map((p) => ({ id: p.id, name: p.name, kind: p.kind, rate: p.rate_paise === null ? null : Number(p.rate_paise),
+      dayPay: p.rate_paise === null ? null : dayPay(p.kind, Number(p.rate_paise), date) }));
   const isStaff = (r: LabourRow) => person.get(r.party_id)?.kind === 'staff';
   const presentCount = labourRows.filter((r) => r.present).length;
   const staffTotal = sum(labourRows.filter(isStaff));
@@ -131,12 +136,12 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const costTotal = materialTotal + labourTotal + staffTotal + otherTotal;
   const profit = workTotal - costTotal;
 
-  // Lines of the same activity typed one after another form one numbered activity, like the sheet.
-  const activities: { no: number; name: string; rows: WorkRow[]; total: number }[] = [];
+  // Lines of the same activity at the same location typed one after another form one numbered activity, like the sheet.
+  const activities: { no: number; name: string; location: string | null; rows: WorkRow[]; total: number }[] = [];
   for (const r of workRows) {
     const last = activities.at(-1);
-    if (last && last.name === r.activity) last.rows.push(r);
-    else activities.push({ no: activities.length + 1, name: r.activity, rows: [r], total: 0 });
+    if (last && last.name === r.activity && last.location === r.location) last.rows.push(r);
+    else activities.push({ no: activities.length + 1, name: r.activity, location: r.location, rows: [r], total: 0 });
     activities.at(-1)!.total += Number(r.amount_paise);
   }
 
@@ -155,9 +160,38 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   );
   const dayLink = (days: number) => `/report?site=${site.id}&date=${shiftDate(date, days)}`;
 
+  const working = await getWorkingFirm();
+  const sheet: SheetData = {
+    firm: working?.firm.name ?? null,
+    site: site.name,
+    date: showDate(date),
+    preparedBy: profile.full_name,
+    printedOn: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }),
+    work: activities.map((a) => ({ no: a.no, name: a.name, location: a.location, total: a.total, rows: a.rows.map((r) => ({
+      id: r.id, measurement: r.measurement, quantity: Number(r.quantity), unit: unitName.get(r.unit_id) ?? '',
+      rate: Number(r.rate_paise), amount: Number(r.amount_paise),
+    })) })),
+    material: usedToday.map((r) => {
+      const s = stock.get(r.material_id);
+      return { id: r.id, name: material.get(r.material_id)?.name ?? '', quantity: Number(r.quantity), unit: unitOf(r.material_id),
+        rate: s?.rate ?? null, amount: amount(r), left: s ? `${QTY.format(s.left)} ${unitOf(r.material_id)}` : '', remark: r.remark ?? '' };
+    }),
+    labour: labourRows.map((r) => ({ id: r.id, name: person.get(r.party_id)?.name ?? '', staff: isStaff(r), present: r.present,
+      ot: Number(r.ot_hours), dayPay: Number(r.day_pay_paise), amount: Number(r.amount_paise) })),
+    other: otherRows.map((r) => ({ id: r.id, description: r.description, head: t(`options.cost_head.${r.cost_head}`),
+      quantity: Number(r.quantity), rate: Number(r.rate_paise), amount: Number(r.amount_paise) })),
+    totals: { work: workTotal, material: materialTotal, labour: labourTotal, staff: staffTotal, other: otherTotal, cost: costTotal, profit },
+  };
+
   return (
     <>
-      <h1>{t('report.title')}</h1>
+      <div className="no-print">
+      <div className="ledger-head">
+        <div>
+          <h1>{t('report.title')}</h1>
+        </div>
+        <PrintButton label={t('report.print')} title={`${t('report.title')} - ${site.name} - ${showDate(date)}`} />
+      </div>
       <p className="lede">{t('report.lede')}</p>
 
       {/* Picking a site or a day opens it straight away; the keys reset the boxes when a day arrow is used. */}
@@ -215,7 +249,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                   {a.rows.map((r, i) => (
                     <tr key={r.id}>
                       <td className="num muted">{i === 0 && a.no}</td>
-                      <td>{i === 0 && <strong>{a.name}</strong>}</td>
+                      <td>{i === 0 && <><strong>{a.name}</strong>{a.location && <div className="muted">{a.location}</div>}</>}</td>
                       <td>{r.measurement}</td>
                       <td className="num">{QTY.format(Number(r.quantity))} {unitName.get(r.unit_id)}</td>
                       <td className="num">{showPaise(Number(r.rate_paise))}</td>
@@ -242,7 +276,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </div>
         )}
 
-        <WorkDoneForm units={unitChoices} action={addWorkDone.bind(null, site.id, date)} />
+        <WorkDoneForm key={`${site.id}/${date}`} units={unitChoices} action={addWorkDone.bind(null, site.id, date)} />
       </section>
 
       <section className="report-section" aria-labelledby="material-title">
@@ -300,7 +334,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </div>
         )}
 
-        <MaterialUseForm materials={materialChoices} action={addMaterialUse.bind(null, site.id, date)} />
+        <MaterialUseForm key={`${site.id}/${date}`} materials={materialChoices} units={unitChoices.map((u) => ({ value: u.id, label: u.name }))} action={addMaterialUse.bind(null, site.id, date)} />
       </section>
 
       <section className="report-section" aria-labelledby="labour-title">
@@ -358,7 +392,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         )}
 
         {unmarked.length > 0 ? (
-          <LabourForm key={[...marked].join()} people={unmarked} action={addLabour.bind(null, site.id, date)} />
+          <LabourForm key={`${site.id}/${date}/${[...marked].join()}`} people={unmarked} action={addLabour.bind(null, site.id, date)} />
         ) : (
           <p className="card empty-state">
             {t(labourRows.length ? 'report.allMarked' : 'report.noWorkers')}{' '}
@@ -406,7 +440,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </div>
         )}
 
-        <OtherCostForm action={addOtherCost.bind(null, site.id, date)} />
+        <OtherCostForm key={`${site.id}/${date}`} action={addOtherCost.bind(null, site.id, date)} />
       </section>
 
       <section className="report-section" aria-labelledby="profit-title">
@@ -435,6 +469,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </table>
         </div>
       </section>
+      </div>
+      <PrintSheet d={sheet} />
     </>
   );
 }

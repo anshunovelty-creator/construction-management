@@ -10,6 +10,8 @@ import { SearchSelect } from '@/components/search-select';
 
 export interface WorkActivity {
   description: string;
+  /** Where on the site: washroom, 1st floor, room 2. Optional. */
+  location: string;
   unitId: string;
   rate: string;
   lines: MeasurementLine[];
@@ -31,7 +33,7 @@ export interface UnitChoice {
 }
 
 const emptyLine = (): MeasurementLine => ({ count: '', length: '', width: '', height: '', quantity: '' });
-const emptyActivity = (): WorkActivity => ({ description: '', unitId: '', rate: '', lines: [emptyLine()] });
+const emptyActivity = (): WorkActivity => ({ description: '', location: '', unitId: '', rate: '', lines: [emptyLine()] });
 
 /** The line's quantity in thousandths, or null while its boxes are not all filled in. */
 function previewMilli(measure: Measure | undefined, line: MeasurementLine): number | null {
@@ -121,6 +123,14 @@ export function WorkDoneForm({
                   value={activity.description}
                   onChange={(e) => change(a, { description: e.target.value })}
                   placeholder={t('work.descriptionExample')}
+                />
+              </label>
+              <label className="activity-field">
+                <span>{t('work.location')}</span>
+                <input
+                  value={activity.location}
+                  onChange={(e) => change(a, { location: e.target.value })}
+                  placeholder={t('work.locationExample')}
                 />
               </label>
               <label className="activity-field">

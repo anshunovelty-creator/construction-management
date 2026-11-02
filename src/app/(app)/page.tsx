@@ -25,6 +25,9 @@ export default async function PartyIndexPage() {
     db.from('parties').select('id, name').eq('kind', 'vendor').eq('is_active', true).order('name'),
   ]);
   const sum = sumFigures(parties.map((p) => p.f));
+  // Parties with no entry in this firm yet are listed hidden: a search finds them, so the first bill can be added.
+  const listed = new Set(parties.map((p) => p.id));
+  const quiet = (vendors ?? []).filter((v) => !listed.has(v.id));
 
   return (
     <>
@@ -36,21 +39,20 @@ export default async function PartyIndexPage() {
         <Link href="/dashboard" className="btn ghost">{t('nav.dashboard')} <Icon name="arrowRight" size={16} /></Link>
       </div>
 
-      {parties.length === 0 ? (
-        <p className="card empty">{t('party.empty')}</p>
-      ) : (
+      {parties.length === 0 && <p className="card empty">{t('party.empty')}</p>}
+      {parties.length + quiet.length > 0 && (
         <>
-          <div className="stats">
+          {parties.length > 0 && <div className="stats">
             <Stat label={t('party.total')} value={showPaise(sum.total)} note={t('party.partyCount', { count: parties.length })} />
             <Stat label={t('party.paid')} value={showPaise(sum.paid)} note={t('party.percentNote', { percent: sum.percentPaid })} tone="done" />
             <Stat label={t('dashboard.balance')} value={showPaise(sum.balance)} note={t('party.balanceNote')} tone="owe" />
-          </div>
+          </div>}
 
           <div className="toolbar">
             <RowFilter table="parties" label={t('party.search')} placeholder={t('party.searchHint')} none={t('party.searchNone')} />
             <p className="hint">{t('party.clickHint')}</p>
           </div>
-          <div className="card table-wrap flush">
+          <div className="card table-wrap flush hide-when-empty">
             <table className="ledger clickable" id="parties">
               <thead>
                 <tr>
@@ -80,8 +82,15 @@ export default async function PartyIndexPage() {
                     <td className="nowrap">{f.lastPayment ? showDate(f.lastPayment) : <span className="muted">–</span>}</td>
                   </tr>
                 ))}
+                {quiet.map(({ id, name }) => (
+                  <tr key={id} data-name={name} data-quiet="" hidden>
+                    <td className="num muted">–</td>
+                    <td><ListLink href={`/party?id=${id}`} className="party-link">{name}</ListLink></td>
+                    <td colSpan={7} className="muted">{t('party.noEntriesYet')}</td>
+                  </tr>
+                ))}
               </tbody>
-              <tfoot>
+              {parties.length > 0 && <tfoot>
                 <tr>
                   <td />
                   <td>{t('party.grandTotal')}</td>
@@ -92,7 +101,7 @@ export default async function PartyIndexPage() {
                   <td className="num">{sum.percentPaid}%</td>
                   <td colSpan={2} />
                 </tr>
-              </tfoot>
+              </tfoot>}
             </table>
           </div>
         </>

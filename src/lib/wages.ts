@@ -1,8 +1,32 @@
-/** A worker's rate in Setup is per hour; staff's is per day. */
+/** A worker's rate in Setup is per hour; staff's is a fixed salary per month, with no OT and nothing cut for leave. */
 export type PersonKind = 'worker' | 'staff';
 
-/** A full day's pay in paise: 8 hours at a worker's hourly rate, or staff's day rate. */
-export const dayPay = (kind: PersonKind, ratePaise: number): number => (kind === 'worker' ? ratePaise * 8 : ratePaise);
+/** Days in the month of "2026-11-02": 30. */
+export const daysInMonth = (date: string): number => {
+  const [y, m] = date.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+};
+
+/**
+ * A day's pay in paise: 8 hours at a worker's hourly rate, or for staff a day's share of the month's salary (what the
+ * day costs the site they are at; their salary itself stays fixed, see staffSalary).
+ */
+export const dayPay = (kind: PersonKind, ratePaise: number, date: string): number =>
+  (kind === 'worker' ? ratePaise * 8 : Math.round(ratePaise / daysInMonth(date)));
+
+/** Staff salary for from–to: the whole month's salary for each full month, by calendar days for part of one. */
+export function staffSalary(monthlyPaise: number, from: string, to: string): number {
+  let total = 0;
+  for (let day = from; day <= to;) {
+    const month = day.slice(0, 7);
+    const dim = daysInMonth(day);
+    const last = `${month}-${String(dim).padStart(2, '0')}`;
+    const end = to < last ? to : last;
+    total += Math.round((monthlyPaise * (Number(end.slice(8)) - Number(day.slice(8)) + 1)) / dim);
+    day = new Date(Date.parse(`${last}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  }
+  return total;
+}
 
 /**
  * The day's amount: a full day's pay when present, plus each OT hour at a day's pay ÷ 8. Whole numbers until the last

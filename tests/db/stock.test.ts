@@ -79,4 +79,20 @@ it('keeps work done with its measurement, and refuses an amount that is not quan
      values ($1, '2026-10-18', 'Plaster', '4.3*1.3', 5.59, $2, 60000, $3)`, [seed.svgSite, m2, amount]));
   await add(335_400);
   await expect(add(1)).rejects.toThrow('work_done');
+  // Where on the site is optional, but never blank.
+  const at = (location: string | null) => asUser(db, ramesh, (tx) => tx.query(
+    `insert into work_done (site_id, work_date, activity, location, measurement, quantity, unit_id, rate_paise, amount_paise)
+     values ($1, '2026-10-18', 'Plaster', $3, '4.3*1.3', 5.59, $2, 60000, 335400)`, [seed.svgSite, m2, location]));
+  await at('Washroom');
+  await at(null);
+  await expect(at('  ')).rejects.toThrow('work_done');
+});
+
+it('lets a supervisor add a material from the daily report, but not change one', async () => {
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const added = await asUser(db, ramesh, (tx) => tx.query<{ id: string }>(`insert into materials (name) values ('Tiles') returning id`));
+  expect(added.rows).toHaveLength(1);
+  const renamed = await asUser(db, ramesh, (tx) => tx.query(`update materials set name = 'Cement 2' where id = $1`, [cement]));
+  expect(renamed.affectedRows).toBe(0);
+  expect((await db.query<{ name: string }>(`select name from materials where id = $1`, [cement])).rows[0]!.name).toBe('Cement');
 });

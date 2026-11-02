@@ -30,7 +30,14 @@ export interface SearchSelectProps {
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
   'data-cell'?: string;
+  /** Given: when the typed name matches no choice, the list ends with "Add …" for it, which calls this with the name. */
+  onCreate?: (name: string) => void;
+  /** The words of that last row, e.g. "Add “Cement” as a new material". */
+  createLabel?: (name: string) => string;
 }
+
+/** The value of the "Add …" row; never a real choice. */
+const CREATE = '\u0000create';
 
 const norm = (s: string) => s.toLocaleLowerCase('en-IN').normalize('NFKD').replace(/[̀-ͯ]/g, '');
 
@@ -69,7 +76,9 @@ export function SearchSelect(props: SearchSelectProps) {
       return words.every((w) => hay.includes(w));
     });
   }, [options, emptyLabel, text, typed]);
-  const shown = choices.slice(0, SHOWN);
+  const wanted = typed ? text.trim() : '';
+  const canCreate = Boolean(props.onCreate && wanted && !options.some((o) => norm(o.label) === norm(wanted)));
+  const shown = [...choices.slice(0, SHOWN), ...(canCreate ? [{ value: CREATE, label: props.createLabel?.(wanted) ?? wanted }] : [])];
 
   // The list floats above everything (fixed), so a table's scroll box cannot cut it off.
   const place = () => {
@@ -104,6 +113,11 @@ export function SearchSelect(props: SearchSelectProps) {
     setText(labelOf(value));
   }
   function pick(choice: Choice) {
+    if (choice.value === CREATE) {
+      close();
+      props.onCreate?.(wanted);
+      return;
+    }
     setOpen(false);
     setTyped(false);
     setText(choice.value ? choice.label : '');
@@ -139,7 +153,7 @@ export function SearchSelect(props: SearchSelectProps) {
     if (!open) return;
     // Leaving the box after typing takes the highlighted match; an emptied box clears an optional value.
     if (typed && text.trim() === '' && !required) pick({ value: '', label: '' });
-    else if (typed && text.trim() !== '' && shown[active]) pick(shown[active]);
+    else if (typed && text.trim() !== '' && shown[active] && shown[active].value !== CREATE) pick(shown[active]);
     else close();
   }
 
@@ -192,14 +206,14 @@ export function SearchSelect(props: SearchSelectProps) {
           // Keep the box focused while the list is pressed, so blur does not close it first.
           onMouseDown={(e) => e.preventDefault()}
         >
-          {shown.length === 0 && <li className="search-none">{t('none')}</li>}
+          {choices.length === 0 && <li className="search-none">{t('none')}</li>}
           {shown.map((o, i) => (
             <li
               key={o.value || '-'}
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === active}
-              className={o.value === value ? 'current' : undefined}
+              className={o.value === CREATE ? 'search-create' : o.value === value ? 'current' : undefined}
               onMouseMove={(e) => {
                 // Rows sliding under a still pointer (the list redrawn while typing) are not a hover.
                 const at = `${e.clientX},${e.clientY}`;

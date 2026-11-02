@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { quantityToMilli } from '@/lib/ledger/bill-items';
 import { COST_HEADS } from '@/lib/ledger/types';
 import { rupeesToPaise, showPaise } from '@/lib/money';
-import { dayAmount, dayPay, otCenti, type PersonKind } from '@/lib/wages';
+import { dayAmount, otCenti, type PersonKind } from '@/lib/wages';
 import { amountPaise } from '@/lib/work';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
@@ -33,12 +33,16 @@ export interface OtherLine {
   rate: string;
 }
 
-/** A worker or staff member not yet marked for the day, with their rate from Setup (paise: per hour or per day). */
+/**
+ * A worker or staff member not yet marked for the day: their rate from Setup (paise per hour, or per month for staff)
+ * and what a day present pays (for staff, the day's share of their fixed salary; null without a rate).
+ */
 export interface Person {
   id: string;
   name: string;
   kind: PersonKind;
   rate: number | null;
+  dayPay: number | null;
 }
 
 type Action = (state: LineState, data: FormData) => Promise<LineState>;
@@ -66,9 +70,9 @@ function Problem({ state, t }: { state: LineState; t: ReturnType<typeof useTrans
 
 /** The day's amount as marked, or null while unmarked, without a rate, or with OT that is not a number yet. */
 function pay(p: Person, line: LabourLine): number | null {
-  if (!line.mark || (line.mark === 'P' && p.rate === null)) return null;
+  if (!line.mark || (line.mark === 'P' && p.dayPay === null)) return null;
   try {
-    return dayAmount(line.mark === 'P', line.mark === 'P' ? otCenti(line.ot) : 0, dayPay(p.kind, p.rate ?? 0));
+    return dayAmount(line.mark === 'P', line.mark === 'P' ? otCenti(line.ot) : 0, p.dayPay ?? 0);
   } catch {
     return null;
   }
@@ -139,6 +143,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                       </span>
                     </td>
                     <td className="box" data-label={t('labour.ot')}>
+                      {p.kind === 'staff' ? <span className="muted" title={t('labour.staffFixed')}>—</span> : (
                       <span className="qty-with-unit">
                         <input
                           value={line.ot}
@@ -151,6 +156,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                         />
                         <span className="unit-tag">{t('labour.hrs')}</span>
                       </span>
+                      )}
                     </td>
                     <td className={p.rate === null ? 'num rate minus' : 'num rate'} data-label={t('labour.rate')}>
                       {p.rate === null ? t('labour.noRate') : `${showPaise(p.rate)} ${t(`labour.per.${p.kind}`)}`}

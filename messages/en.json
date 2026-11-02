@@ -44,7 +44,7 @@
   "masters": {
     "firms": "Firms",
     "sites": "Sites",
-    "parties": "Parties (clients, workers, staff)",
+    "parties": "Parties and clients",
     "work-orders": "Work orders",
     "money-accounts": "Bank and cash accounts",
     "add": "Add new",
@@ -128,7 +128,9 @@
     "use_date": "Date",
     "quantity": "Quantity used",
     "remark": "Remark",
-    "rate_paise": "Rate (₹) — per hour for a worker, per day for staff"
+    "rate_paise": "Rate (₹) — per hour for a worker, salary per month for staff",
+    "skill_level": "Skilled or unskilled",
+    "skill": "Skill (e.g. Mason, Carpenter)"
   },
   "options": {
     "party_kind": {
@@ -136,6 +138,11 @@
       "client": "Client",
       "worker": "Worker",
       "staff": "Staff",
+      "other": "Other"
+    },
+    "party_main": {
+      "vendor": "Party",
+      "client": "Client",
       "other": "Other"
     },
     "unit_measure": {
@@ -179,7 +186,11 @@
     },
     "worker_kind": {
       "worker": "Worker (paid by the hour)",
-      "staff": "Staff (paid by the day)"
+      "staff": "Staff (fixed monthly salary)"
+    },
+    "skill_level": {
+      "skilled": "Skilled",
+      "unskilled": "Unskilled"
     }
   },
   "users": {
@@ -561,7 +572,10 @@
     "openingAsOf": "{firm} · opening outstanding as on {date}",
     "noOpening": "{firm} · no opening balance",
     "billsTitle": "Bills",
-    "billsHint": "The opening balance comes first, then every bill from this party.",
+    "billsHint": "The opening balance comes first, then every bill from this party. Bill amount is with GST; the TDS is kept back and paid to the government, so the party is paid the bill amount less TDS.",
+    "billAmount": "Bill amount",
+    "tds": "TDS",
+    "toPay": "To pay after TDS",
     "openingRow": "Opening balance",
     "paymentsTitle": "Payments",
     "paymentsHint": "Money paid to this party.",
@@ -587,6 +601,7 @@
     "search": "Find a party",
     "searchHint": "Type a name to find a party…",
     "searchNone": "No party has that name.",
+    "noEntriesYet": "No entries yet. Open to add the first bill.",
     "clickHint": "Click any row to open that party.",
     "summary": "Summary",
     "lastOn": "Last paid on {date}",
@@ -729,6 +744,16 @@
   },
   "report": {
     "title": "Daily report",
+    "print": "Print / Save as PDF",
+    "sheet": {
+      "title": "Daily site report",
+      "preparedBy": "Prepared by",
+      "nil": "Nil",
+      "total": "Total",
+      "supervisorSign": "Site supervisor",
+      "checkedSign": "Checked by",
+      "printedOn": "Printed on {when}"
+    },
     "lede": "One site, one day: the work done, the material used, labour and staff, other costs, and what the day made. Supervisors fill it for their sites.",
     "prevDay": "Previous day",
     "nextDay": "Next day",
@@ -766,10 +791,12 @@
     },
     "work": {
       "addTitle": "Add work done",
-      "addHint": "One block per activity. Write what was done, pick the unit and type the rate. The measurement boxes follow the unit: M3 asks length × width × height, M2 length × width, Nos just the quantity. Use No. for how many alike (two walls: No. 2).",
+      "addHint": "One block per activity. Write what was done and where on the site, pick the unit and type the rate. The measurement boxes follow the unit: M3 asks length × width × height, M2 length × width, Nos just the quantity. Use No. for how many alike (two walls: No. 2).",
       "activityNo": "Activity {n}",
       "description": "Activity description",
       "descriptionExample": "e.g. Plaster on building walls",
+      "location": "Location",
+      "locationExample": "e.g. Washroom",
       "unit": "Unit",
       "pickUnit": "Pick…",
       "rate": "Rate (₹ per unit)",
@@ -825,6 +852,7 @@
       "pick_head": "Pick what the cost was for.",
       "bad_ot": "Type OT hours as a number from 0 to 16, like 2 or 1.5.",
       "ot_absent": "OT can only be given on a day the person was present.",
+      "staff_no_ot": "Staff have a fixed monthly salary, so no OT.",
       "no_rate": "This person has no rate in Setup → Workers and staff. Add it there first."
     },
     "costTotal": "Day’s costs",
@@ -832,7 +860,7 @@
     "profit": "Profit or loss",
     "profitNote": "Work done less the day’s costs",
     "labourHeading": "Labour and staff",
-    "labourNote": "{p} present · {a} absent. A day is 8 hours; OT is paid per hour on top",
+    "labourNote": "{p} present · {a} absent. A worker’s day is 8 hours, OT paid per hour on top; staff are on a fixed monthly salary",
     "noLabour": "Nobody marked for this day yet. Mark who came below.",
     "noWorkers": "No workers or staff on the list for this site yet.",
     "allMarked": "Everyone on the list is marked for this day.",
@@ -845,13 +873,14 @@
     "less": "Less: {what}",
     "labour": {
       "addTitle": "Mark attendance",
-      "addHint": "Tap P (present) or A (absent) for each person, and type OT hours worked past the 8-hour day. The pay comes from the rate in Setup: a worker’s day is 8 hours at their hourly rate; staff get their day rate. Each OT hour pays a day ÷ 8. Anyone not marked is not saved.",
+      "addHint": "Tap P (present) or A (absent) for each person, and type OT hours worked past the 8-hour day. A worker’s day is 8 hours at their hourly rate in Setup, and each OT hour pays a day ÷ 8. Staff have a fixed monthly salary: no OT, nothing cut for leave; a day present counts a day’s share of it in this site’s costs. Anyone not marked is not saved.",
+      "staffFixed": "Staff have a fixed salary: no OT",
       "name": "Name",
       "rate": "Rate",
       "staff": "Staff",
       "per": {
         "worker": "/ hr",
-        "staff": "/ day"
+        "staff": "/ month"
       },
       "dayTotal": "Labour and staff",
       "save": "Save attendance",
@@ -899,9 +928,24 @@
     "clientDeducted": "Client deducted",
     "total": "Total"
   },
+  "newMaterial": {
+    "addAs": "＋ Add “{name}” as a new material",
+    "title": "Add a material",
+    "name": "Material name",
+    "unit": "Unit",
+    "pickUnit": "Pick the unit…",
+    "add": "Add material",
+    "adding": "Adding…",
+    "cancel": "Cancel",
+    "errors": {
+      "need_name": "Type the material’s name.",
+      "duplicate": "A material with this name is already in Setup. It may be switched off there: ask the office to switch it on.",
+      "save_failed": "Could not add the material. Try again."
+    }
+  },
   "salary": {
     "title": "Salary",
-    "lede": "What each worker and staff member has earned, from the attendance marked on the daily reports at every site: days present at their day’s pay, plus OT hours. Open a name for their salary slip.",
+    "lede": "What each worker and staff member has earned. Workers: from the attendance marked on the daily reports at every site, days present at their day’s pay plus OT hours. Staff: their fixed monthly salary, with no OT and nothing cut for leave. Open a name for their salary slip.",
     "period": "Period",
     "thisMonth": "This month",
     "lastMonth": "Last month",
@@ -930,6 +974,7 @@
     "daysSummary": "{p} P · {a} A",
     "forDays": "{n, plural, one {# day present} other {# days present}}",
     "forOt": "{n} OT hrs",
+    "fixed": "Fixed salary ({rate} a month)",
     "signWorker": "Received by (worker)",
     "signOffice": "Paid by",
     "inWords": "In words:",

@@ -8,6 +8,7 @@ import type { Choice } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
 import { Icon } from '@/components/icons';
+import { NewMaterial } from '@/components/new-material';
 import { SearchSelect } from '@/components/search-select';
 
 type Row = { key: number; material: string; qty: string; rate: string; gst: string };
@@ -31,13 +32,16 @@ function priced(row: Row): PricedItem | null {
  * with the amount before GST, the GST and the total underneath. Posts one value per line under ITEM_INPUTS.
  */
 export function BillItems({
-  materials,
+  materials: given,
+  units = [],
   gstRates,
   values,
   errors = {},
   aside,
 }: {
   materials: Choice[];
+  /** For a material added from the bill: its unit. */
+  units?: Choice[];
   gstRates: Choice[];
   /** What the user typed before the form came back with errors. */
   values: Record<string, Typed>;
@@ -46,6 +50,10 @@ export function BillItems({
   aside?: React.ReactNode;
 }) {
   const t = useTranslations();
+  // Materials added from this bill, picked on the line they were typed in.
+  const [added, setAdded] = useState<Choice[]>([]);
+  const [creating, setCreating] = useState<{ key: number; name: string } | null>(null);
+  const materials = [...given, ...added];
   const defaultGst = gstRates.find((r) => r.value === '1800')?.value ?? gstRates[0]?.value ?? '0';
   const [rows, setRows] = useState<Row[]>(() => {
     const typed = list(values[ITEM_INPUTS.material]).map((material, i) => ({
@@ -68,6 +76,13 @@ export function BillItems({
 
   return (
     <div className="bill-items">
+      {creating && (
+        <NewMaterial name={creating.name} units={units} onClose={() => setCreating(null)} onAdded={(m) => {
+          setAdded((all) => [...all, { value: m.id, label: m.name }]);
+          set(creating.key, { material: m.id });
+          setCreating(null);
+        }} />
+      )}
       <p className="bill-section">{t('items.title')}</p>
       {materials.length === 0 && <p className="hint">{t('party.noMaterials')}</p>}
       <div className="table-wrap">
@@ -107,7 +122,9 @@ export function BillItems({
                   <td>
                     <SearchSelect name={ITEM_INPUTS.material} aria-label={label('item')} value={row.material}
                       placeholder={t('common.choose')} options={materials}
-                      onChange={(v) => set(row.key, { material: v })} />
+                      onChange={(v) => set(row.key, { material: v })}
+                      onCreate={(name) => setCreating({ key: row.key, name })}
+                      createLabel={(name) => t('newMaterial.addAs', { name })} />
                     {error && <p className="error">{t(`errors.${error}`)}</p>}
                   </td>
                   <td className="num">
