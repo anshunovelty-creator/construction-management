@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from 'react';
 
-export interface Tab { key: string; label: string; count: number; panel: React.ReactNode }
+export interface Tab { key: string; label: string; count?: number; panel: React.ReactNode }
 
 /**
  * Tabs over a page's sections. Every panel stays on the page (only hidden), so rows typed
@@ -43,7 +43,7 @@ export function Tabs({ tabs, initial }: { tabs: Tab[]; initial: string }) {
             onClick={() => pick(tab.key)}
             onKeyDown={(e) => onKey(e, i)}
           >
-            {tab.label} <span className="count">{tab.count}</span>
+            {tab.label}{tab.count !== undefined && <> <span className="count">{tab.count}</span></>}
           </button>
         ))}
       </div>

@@ -877,3 +877,81 @@ table.statement .pill { margin-left: 6px; }
 .new-material .field > span { font-size: 14px; font-weight: 500; color: var(--ink-2); }
 .new-material-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .sheet .search-select::after { right: 10px; }
+
+/* Rentals: the add form, in three groups with the rent meter beside them (beside on wide screens, under on phones). */
+.rent-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; align-items: start; }
+.rent-groups { display: grid; gap: 26px; min-width: 0; }
+.rent-group { margin: 0; padding: 0; border: 0; min-width: 0; }
+.rent-group > legend { width: 100%; padding: 0 0 8px; }
+.rent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.rent-grid > .field { align-content: start; }
+.rent-grid > .field { grid-column: span 1; min-width: 0; }
+.rent-grid > .field.wide { grid-column: span 2; }
+.rent-grid > .field.half { grid-column: span 2; }
+.rent-form input.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.affix { position: relative; }
+.affix > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.affix > input:not([type='checkbox']) { padding-left: 28px; }
+.rent-meter { position: sticky; top: 80px; display: grid; gap: 6px; background: var(--sunken); box-shadow: none; }
+.rent-meter .section-title { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.rent-meter .section-title .icon { color: var(--accent); }
+.rent-meter-day { margin: 6px 0 0; }
+.rent-meter-day .amount { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 650; letter-spacing: -0.025em; color: var(--ink); }
+.rent-meter-sum { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.rent-meter-rows { margin: 10px 0 0; }
+.rent-meter-rows > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--rule); font-size: 14px; }
+.rent-meter-rows dt { color: var(--muted); }
+.rent-meter-rows dd { margin: 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 600; }
+.rent-actions { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.rent-form > .form-error { margin-top: 18px; }
+@media (max-width: 960px) {
+  .rent-layout { grid-template-columns: minmax(0, 1fr); }
+  .rent-meter { position: static; }
+}
+@media (max-width: 640px) {
+  .rent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .rent-grid > .field.wide, .rent-grid > .field.half { grid-column: 1 / -1; }
+  .rent-actions .btn { width: 100%; }
+}
+
+/* Client bill: laid out like the bill itself, one sheet. Head (to, from, site | number, date), items, cuts and what
+   the client pays, then a foot with the save button. */
+.form.bill.client-bill { max-width: none; gap: 0; padding: 0; background: var(--sheet); border: 1px solid var(--rule);
+  border-radius: 14px; box-shadow: var(--shadow-sm); overflow: hidden; }
+.client-bill > .banner { margin: 20px 24px 0; }
+.cb-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: 24px 32px; padding: 24px;
+  border-bottom: 1px solid var(--rule); background: var(--sunken); }
+.cb-party { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.cb-client { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; overflow-wrap: anywhere; }
+.cb-client .muted { font-weight: 500; }
+.cb-from { margin: 0 0 12px; font-size: 14px; }
+.cb-site { max-width: 420px; }
+.cb-meta { display: grid; gap: 14px; align-content: start; }
+.client-bill .bill-items { padding: 22px 24px 4px; gap: 12px; }
+.client-bill .bill-foot { margin-top: 10px; padding: 20px 0 22px; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 32px; }
+.cb-aside { display: grid; gap: 18px; align-content: start; min-width: 0; }
+.cb-cuts { margin: 0; padding: 0; border: 0; min-width: 0; }
+.cb-cuts > legend { width: 100%; padding: 0; }
+.cb-cuts > .hint { margin: 0 0 12px; font-size: 12.5px; }
+.cb-cuts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.client-bill .bill-sum { gap: 12px; padding: 18px 20px; }
+.cb-less { padding-top: 10px; border-top: 1px dashed var(--rule-strong); }
+.cb-net { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 12px; border-top: 1px solid var(--rule-strong); }
+.cb-net span { font-weight: 600; color: var(--ink); }
+.cb-net strong { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--plus); }
+.cb-net strong.minus { color: var(--minus); }
+.cb-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--rule); background: var(--sunken); }
+.cb-foot p { margin: 0; font-size: 13px; }
+.form.bill.client-bill .cb-foot .btn { min-width: 170px; }
+.client-bill > .form-error { margin: 0 24px 16px; }
+@media (max-width: 860px) {
+  .cb-head { grid-template-columns: minmax(0, 1fr); }
+  .cb-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .client-bill .bill-foot { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .cb-head, .client-bill .bill-items { padding-left: 16px; padding-right: 16px; }
+  .cb-cuts-grid { grid-template-columns: minmax(0, 1fr); }
+  .cb-foot { flex-direction: column-reverse; align-items: stretch; padding: 16px; }
+  .form.bill.client-bill .cb-foot .btn { width: 100%; }
+}

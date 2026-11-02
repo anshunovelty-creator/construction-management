@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
-import { Form } from '@/components/form';
+import { ClientBillForm } from '@/components/client-bill-form';
 import { ListLink } from '@/components/list-link';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
@@ -191,15 +191,8 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             )}
             <details className="add-rows">
               <summary className="btn">＋ {t('client.addBills')}</summary>
-              <p className="hint">{t('client.addBillsHint')}</p>
-              <Form
-                fields={billFields}
-                defaults={{ entry_date: todayInIndia() }}
-                choices={choices}
-                action={postClientBill.bind(null, firm.id, client.id)}
-                submitLabel={t('entries.save')}
-                hintPrefix="entryForms.client-bill.hints"
-              />
+              <ClientBillForm action={postClientBill.bind(null, firm.id, client.id)} client={client.name} firm={firm.name}
+                choices={choices} today={todayInIndia()} />
             </details>
           </>
         ) },

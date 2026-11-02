@@ -10,6 +10,8 @@ const PATHS = {
   plus: <path d="M12 5v14M5 12h14" />,
   report: <><path d="M9 3h6v3H9z" /><path d="M9 4.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5.5a1 1 0 0 0-1-1h-3M8.5 12h7M8.5 16h5" /></>,
   stock: <><path d="M21 8 12 3 3 8v8l9 5 9-5z" /><path d="m3 8 9 5 9-5M12 13v8" /></>,
+  // A stopwatch: the rent meter.
+  rent: <><circle cx="12" cy="14" r="8" /><path d="M12 10v4l2.5 2.5M10 2h4M12 2v4" /></>,
   sheet: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" /></>,
   tds: <><path d="M4 3h16v18l-3-2-3 2-2-2-2 2-3-2-3 2z" /><path d="m9 14 6-6M9.5 8.5h.01M14.5 13.5h.01" /></>,
   overview: <><path d="M21.2 15.9A10 10 0 1 1 8 2.8" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></>,

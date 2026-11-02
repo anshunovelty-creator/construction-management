@@ -38,6 +38,7 @@ export function BillItems({
   values,
   errors = {},
   aside,
+  summary,
 }: {
   materials: Choice[];
   /** For a material added from the bill: its unit. */
@@ -48,6 +49,8 @@ export function BillItems({
   errors?: Record<string, string>;
   /** The bill's notes and deductions, shown beside the totals. */
   aside?: React.ReactNode;
+  /** Drawn under the totals, given them: e.g. a client's cuts and what is left to receive. Replaces the total in words. */
+  summary?: (totals: { base: number; gst: number; total: number }) => React.ReactNode;
 }) {
   const t = useTranslations();
   // Materials added from this bill, picked on the line they were typed in.
@@ -162,7 +165,7 @@ export function BillItems({
             <div><dt>{t('items.gstTotal')}</dt><dd>{showPaise(totals.gst)}</dd></div>
             <div className="grand"><dt>{t('items.grand')}</dt><dd>{showPaise(totals.total)}</dd></div>
           </dl>
-          {totals.total > 0 && <p className="amount-words">{rupeesInWords(totals.total)}</p>}
+          {summary ? summary(totals) : totals.total > 0 && <p className="amount-words">{rupeesInWords(totals.total)}</p>}
         </div>
       </div>
     </div>

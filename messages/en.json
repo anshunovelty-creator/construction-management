@@ -24,7 +24,8 @@
     "report": "Daily report",
     "tds": "TDS record",
     "salary": "Salary",
-    "ledger": "Ledger"
+    "ledger": "Ledger",
+    "rentals": "Rentals"
   },
   "login": {
     "title": "Sign in",
@@ -130,7 +131,12 @@
     "remark": "Remark",
     "rate_paise": "Rate (₹) — per hour for a worker, salary per month for staff",
     "skill_level": "Skilled or unskilled",
-    "skill": "Skill (e.g. Mason, Carpenter)"
+    "skill": "Skill (e.g. Mason, Carpenter)",
+    "rent_item": "Item",
+    "rent_qty": "How many",
+    "rent_rate": "Rent per item per day",
+    "rented_on": "Rented on",
+    "rented_from": "Rented from"
   },
   "options": {
     "party_kind": {
@@ -437,12 +443,12 @@
       "hints": {
         "work_order_id": "The contract this bill is for.",
         "bill_no": "Your bill number, e.g. RA-3.",
-        "retention": "Leave empty to use the work order’s retention %, worked out on the bill before GST.",
-        "security_deposit": "Leave empty to use the work order’s security deposit %, worked out on the bill before GST.",
-        "tds_rate": "Left empty, the work order’s TDS % is used. Pick 0% if the client deducts none. Worked out on the bill before GST."
+        "retention": "Leave empty if the client keeps no retention. Worked out on the bill before GST.",
+        "security_deposit": "Leave empty if the client keeps no security deposit.",
+        "tds_rate": "Leave empty if the client deducts no TDS. Worked out on the bill before GST."
       },
       "empty": {
-        "tds_rate": "Work order’s TDS %"
+        "tds_rate": "No TDS"
       }
     },
     "client-receipt": {
@@ -1050,5 +1056,73 @@
   "form": {
     "noCashAccount": "This firm has no cash account yet. Add one in Setup → Money accounts (kind: Owner cash, firm: this firm).",
     "noBankAccount": "This firm has no bank account yet. Add one in Setup → Money accounts."
+  },
+  "rentals": {
+    "title": "Rentals",
+    "lede": "Things taken on rent for the sites, like shuttering plates, bamboo and props. The rent meter runs from the day they came: how many × rent per day × days. It stops on the day they go back. Add the bill number once the rent bill comes, to check which bill covers them.",
+    "runningNow": "Rent running now",
+    "linesOut": "{count, plural, =0 {Nothing on rent} one {# line on rent} other {# lines on rent}}",
+    "returnedTotal": "Rent on returned items",
+    "allTotal": "Total rent",
+    "tabOut": "On rent",
+    "tabBack": "Returned",
+    "tabAdd": "+ Add rented items",
+    "none": "Nothing here yet.",
+    "item": "Item",
+    "site": "Site",
+    "qty": "Qty",
+    "rate": "Rent / day",
+    "rentedOn": "Rented on",
+    "returnedOn": "Returned on",
+    "days": "Days",
+    "rent": "Rent",
+    "bill": "Bill no.",
+    "onRent": "On rent",
+    "return": "Return",
+    "update": "Change",
+    "save": "Save",
+    "clearHint": "Clear the date if it was marked returned by mistake; the meter starts running again.",
+    "remove": "Remove {item}",
+    "add": "Start rent meter",
+    "saved": "Saved: {serial}. Its rent meter is running.",
+    "hints": {
+      "rent_rate": "For one item for one day, e.g. 0.75.",
+      "rented_on": "The meter starts on this day.",
+      "bill_no": "Can be added later, when the rent bill comes."
+    },
+    "errors": {
+      "not_removed": "Could not remove it. Only the office, or whoever added it on the same day, can remove a line.",
+      "not_saved": "Could not save the change.",
+      "invalid_date": "That date is not valid."
+    },
+    "groupWhat": "What came on rent",
+    "groupWhere": "Site and date",
+    "groupBill": "Supplier and bill",
+    "itemPlaceholder": "e.g. Shuttering plate",
+    "meter": "Rent meter",
+    "perDay": "a day",
+    "meterSum": "{qty} {item} × {rate} a day",
+    "meterEmpty": "Type how many and the rent per day to see what it costs.",
+    "week": "A week",
+    "month": "30 days",
+    "items": "items"
+  },
+  "clientBill": {
+    "billTo": "Bill to",
+    "from": "From {firm}",
+    "date": "Bill date",
+    "billNoPlaceholder": "e.g. RA-3",
+    "cuts": "What the client cuts",
+    "cutsHint": "Leave empty what the client does not cut. TDS is worked out on the bill before GST.",
+    "noTds": "No TDS",
+    "retention": "Retention (₹)",
+    "deposit": "Security deposit (₹)",
+    "notePlaceholder": "e.g. 3rd running bill, ground floor slab",
+    "lessTds": "Less TDS {rate}",
+    "lessRetention": "Less retention",
+    "lessDeposit": "Less security deposit",
+    "net": "Client pays you",
+    "footHint": "Every amount is worked out again when the bill is saved.",
+    "save": "Save bill"
   }
 }
