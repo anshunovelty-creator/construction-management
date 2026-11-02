@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
-import { ClientBillForm } from '@/components/client-bill-form';
+import { BillSheet } from '@/components/bill-sheet';
 import { ListLink } from '@/components/list-link';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
@@ -191,7 +191,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             )}
             <details className="add-rows">
               <summary className="btn">＋ {t('client.addBills')}</summary>
-              <ClientBillForm action={postClientBill.bind(null, firm.id, client.id)} client={client.name} firm={firm.name}
+              <BillSheet side="client" action={postClientBill.bind(null, firm.id, client.id)} party={client.name} firm={firm.name}
                 choices={choices} today={todayInIndia()} />
             </details>
           </>

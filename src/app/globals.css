@@ -914,27 +914,26 @@ table.statement .pill { margin-left: 6px; }
   .rent-actions .btn { width: 100%; }
 }
 
-/* Client bill: laid out like the bill itself, one sheet. Head (to, from, site | number, date), items, cuts and what
+/* Bills (client and party): laid out like the bill itself, one sheet. Head (to, from, site | number, date), items, cuts and what
    the client pays, then a foot with the save button. */
-.form.bill.client-bill { max-width: none; gap: 0; padding: 0; background: var(--sheet); border: 1px solid var(--rule);
+.form.bill.bill-sheet { max-width: none; gap: 0; padding: 0; background: var(--sheet); border: 1px solid var(--rule);
   border-radius: 14px; box-shadow: var(--shadow-sm); overflow: hidden; }
-.client-bill > .banner { margin: 20px 24px 0; }
+.bill-sheet > .banner { margin: 20px 24px 0; }
 .cb-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: 24px 32px; padding: 24px;
   border-bottom: 1px solid var(--rule); background: var(--sunken); }
 .cb-party { display: grid; gap: 4px; align-content: start; min-width: 0; }
 .cb-client { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; overflow-wrap: anywhere; }
 .cb-client .muted { font-weight: 500; }
 .cb-from { margin: 0 0 12px; font-size: 14px; }
-.cb-site { max-width: 420px; }
 .cb-meta { display: grid; gap: 14px; align-content: start; }
-.client-bill .bill-items { padding: 22px 24px 4px; gap: 12px; }
-.client-bill .bill-foot { margin-top: 10px; padding: 20px 0 22px; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 32px; }
+.bill-sheet .bill-items { padding: 22px 24px 4px; gap: 12px; }
+.bill-sheet .bill-foot { margin-top: 10px; padding: 20px 0 22px; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 32px; }
 .cb-aside { display: grid; gap: 18px; align-content: start; min-width: 0; }
 .cb-cuts { margin: 0; padding: 0; border: 0; min-width: 0; }
 .cb-cuts > legend { width: 100%; padding: 0; }
 .cb-cuts > .hint { margin: 0 0 12px; font-size: 12.5px; }
 .cb-cuts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
-.client-bill .bill-sum { gap: 12px; padding: 18px 20px; }
+.bill-sheet .bill-sum { gap: 12px; padding: 18px 20px; }
 .cb-less { padding-top: 10px; border-top: 1px dashed var(--rule-strong); }
 .cb-net { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 12px; border-top: 1px solid var(--rule-strong); }
 .cb-net span { font-weight: 600; color: var(--ink); }
@@ -942,16 +941,24 @@ table.statement .pill { margin-left: 6px; }
 .cb-net strong.minus { color: var(--minus); }
 .cb-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--rule); background: var(--sunken); }
 .cb-foot p { margin: 0; font-size: 13px; }
-.form.bill.client-bill .cb-foot .btn { min-width: 170px; }
-.client-bill > .form-error { margin: 0 24px 16px; }
+.form.bill.bill-sheet .cb-foot .btn { min-width: 170px; }
+.bill-sheet > .form-error { margin: 0 24px 16px; }
 @media (max-width: 860px) {
   .cb-head { grid-template-columns: minmax(0, 1fr); }
   .cb-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .client-bill .bill-foot { grid-template-columns: minmax(0, 1fr); }
+  .bill-sheet .bill-foot { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .cb-head, .client-bill .bill-items { padding-left: 16px; padding-right: 16px; }
+  .cb-head, .bill-sheet .bill-items { padding-left: 16px; padding-right: 16px; }
   .cb-cuts-grid { grid-template-columns: minmax(0, 1fr); }
   .cb-foot { flex-direction: column-reverse; align-items: stretch; padding: 16px; }
-  .form.bill.client-bill .cb-foot .btn { width: 100%; }
+  .form.bill.bill-sheet .cb-foot .btn { width: 100%; }
 }
+
+/* Site and, on a party's bill, the type of cost side by side under the name. */
+.cb-where { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; max-width: 520px; }
+.cb-net.vendor strong { color: var(--minus); }
+/* Inside the Add bill pop-up the dialog is already the card: no second shadow. */
+.quick-dialog .form.bill.bill-sheet { box-shadow: none; margin-top: 12px; }
+.cb-cuts-grid.vendor { grid-template-columns: minmax(0, 360px); }
+.cb-less dd { white-space: nowrap; }

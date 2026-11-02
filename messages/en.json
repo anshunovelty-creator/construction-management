@@ -1124,5 +1124,16 @@
     "net": "Client pays you",
     "footHint": "Every amount is worked out again when the bill is saved.",
     "save": "Save bill"
+  },
+  "vendorBill": {
+    "billTo": "Bill from",
+    "from": "To {firm}",
+    "gstin": "GSTIN {gstin}",
+    "type": "Type of cost",
+    "billNoPlaceholder": "As printed on their bill",
+    "cuts": "TDS you keep back",
+    "cutsHint": "Leave empty if no TDS is deducted. Worked out on the bill before GST; you pay the party that much less.",
+    "notePlaceholder": "e.g. 40 bags cement",
+    "net": "You pay the party"
   }
 }

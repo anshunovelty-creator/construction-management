@@ -5,6 +5,7 @@ import { EntrySheet } from '@/components/entry-sheet';
 import { Form } from '@/components/form';
 import { ListLink } from '@/components/list-link';
 import { QuickAdd } from '@/components/quick-add';
+import { BillSheet } from '@/components/bill-sheet';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { partyFigures } from '@/lib/ledger/party';
@@ -142,14 +143,10 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
       <QuickAdd
         name={party.name}
         bill={
-          <Form
-            fields={billFields}
-            defaults={{ entry_date: todayInIndia(), site_id: lastBill?.site_id ?? '', cost_head: lastBill?.cost_head ?? '' }}
-            choices={choices}
-            action={postPartyEntry.bind(null, 'vendor-bill', firm.id, party.id)}
-            submitLabel={t('entries.save')}
-            hintPrefix="entryForms.vendor-bill.hints"
-          />
+          <BillSheet side="vendor" action={postPartyEntry.bind(null, 'vendor-bill', firm.id, party.id)} party={party.name}
+            partyNote={party.gst_number ? t('vendorBill.gstin', { gstin: party.gst_number }) : undefined} firm={firm.name}
+            choices={choices} today={todayInIndia()}
+            defaults={{ site_id: lastBill?.site_id ?? '', cost_head: lastBill?.cost_head ?? '' }} />
         }
         pay={
           <Form
