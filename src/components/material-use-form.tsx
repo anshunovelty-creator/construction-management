@@ -123,10 +123,15 @@ export function MaterialUseForm({
                     <td className="box wide" data-label={t('use.material')}>
                       <SearchSelect
                         value={line.materialId}
-                        onChange={(v) => change(l, { materialId: v })}
+                        onChange={(v) => {
+                          change(l, { materialId: v });
+                          // Picked: the quantity is next, so the cursor goes there.
+                          if (v) requestAnimationFrame(() => document.getElementById(`use-qty-${l}`)?.focus());
+                        }}
                         aria-label={`${t('use.material')}, ${t('work.lineNo', { n: l + 1 })}`}
                         placeholder={t('use.pickMaterial')}
-                        options={materials.map((x) => ({ value: x.id, label: x.name }))}
+                        // Each material says what is left at this site, so the right one is easy to pick.
+                        options={materials.map((x) => ({ value: x.id, label: x.name, group: t('use.leftInList', { left: `${QTY.format(x.left)} ${x.unit}`.trim() }) }))}
                         onCreate={(name) => setCreating({ line: l, name })}
                         createLabel={(name) => tNew('addAs', { name })}
                       />
@@ -134,6 +139,7 @@ export function MaterialUseForm({
                     <td className="box qty" data-label={t('use.quantity')}>
                       <span className="qty-with-unit">
                         <input
+                          id={`use-qty-${l}`}
                           value={line.quantity}
                           onChange={(e) => change(l, { quantity: e.target.value })}
                           inputMode="decimal"

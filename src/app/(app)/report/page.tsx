@@ -8,7 +8,7 @@ import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
 import { QTY, stockLines, valueOf, type Bought, type Used } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
-import type { Measure } from '@/lib/work';
+import { lineSerial, type Measure } from '@/lib/work';
 import { dayPay } from '@/lib/wages';
 import { Stat } from '../party/shared';
 import { showDate, todayInIndia } from '../entries/data';
@@ -248,7 +248,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                 <tbody key={a.no}>
                   {a.rows.map((r, i) => (
                     <tr key={r.id}>
-                      <td className="num muted">{i === 0 && a.no}</td>
+                      <td className="num muted">{lineSerial(a.no, i, a.rows.length)}</td>
                       <td>{i === 0 && <><strong>{a.name}</strong>{a.location && <div className="muted">{a.location}</div>}</>}</td>
                       <td>{r.measurement}</td>
                       <td className="num">{QTY.format(Number(r.quantity))} {unitName.get(r.unit_id)}</td>

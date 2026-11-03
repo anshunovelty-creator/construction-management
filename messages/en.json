@@ -802,7 +802,8 @@
       "removeLine": "Remove this material",
       "dayTotal": "Total material used",
       "save": "Save material used",
-      "whereLine": "Line {line}:"
+      "whereLine": "Line {line}:",
+      "leftInList": "{left} left"
     },
     "work": {
       "addTitle": "Add work done",
@@ -834,7 +835,8 @@
       "dayTotal": "Total work done",
       "save": "Save work done",
       "whereActivity": "Activity {activity}:",
-      "whereLine": "Activity {activity}, line {line}:"
+      "whereLine": "Activity {activity}, line {line}:",
+      "sr": "Sr."
     },
     "noneUsed": "No material entered for this day yet. Add it below.",
     "material": "Material",

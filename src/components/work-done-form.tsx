@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useState } from 'react';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
-import { amountPaise, DIMENSIONS, quantityMilli, type MeasurementLine, type Measure } from '@/lib/work';
+import { amountPaise, DIMENSIONS, lineSerial, quantityMilli, type MeasurementLine, type Measure } from '@/lib/work';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
 
@@ -165,6 +165,7 @@ export function WorkDoneForm({
                 <table className="measure-table">
                   <thead>
                     <tr>
+                      <th className="num">{t('work.sr')}</th>
                       {boxes.map((box) => <th key={box} className="box">{t(`work.box.${box}`)}</th>)}
                       <th className="num">{t('work.quantity', { unit: unit.get(activity.unitId)!.name })}</th>
                       <th className="num">{t('work.amount')}</th>
@@ -176,6 +177,7 @@ export function WorkDoneForm({
                       const { milli, amount } = totals[a]!.lines[l]!;
                       return (
                         <tr key={l} className={wrong && state.line === l ? 'wrong' : undefined}>
+                          <td className="num muted line-no" data-label={t('work.sr')}>{lineSerial(a + 1, l, activity.lines.length)}</td>
                           {boxes.map((box, b) => (
                             <td key={box} className="box" data-label={t(`work.box.${box}`)}>
                               {b > 0 && <span className="times" aria-hidden="true">×</span>}

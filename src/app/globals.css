@@ -323,6 +323,7 @@ summary.firm-pill:hover { border-color: color-mix(in srgb, var(--muted) 55%, var
 .measure-table td { padding: 6px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; vertical-align: middle; }
 .measure-table tbody tr:hover td { background: none; }
 .measure-table .box { width: 1%; text-align: left; }
+.measure-table .line-no { width: 1%; }
 .measure-table tr.wrong td { background: var(--minus-soft); }
 .measure-table input { width: 6.5rem; min-height: 38px; padding: 6px 8px; font-size: 15px; }
 .measure-table td:first-child input { width: 4rem; }
@@ -349,7 +350,9 @@ table.saved-work tr.subtotal td.num { color: var(--ink); }
 .qty-with-unit { display: inline-flex; align-items: center; gap: 8px; }
 .unit-tag { min-width: 2.5rem; font-size: 13px; font-weight: 600; color: var(--muted); }
 .use-table select { min-width: 12rem; min-height: 38px; padding: 6px 30px 6px 8px; font-size: 15px; }
-.use-table .search-select { min-width: 12rem; }
+.use-table .search-select { min-width: 17rem; }
+/* The table keeps number boxes small; a picker's box fills its own width, so names are not cut off. */
+.measure-table .search-select input { width: 100%; }
 .use-table .remark-input { width: 100%; min-width: 10rem; }
 /* Attendance: P / A taps; P fills green, A red. */
 .quick-time { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }

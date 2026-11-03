@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { amountPaise, measurementText, quantityMilli } from '@/lib/work';
+import { amountPaise, measurementText, quantityMilli, lineSerial } from '@/lib/work';
 
 describe('work done measurements', () => {
   it('works out the SVG sheet lines from No., length, width and height', () => {
@@ -27,4 +27,9 @@ describe('work done measurements', () => {
     expect(measurementText('volume', { count: '1', length: '1.5', width: '0.23', height: '2.8' })).toBe('1.5 × 0.23 × 2.8');
     expect(measurementText('quantity', { quantity: '483' })).toBe('483');
   });
+});
+
+it('numbers measurements of the same work 1.1, 1.2 …, and a single one as the activity alone', () => {
+  expect([0, 1, 2].map((l) => lineSerial(2, l, 3))).toEqual(['2.1', '2.2', '2.3']);
+  expect(lineSerial(4, 0, 1)).toBe('4');
 });

@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
+import { lineSerial } from '@/lib/work';
 
 export interface SheetData {
   firm: string | null;
@@ -58,7 +59,7 @@ export async function PrintSheet({ d }: { d: SheetData }) {
           <tbody key={a.no}>
             {a.rows.map((r, i) => (
               <tr key={r.id}>
-                <td className="n">{i === 0 && a.no}</td>
+                <td className="n">{lineSerial(a.no, i, a.rows.length)}</td>
                 <td>{i === 0 && <><strong>{a.name}</strong>{a.location && <span className="sub">{a.location}</span>}</>}</td>
                 <td>{r.measurement}</td>
                 <td className="num">{QTY.format(r.quantity)} {r.unit}</td>

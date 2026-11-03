@@ -39,3 +39,10 @@ export function measurementText(measure: Measure, line: MeasurementLine): string
   const parts = DIMENSIONS[measure].map((box) => (line[box] ?? '').trim());
   return [...(count && count !== '1' ? [count] : []), ...parts].join(' × ');
 }
+
+/**
+ * The serial number of a measurement line, like the site's measurement book: the activity's number alone when it has
+ * one line, and 1.1, 1.2, 1.3 … when the same work is measured more than once.
+ */
+export const lineSerial = (activityNo: number, line: number, lines: number): string =>
+  lines > 1 ? `${activityNo}.${line + 1}` : String(activityNo);
