@@ -16,6 +16,14 @@ describe('stock', () => {
     expect(valueOf(0.45, line!.rate)).toBe(49_500);
   });
 
+  it('averages the rate over only what arrived with a rate', () => {
+    const [line] = stockLines([
+      { ...sand, entry_date: '2026-10-10', quantity: 2, amount_paise: 200_000 },
+      { ...sand, entry_date: '2026-10-11', quantity: 8, amount_paise: null },
+    ], []);
+    expect(line).toEqual({ ...sand, bought: 10, used: 0, left: 10, rate: 100_000 });
+  });
+
   it('goes below zero when more is used than bought, and counts only up to a report’s day', () => {
     const bought = [{ ...sand, entry_date: '2026-10-20', quantity: 5, amount_paise: 500_000 }];
     const used = [{ ...sand, use_date: '2026-10-18', quantity: 1 }];

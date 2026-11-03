@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moneyAccountErrors, parseFields, parseItems, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
+import { moneyAccountErrors, parseFields, percentToBasisPoints, submittedValues, toFormValue } from '@/lib/masters/parse';
 import { EDIT_USER_FIELDS, getEntryForm, MASTERS, NEW_USER_FIELDS, type Field } from '@/lib/masters/registry';
 
 const form = (entries: [string, string][]) => {
@@ -141,34 +141,6 @@ describe('form values', () => {
   });
 });
 
-describe('parseItems', () => {
-  const CEMENT = '3b6c1f9e-1c2d-4e5f-8a9b-0c1d2e3f4a5b';
-  const line = (material: string, qty: string, rate: string, gst = '1800'): [string, string][] =>
-    [['item_material', material], ['item_qty', qty], ['item_rate', rate], ['item_gst', gst]];
-
-  it('prices each filled line and skips blank ones', () => {
-    const { items, errors } = parseItems(form([...line(CEMENT, '10', '350'), ...line('', '', '')]));
-    expect(errors).toEqual({});
-    expect(items).toEqual([
-      { materialId: CEMENT, quantityMilli: 10_000, ratePaise: 35_000, gstBp: 1_800, amountPaise: 350_000, gstPaise: 63_000, kind: 'consumable' },
-    ]);
-  });
-
-  it('reads what each line is bought as; anything unknown is consumable', () => {
-    const kinds = (...k: string[]) => parseItems(form([...line(CEMENT, '1', '10'), ...line(CEMENT, '1', '10'), ...k.map((v) => ['item_kind', v] as [string, string])]))
-      .items.map((i) => i.kind);
-    expect(kinds('asset', 'rented')).toEqual(['asset', 'rented']);
-    expect(kinds('bogus')).toEqual(['consumable', 'consumable']);
-  });
-
-  it('says which line is wrong, and needs at least one line', () => {
-    expect(parseItems(form([...line(CEMENT, '10', '350'), ...line(CEMENT, 'ten', '350')])).errors).toEqual({ 'items.2': 'item_quantity' });
-    expect(parseItems(form(line('', '5', '350'))).errors).toEqual({ 'items.1': 'item_material' });
-    expect(parseItems(form(line(CEMENT, '5', '0'))).errors).toEqual({ 'items.1': 'item_rate' });
-    expect(parseItems(form(line('', '', ''))).errors).toEqual({ items: 'items_needed' });
-  });
-});
-
 describe('TDS rate on a bill', () => {
   const billFields = getEntryForm('vendor-bill')!.fields;
   const rate = (value: string) => parseFields(billFields.filter((f) => f.name === 'tds_rate'), form([['tds_rate', value]]));
@@ -177,6 +149,19 @@ describe('TDS rate on a bill', () => {
     expect(rate('100')).toEqual({ ok: true, values: { tds_rate: '100' } });
     expect(rate('')).toEqual({ ok: true, values: { tds_rate: null } });
     expect(rate('1.5')).toEqual({ ok: false, errors: { tds_rate: 'invalid_choice' } });
+  });
+});
+
+describe('a bill is money only', () => {
+  const billFields = getEntryForm('client-bill')!.fields.filter((f) => f.name === 'amount' || f.name === 'gst_rate');
+
+  it('takes the amount before GST and one GST rate in basis points; an empty rate means no GST', () => {
+    expect(parseFields(billFields, form([['amount', '1,00,000'], ['gst_rate', '1800']])))
+      .toEqual({ ok: true, values: { amount: 10_000_000, gst_rate: '1800' } });
+    expect(parseFields(billFields, form([['amount', '500'], ['gst_rate', '']])))
+      .toEqual({ ok: true, values: { amount: 50_000, gst_rate: null } });
+    expect(parseFields(billFields, form([['amount', ''], ['gst_rate', '18%']])))
+      .toEqual({ ok: false, errors: { amount: 'required', gst_rate: 'invalid_choice' } });
   });
 });
 

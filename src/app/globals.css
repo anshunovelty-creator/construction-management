@@ -660,12 +660,12 @@ tr:hover .party-link { color: var(--accent); }
 .owed > span:first-child:not(.muted) { font-weight: 500; }
 .quick-saved { display: inline-flex; align-items: center; gap: 6px; align-self: center; margin: 0; color: var(--plus); font-weight: 600; }
 
-/* ---------- Bill forms (vendor and client bills): details on top, items in a table, totals and notes below ---------- */
-.quick-dialog:has(.bill-items) { width: min(960px, calc(100vw - 32px)); }
-@media (max-width: 600px) { .quick-dialog:has(.bill-items) { width: 100vw; } }
+/* ---------- Bill forms (vendor and client bills): details on top, the amount, totals and notes below ---------- */
+.quick-dialog:has(.bill-sheet) { width: min(960px, calc(100vw - 32px)); }
+@media (max-width: 600px) { .quick-dialog:has(.bill-sheet) { width: 100vw; } }
 /* A bill form needs the whole width, so the "what happens" note sits above it. */
-.form-layout:has(.bill-items) { grid-template-columns: minmax(0, 1fr); }
-.form-layout:has(.bill-items) .why { position: static; order: -1; }
+.form-layout:has(.bill-sheet) { grid-template-columns: minmax(0, 1fr); }
+.form-layout:has(.bill-sheet) .why { position: static; order: -1; }
 .form.bill { max-width: 920px; gap: 24px; }
 .quick-dialog .form.bill { max-width: none; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .quick-dialog .form.bill > .btn { justify-self: end; }
@@ -689,29 +689,6 @@ tr:hover .party-link { color: var(--accent); }
 .form.bill .field > .amount-words { order: 2; margin: 0; }
 .form.bill .field > .error { order: 3; margin: 0; }
 .form.bill .field input:not([type='checkbox']), .form.bill .field select { width: 100%; min-height: 40px; box-sizing: border-box; }
-
-/* Items: one row per line, fixed column widths, so the table reads the same whatever the names are. */
-.bill-items { display: grid; gap: 10px; min-width: 0; }
-.bill-items p { margin: 0; }
-.bill-items .table-wrap { position: relative; border: 1px solid var(--rule); border-radius: 10px; }
-.bill-items table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
-@media (max-width: 640px) { .bill-items table { min-width: 760px; } }
-.bill-items th, .bill-items td { padding: 8px 10px; vertical-align: middle; }
-.bill-items tbody tr:hover td { background: none; }
-.bill-items .c-no { width: 36px; }
-.bill-items .c-qty { width: 84px; }
-.bill-items .c-rate { width: 104px; }
-.bill-items .c-amount { width: 110px; }
-.bill-items .c-gst { width: 96px; }
-.bill-items .c-gstamt { width: 104px; }
-.bill-items .c-total { width: 116px; }
-.bill-items .c-del { width: 44px; }
-.bill-items input:not([type='checkbox']), .bill-items select { width: 100%; min-height: 38px; box-sizing: border-box; padding: 6px 10px; }
-.bill-items select { padding-right: 30px; background-position: right 8px center; }
-.bill-items td.num input { text-align: right; }
-.bill-items .error { margin: 4px 0 0; font-size: 12.5px; }
-.bill-items .btn.ghost.small { justify-self: start; min-width: 0; }
-.bill-items td .btn.small { width: 32px; min-width: 32px; padding: 0; }
 
 /* Foot: notes and deductions on the left, the totals in a box on the right. */
 .bill-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 24px; align-items: start; }
@@ -914,7 +891,7 @@ table.statement .pill { margin-left: 6px; }
   .rent-actions .btn { width: 100%; }
 }
 
-/* Bills (client and party): laid out like the bill itself, one sheet. Head (to, from, site | number, date), items, cuts and what
+/* Bills (client and party): laid out like the bill itself, one sheet. Head (to, from, site | number, date), the amount, cuts and what
    the client pays, then a foot with the save button. */
 .form.bill.bill-sheet { max-width: none; gap: 0; padding: 0; background: var(--sheet); border: 1px solid var(--rule);
   border-radius: 14px; box-shadow: var(--shadow-sm); overflow: hidden; }
@@ -926,8 +903,9 @@ table.statement .pill { margin-left: 6px; }
 .cb-client .muted { font-weight: 500; }
 .cb-from { margin: 0 0 12px; font-size: 14px; }
 .cb-meta { display: grid; gap: 14px; align-content: start; }
-.bill-sheet .bill-items { padding: 22px 24px 4px; gap: 12px; }
-.bill-sheet .bill-foot { margin-top: 10px; padding: 20px 0 22px; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 32px; }
+/* The amount before GST and its GST rate, side by side. */
+.cb-amount { display: grid; grid-template-columns: repeat(2, minmax(0, 240px)); gap: 16px; padding: 22px 24px; }
+.bill-sheet .bill-foot { padding: 20px 24px 22px; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 32px; }
 .cb-aside { display: grid; gap: 18px; align-content: start; min-width: 0; }
 .cb-cuts { margin: 0; padding: 0; border: 0; min-width: 0; }
 .cb-cuts > legend { width: 100%; padding: 0; }
@@ -949,7 +927,8 @@ table.statement .pill { margin-left: 6px; }
   .bill-sheet .bill-foot { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .cb-head, .bill-sheet .bill-items { padding-left: 16px; padding-right: 16px; }
+  .cb-head, .cb-amount, .bill-sheet .bill-foot { padding-left: 16px; padding-right: 16px; }
+  .cb-amount { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .cb-cuts-grid { grid-template-columns: minmax(0, 1fr); }
   .cb-foot { flex-direction: column-reverse; align-items: stretch; padding: 16px; }
   .form.bill.bill-sheet .cb-foot .btn { width: 100%; }
@@ -968,10 +947,6 @@ table.statement .pill { margin-left: 6px; }
 .form.bill .cb-pick > label { font-size: 15px; font-weight: 600; color: var(--ink); }
 /* What saving does reads after the bill, not before its title. */
 .form-layout:has(.bill-page) .why { order: 0; position: static; }
-/* A party's bill: each line says whether it is stock, an asset or rented. */
-.bill-items .c-kind { width: 104px; }
-.quick-dialog:has(.c-kind) { width: min(1160px, calc(100vw - 32px)); }
-@media (max-width: 640px) { .bill-items table:has(.c-kind) { min-width: 890px; } }
 
 /* Assets: the move form above the list of moves. */
 .asset-move { display: grid; gap: 16px; margin-bottom: 16px; }

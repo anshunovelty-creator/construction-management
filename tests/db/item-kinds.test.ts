@@ -36,7 +36,7 @@ const bill = (billNo: string, lines: { materialId: string; kind: ItemKind; rateP
   });
 };
 
-it('keeps assets out of the site’s cost and out of stock, and rented things out of stock', async () => {
+it('keeps assets on an old itemised bill out of the site’s cost', async () => {
   await postEntry(db, bill('B-1', [
     { materialId: cement, kind: 'consumable', ratePaise: 35_000 }, // 10 × ₹350
     { materialId: axe, kind: 'asset', ratePaise: 50_000 }, // 10 × ₹500
@@ -49,9 +49,8 @@ it('keeps assets out of the site’s cost and out of stock, and rented things ou
     { account: 'company_assets', amount_paise: '500000', site_id: seed.svgSite }, // the axes
     { account: 'site_cost', amount_paise: '360000', site_id: seed.svgSite }, // cement + rented plates
   ]);
-  expect((await db.query(`select material_id from stock_in_rows`)).rows).toEqual([{ material_id: cement }]);
-  expect((await db.query(`select material_id, site_id, quantity::text from asset_in_rows`)).rows)
-    .toEqual([{ material_id: axe, site_id: seed.svgSite, quantity: '10.000' }]);
+  // Bills no longer fill stock or assets (owner decision 2026-11-03): supervisors type what arrived.
+  expect((await db.query(`select 1 from stock_in_rows union all select 1 from asset_in_rows`)).rows).toEqual([]);
 });
 
 it('shows the site of a bill of assets only, and refuses assets that do not match the bill', async () => {
@@ -64,13 +63,14 @@ it('shows the site of a bill of assets only, and refuses assets that do not matc
   ], 0), OWNER)).rejects.toThrow();
 });
 
-it('lets the owner and office move assets between sites, not supervisors', async () => {
+it('lets a supervisor move assets away from their own site only', async () => {
   const other = (await db.query<{ id: string }>(`insert into sites (name) values ('Other Site') returning id`)).rows[0]!.id;
-  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite, other] });
-  const move = (user: string) => asUser(db, user, (tx) => tx.query(
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const move = (user: string, from: string, to: string) => asUser(db, user, (tx) => tx.query(
     `insert into asset_moves (material_id, quantity, from_site_id, to_site_id, move_date) values ($1, 4, $2, $3, '2026-11-02')`,
-    [axe, seed.svgSite, other]));
-  await expect(move(ramesh)).rejects.toThrow('row-level security');
-  await move(await createUser(db, 'office', 'Office'));
-  expect((await db.query(`select quantity::text from asset_moves`)).rows).toEqual([{ quantity: '4.000' }]);
+    [axe, from, to]));
+  await move(ramesh, seed.svgSite, other);
+  await expect(move(ramesh, other, seed.svgSite)).rejects.toThrow('row-level security');
+  await move(await createUser(db, 'office', 'Office'), other, seed.svgSite);
+  expect((await db.query(`select quantity::text from asset_moves`)).rows).toEqual([{ quantity: '4.000' }, { quantity: '4.000' }]);
 });

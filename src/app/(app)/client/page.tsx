@@ -35,9 +35,9 @@ interface ClientRow {
 }
 
 type Slug = 'client-bill' | 'client-receipt';
-/** The bill form's questions: the bill's details, its items, then what the client cuts. */
-const BILL_FIELDS = ['bill_no', 'entry_date', 'site_id', 'items', 'tds_rate', 'retention', 'security_deposit', 'narration'];
-/** Sheet columns in reading order. Bills have items, so they are typed in a form, not a sheet. */
+/** The bill form's questions: the bill's details, what it comes to, then what the client cuts. */
+const BILL_FIELDS = ['bill_no', 'entry_date', 'site_id', 'amount', 'gst_rate', 'tds_rate', 'retention', 'security_deposit', 'narration'];
+/** Sheet columns in reading order. Bills are typed on the bill sheet, with their GST and cuts. */
 const RECEIPT_COLUMNS = ['entry_date', 'amount', 'to_account_id', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them. */

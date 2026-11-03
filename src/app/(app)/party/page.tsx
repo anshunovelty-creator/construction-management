@@ -30,16 +30,13 @@ interface PartyRow {
   site_id: string | null;
   cost_head: string | null;
   money_account_id: string | null;
-  material_id: string | null;
-  /** The bill's items, by name; null for bills typed as one amount before items came in. */
-  item_names: string | null;
 }
 
 type Slug = 'vendor-bill' | 'pay-vendor';
-/** Sheet columns in the workbook's order. Bills have items, so they are typed in the pop-up, not a sheet. */
+/** Sheet columns in the workbook's order. Bills are typed in the pop-up, with their GST and TDS. */
 const PAY_COLUMNS = ['entry_date', 'amount', 'from_account_id', 'reference', 'narration'];
-/** The pop-ups' questions: the bill's details, then its items. */
-const BILL_QUICK = ['bill_no', 'entry_date', 'site_id', 'cost_head', 'items', 'tds_rate', 'narration'];
+/** The pop-ups' questions: the bill's details, then what it comes to. */
+const BILL_QUICK = ['bill_no', 'entry_date', 'site_id', 'cost_head', 'amount', 'gst_rate', 'tds_rate', 'narration'];
 const PAY_QUICK = ['amount', 'from_account_id', 'entry_date', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them (party.* keys). */
@@ -58,20 +55,18 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
   const billFields = fieldsOf('vendor-bill', BILL_QUICK);
   const payFields = fieldsOf('pay-vendor', PAY_COLUMNS);
   // The party is looked up alongside its entries rather than before them: one trip to the database, not two.
-  const [{ data: party }, { data }, names, choices, { data: materials }] = await Promise.all([
+  const [{ data: party }, { data }, names, choices] = await Promise.all([
     db.from('parties').select('id, name, gst_number').eq('id', id).maybeSingle(),
     db.from('party_rows').select('*').eq('firm_id', firm.id).eq('party_id', id)
       .order('entry_date').order('serial').returns<PartyRow[]>(),
     loadNames(db),
     loadChoices(db, [...billFields, ...payFields], { working, t }),
-    db.from('materials').select('id, name'),
   ]);
   if (!party) notFound();
   // Each bill's TDS, so the bill shows what it came to, the TDS kept back, and what is left to pay the party.
   const { data: tdsRows } = await db.from('bill_tds').select('entry_id, rate_bp, tds_paise')
     .in('entry_id', (data ?? []).filter((r) => r.entry_type === 'vendor_bill').map((r) => r.entry_id));
   const tdsOf = new Map((tdsRows ?? []).map((r) => [r.entry_id as string, { rate: Number(r.rate_bp), paise: Number(r.tds_paise) }]));
-  const materialOf = new Map((materials ?? []).map((m) => [m.id as string, m.name as string]));
   const rows = (data ?? []).map((r) => ({ ...r, amount: Number(r.amount_paise) }));
   const sumOf = (type: PartyRow['entry_type']) => rows.filter((r) => r.entry_type === type).reduce((s, r) => s + r.amount, 0);
   const bills = rows.filter((r) => r.entry_type === 'vendor_bill');
@@ -176,7 +171,6 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                       <th className="num">{t('party.sr')}</th>
                       <th>{t('party.billDate')}</th>
                       <th>{t('party.billNo')}</th>
-                      <th>{t('party.material')}</th>
                       <th className="num">{t('party.billAmount')}</th>
                       <th className="num">{t('party.tds')}</th>
                       <th className="num">{t('party.toPay')}</th>
@@ -191,7 +185,6 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                         <td className="num muted">{i + 1}</td>
                         <td className="nowrap">{showDate(r.entry_date)}</td>
                         <td>{r.entry_type === 'opening' ? <strong>{t('party.openingRow')}</strong> : r.reference}</td>
-                        <td>{r.item_names ?? (r.material_id ? materialOf.get(r.material_id) : <span className="muted">–</span>)}</td>
                         <MoneyCell paise={r.amount + (tdsOf.get(r.entry_id)?.paise ?? 0)} />
                         <td className="num">
                           {tdsOf.get(r.entry_id)?.paise ? (
@@ -210,7 +203,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td /><td colSpan={3}>{t('party.total')}</td>
+                      <td /><td colSpan={2}>{t('party.total')}</td>
                       <MoneyCell paise={f.total + tdsTotal} /><MoneyCell paise={tdsTotal} /><MoneyCell paise={f.total} strong />
                       <td colSpan={3} />
                     </tr>
@@ -219,11 +212,6 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
               </div>
             )}
             {missing('sites', 'sites', 'needSite')}
-            {(choices.materials ?? []).length === 0 && (
-              <p className="hint">
-                {t('party.noMaterials')} <Link href="/masters/materials" className="underline">{t('party.goSetup')}</Link>
-              </p>
-            )}
           </>
         ) },
         { key: 'payments', label: t('party.paymentsTitle'), count: payments.length, panel: (

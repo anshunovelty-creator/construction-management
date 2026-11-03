@@ -67,7 +67,7 @@ const shiftDate = (date: string, days: number) =>
 
 /**
  * A site's daily report, like the Excel sheet: 1. the work done that day (measurements × rates), 2. the material used,
- * which comes out of the site's stock at the average rate it was bought at. Supervisors fill it for their own sites.
+ * which comes out of the site's stock at the average rate it arrived at. Supervisors fill it for their own sites.
  */
 export default async function ReportPage({ searchParams }: { searchParams: Promise<{ site?: string; date?: string; error?: string }> }) {
   const profile = await requireProfile('owner', 'office', 'supervisor');
@@ -97,7 +97,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const [{ data: used }, { data: bought }, { data: work }, { data: workers }, { data: labour }, { data: other }] = await Promise.all([
     db.from('material_use').select('id, site_id, material_id, use_date, quantity, remark, created_by')
       .eq('site_id', site.id).lte('use_date', date).order('created_at').returns<UseRow[]>(),
-    db.rpc('app_site_bought', { p_site_id: site.id, p_upto: date }),
+    db.from('stock_in_rows').select('site_id, material_id, entry_date, quantity, amount_paise')
+      .eq('site_id', site.id).lte('entry_date', date).returns<Bought[]>(),
     db.from('work_done').select('id, activity, location, measurement, quantity, unit_id, rate_paise, amount_paise, created_by')
       .eq('site_id', site.id).eq('work_date', date).order('created_at').returns<WorkRow[]>(),
     // Staff first, then workers, by name: the order of the site sheet.
@@ -108,9 +109,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     db.from('other_cost').select('id, description, cost_head, quantity, rate_paise, amount_paise, created_by')
       .eq('site_id', site.id).eq('work_date', date).order('created_at').returns<OtherRow[]>(),
   ]);
-  const boughtRows: Bought[] = ((bought ?? []) as Omit<Bought, 'site_id' | 'entry_date'>[])
-    .map((b) => ({ ...b, site_id: site.id, entry_date: date }));
-  const stock = new Map(stockLines(boughtRows, used ?? [], date).map((s) => [s.material_id, s]));
+  const stock = new Map(stockLines(bought ?? [], used ?? [], date).map((s) => [s.material_id, s]));
   const usedToday = (used ?? []).filter((r) => r.use_date === date);
   const amount = (r: UseRow) => valueOf(Number(r.quantity), stock.get(r.material_id)?.rate ?? null);
   const materialTotal = usedToday.reduce((sum, r) => sum + amount(r), 0);

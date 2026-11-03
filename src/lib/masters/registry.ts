@@ -42,14 +42,14 @@ export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
   | { name: string; kind: 'rupees'; required?: boolean; allowZero?: boolean }
   | { name: string; kind: 'enum'; enum: EnumName; required?: boolean }
-  | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean }
-  /** A bill's item lines: material, quantity, rate and GST rate per line, with the totals underneath. */
-  | { name: string; kind: 'items'; required?: boolean };
+  | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean };
 
 export interface MasterDef {
   table: string;
   /** Office staff can view; only the owner can add or edit. */
   ownerOnly: boolean;
+  /** Supervisors keep this list too (owner decision 2026-11-03); they see no other Setup screen. */
+  supervisor?: boolean;
   /** Columns shown in the list, in order. */
   list: string[];
   fields: Field[];
@@ -93,6 +93,7 @@ export const MASTERS: Record<string, MasterDef> = {
   workers: {
     table: 'parties',
     ownerOnly: false,
+    supervisor: true,
     kinds: ENUMS.worker_kind,
     list: ['name', 'kind', 'skill_level', 'skill', 'rate_paise', 'site_id', 'phone', 'is_active'],
     fields: [
@@ -121,6 +122,7 @@ export const MASTERS: Record<string, MasterDef> = {
   materials: {
     table: 'materials',
     ownerOnly: false,
+    supervisor: true,
     list: ['name', 'unit_id', 'item_kind', 'is_active'],
     fields: [
       { name: 'name', kind: 'text', required: true }, { name: 'unit_id', kind: 'ref', ref: 'units' },
@@ -130,6 +132,7 @@ export const MASTERS: Record<string, MasterDef> = {
   units: {
     table: 'units',
     ownerOnly: false,
+    supervisor: true,
     list: ['name', 'measure', 'is_active'],
     fields: [{ name: 'name', kind: 'text', required: true }, { name: 'measure', kind: 'enum', enum: 'unit_measure', required: true }, active],
   },
@@ -146,6 +149,11 @@ export const MASTERS: Record<string, MasterDef> = {
     fields: [{ name: 'rate_bp', kind: 'percent', required: true }, { name: 'section', kind: 'text' }, active],
   },
 };
+
+/** Whether this person may open a Setup screen, and change what is on it. The database has the final say. */
+export const mayView = (def: MasterDef, role: AppRole) => role !== 'supervisor' || Boolean(def.supervisor);
+export const mayEdit = (def: MasterDef, role: AppRole) =>
+  role === 'owner' || (role === 'office' ? !def.ownerOnly : Boolean(def.supervisor));
 
 export function getMaster(slug: string): MasterDef | undefined {
   return Object.hasOwn(MASTERS, slug) ? MASTERS[slug] : undefined;
@@ -183,7 +191,8 @@ const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', re
 const client: Field = { name: 'client_id', kind: 'ref', ref: 'clients', required: true };
 // Optional: the account already says bank or cash. The vendor page's Pay card and the payment sheets have no such box.
 const payMethod: Field = { name: 'payment_method', kind: 'enum', enum: 'payment_method' };
-const items: Field = { name: 'items', kind: 'items', required: true };
+// A bill is money only (owner decision 2026-11-03): the amount before GST and one GST rate; left empty, no GST.
+const billAmount: Field[] = [{ name: 'amount', kind: 'rupees', required: true }, { name: 'gst_rate', kind: 'ref', ref: 'gstRates' }];
 
 /**
  * The money forms, keyed by URL slug (/entries/new/<slug>), in the order the "Add an entry" page shows them.
@@ -195,14 +204,14 @@ export const ENTRY_FORMS = {
     icon: 'bill' as IconName,
     roles: ['owner', 'office'],
     fields: [
-      // Details on the top row, then the items, then the notes and deductions in the foot.
+      // Details on the top row, then the amount, then the notes and deductions in the foot.
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
       { name: 'bill_no', kind: 'text', required: true },
       date,
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
       // Left empty, the type is material.
       { ...costHead, required: false },
-      items,
+      ...billAmount,
       // Left empty, no TDS is deducted.
       { name: 'tds_rate', kind: 'ref', ref: 'tdsRates' },
       note,
@@ -221,12 +230,12 @@ export const ENTRY_FORMS = {
     icon: 'invoice' as IconName,
     roles: ['owner', 'office'],
     fields: [
-      // Details on the top row (client, bill number, date), the site, then the items; the cuts sit in the foot.
+      // Details on the top row (client, bill number, date), the site, then the amount; the cuts sit in the foot.
       client,
       { name: 'bill_no', kind: 'text', required: true },
       date,
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
-      items,
+      ...billAmount,
       // Left empty, no TDS is deducted. Retention and deposit left empty mean none.
       { name: 'tds_rate', kind: 'ref', ref: 'tdsRates' },
       { name: 'retention', kind: 'rupees', allowZero: true },

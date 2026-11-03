@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
@@ -8,23 +7,10 @@ import { showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
+import { Arrivals, type ArrivalRow } from '../stock/arrivals';
 import { Stat } from '../party/shared';
 import { moveAsset, removeMove } from './actions';
 import { holdings } from './held';
-
-interface BoughtRow {
-  entry_id: string;
-  line_no: number;
-  serial: string;
-  entry_date: string;
-  reference: string;
-  party_id: string;
-  site_id: string | null;
-  material_id: string;
-  quantity: number | string;
-  rate_paise: number | string;
-  amount_paise: number | string;
-}
 
 interface MoveRow {
   id: string;
@@ -34,22 +20,25 @@ interface MoveRow {
   quantity: number | string;
   move_date: string;
   note: string;
+  created_by: string;
 }
 
 /**
- * The company's assets (tools and the like, bought to reuse): what is at each site, what was bought, and the moves
- * between sites. They come in from party bills whose lines are "Asset"; they are not any site's cost or stock.
+ * The company's assets (tools and the like, kept to reuse): what is at each site, what arrived, and the moves between
+ * sites. Supervisors type what arrives (materials whose kind is Asset in Setup) and move them; not any site's stock.
  */
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ tab?: string; error?: string }> }) {
-  await requireProfile('owner', 'office');
+  const profile = await requireProfile();
+  const office = profile.role !== 'supervisor';
   const { tab = 'now', error } = await searchParams;
   const t = await getTranslations();
   const db = await createClient();
   const [{ data: bought }, { data: moves }, { data: materials }, { data: sites }, names] = await Promise.all([
-    db.from('asset_in_rows').select('*').order('entry_date', { ascending: false }).returns<BoughtRow[]>(),
-    db.from('asset_moves').select('id, material_id, from_site_id, to_site_id, quantity, move_date, note')
+    db.from('asset_in_rows').select('*').order('entry_date', { ascending: false }).returns<ArrivalRow[]>(),
+    db.from('asset_moves').select('id, material_id, from_site_id, to_site_id, quantity, move_date, note, created_by')
       .order('move_date', { ascending: false }).order('created_at', { ascending: false }).returns<MoveRow[]>(),
-    db.from('materials').select('id, name, unit:units(name)').returns<{ id: string; name: string; unit: { name: string } | null }[]>(),
+    db.from('materials').select('id, name, is_active, item_kind, unit:units(name)').order('name')
+      .returns<{ id: string; name: string; is_active: boolean; item_kind: string; unit: { name: string } | null }[]>(),
     db.from('sites').select('id, name').eq('is_active', true).order('name'),
     loadNames(db),
   ]);
@@ -58,9 +47,10 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
   const material = new Map((materials ?? []).map((m) => [m.id, m]));
   const qty = (n: number, id: string) => `${QTY.format(n)} ${material.get(id)?.unit?.name ?? ''}`.trim();
 
-  // Each asset is valued at what it cost on average across every bill it was bought on.
+  // Each asset is valued at its average rate over the lines that came with one.
   const cost = new Map<string, { qty: number; paise: number }>();
   for (const b of boughtRows) {
+    if (b.amount_paise === null) continue;
     const c = cost.get(b.material_id) ?? { qty: 0, paise: 0 };
     cost.set(b.material_id, { qty: c.qty + Number(b.quantity), paise: c.paise + Number(b.amount_paise) });
   }
@@ -72,7 +62,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
     `${material.get(h.material_id)?.name ?? ''} ${names.sites.get(h.site_id) ?? ''}`;
   const held = holdings(boughtRows, moveRows).filter((h) => h.now > 1e-9).sort((a, b) => sortName(a).localeCompare(sortName(b)));
   const totalValue = held.reduce((s, h) => s + valueOf(h.material_id, h.now), 0);
-  const assetChoices = [...cost.keys()].map((id) => ({ value: id, label: material.get(id)?.name ?? '?' }))
+  const assetChoices = [...new Set(held.map((h) => h.material_id))].map((id) => ({ value: id, label: material.get(id)?.name ?? '?' }))
     .sort((a, b) => a.label.localeCompare(b.label));
   const siteChoices = (sites ?? []).map((s) => ({ value: s.id as string, label: s.name as string }));
 
@@ -96,7 +86,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
                 <tr>
                   <th>{t('assets.asset')}</th>
                   <th>{t('assets.site')}</th>
-                  <th className="num">{t('assets.boughtHere')}</th>
+                  <th className="num">{t('assets.arrivedHere')}</th>
                   <th className="num">{t('assets.movedIn')}</th>
                   <th className="num">{t('assets.movedOut')}</th>
                   <th className="num">{t('assets.atSiteNow')}</th>
@@ -119,42 +109,13 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
             </table>
           </div>
         ) },
-        { key: 'bought', label: t('assets.tabBought'), count: boughtRows.length, panel: boughtRows.length === 0 ? (
-          <p className="card empty">{t('assets.noneBought')}</p>
-        ) : (
-          <div className="card table-wrap flush">
-            <table className="ledger">
-              <thead>
-                <tr>
-                  <th>{t('assets.date')}</th>
-                  <th>{t('assets.bill')}</th>
-                  <th>{t('assets.party')}</th>
-                  <th>{t('assets.asset')}</th>
-                  <th>{t('assets.site')}</th>
-                  <th className="num">{t('assets.qty')}</th>
-                  <th className="num">{t('assets.rate')}</th>
-                  <th className="num">{t('assets.cost')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {boughtRows.map((r) => (
-                  <tr key={`${r.entry_id}|${r.line_no}`}>
-                    <td className="nowrap">{showDate(r.entry_date)}</td>
-                    <td>
-                      <Link href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</Link>{' '}
-                      <span className="muted">{r.reference}</span>
-                    </td>
-                    <td>{names.parties.get(r.party_id)}</td>
-                    <td>{material.get(r.material_id)?.name}</td>
-                    <td>{r.site_id ? names.sites.get(r.site_id) : ''}</td>
-                    <td className="num">{qty(Number(r.quantity), r.material_id)}</td>
-                    <td className="num">{showPaise(Number(r.rate_paise))}</td>
-                    <td className="num">{showPaise(Number(r.amount_paise))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        { key: 'arrived', label: t('arrivals.tab'), count: boughtRows.length, panel: (
+          <Arrivals page="/assets" rows={boughtRows} t={t}
+            materials={(materials ?? []).filter((m) => m.is_active && m.item_kind === 'asset')
+              .map((m) => ({ value: m.id, label: m.unit ? `${m.name} (${m.unit.name})` : m.name }))}
+            sites={siteChoices}
+            materialName={(id) => material.get(id)?.name ?? ''} unitOf={(id) => material.get(id)?.unit?.name ?? ''}
+            siteName={(id) => names.sites.get(id) ?? ''} canRemove={(by) => office || by === profile.user_id} />
         ) },
         { key: 'moves', label: t('assets.tabMoves'), count: moveRows.length, panel: (
           <>
@@ -212,11 +173,13 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
                         <td>{names.sites.get(m.to_site_id)}</td>
                         <td>{m.note}</td>
                         <td>
-                          <form action={removeMove.bind(null, m.id)}>
-                            <button type="submit" className="btn ghost small icon-btn" aria-label={t('assets.remove')}>
-                              <Icon name="close" size={16} />
-                            </button>
-                          </form>
+                          {(office || m.created_by === profile.user_id) && (
+                            <form action={removeMove.bind(null, m.id)}>
+                              <button type="submit" className="btn ghost small icon-btn" aria-label={t('assets.remove')}>
+                                <Icon name="close" size={16} />
+                              </button>
+                            </form>
+                          )}
                         </td>
                       </tr>
                     ))}

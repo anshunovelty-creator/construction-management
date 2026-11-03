@@ -15,11 +15,9 @@ import { Icon } from '@/components/icons';
 export default async function SheetPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const { type } = await searchParams;
   const profile = await requireProfile();
-  // Bills have item lines, which a row cannot hold; they are typed in their own form.
-  const slugs = Object.keys(ENTRY_FORMS).filter((s) => {
-    const form = getEntryForm(s)!;
-    return (form.roles as string[]).includes(profile.role) && !(form.fields as Field[]).some((f) => f.kind === 'items');
-  });
+  // Bills are typed on their own bill sheet, with their GST and cuts.
+  const slugs = Object.keys(ENTRY_FORMS).filter((s) =>
+    (getEntryForm(s)!.roles as string[]).includes(profile.role) && s !== 'vendor-bill' && s !== 'client-bill');
   const slug = type && slugs.includes(type) ? type : slugs[0]!;
   const form = getEntryForm(slug)!;
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);

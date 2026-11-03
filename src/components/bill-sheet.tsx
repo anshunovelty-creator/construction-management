@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useRef, useState } from 'react';
-import { BillItems } from '@/components/bill-items';
 import type { Choices, FormAction, FormState } from '@/components/form';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
@@ -21,7 +20,7 @@ const paiseOf = (text: string) => {
 type Side = 'client' | 'vendor';
 
 /**
- * A bill laid out like the bill itself: who it is from and to, its number and date, the items, then what is cut
+ * A bill laid out like the bill itself: who it is from and to, its number and date, what it comes to, then what is cut
  * and what is left to pay. A client's bill (we bill them; they cut TDS, retention, deposit) or a party's bill (they
  * bill us; we keep back TDS). Every amount here is only a preview, worked out again on save.
  */
@@ -68,6 +67,10 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
   const [tds, setTds] = useState(value('tds_rate'));
   const [retention, setRetention] = useState(value('retention'));
   const [deposit, setDeposit] = useState(value('security_deposit'));
+  const [amount, setAmount] = useState(value('amount'));
+  const gstRates = choices.gstRates ?? [];
+  // A new bill starts at 18% GST, as most bills are; "No GST" is one pick away.
+  const [gstRate, setGstRate] = useState(state.values ? value('gst_rate') : (gstRates.find((r) => r.value === '1800')?.value ?? ''));
   const tdsRates = choices.tdsRates ?? [];
   const sites = choices.sites ?? [];
 
@@ -76,6 +79,19 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
   useEffect(() => {
     if (state.saved) form.current?.dispatchEvent(new CustomEvent('entry-saved', { bubbles: true, detail: state.saved }));
   }, [state.saved]);
+
+  const base = paiseOf(amount);
+  const gst = gstRate ? percentOf(base, Number(gstRate)) : 0;
+  const total = base + gst;
+  const cuts = [
+    { key: 'tds', label: say('lessTds', { rate: tdsRates.find((r) => r.value === tds)?.label ?? '' }),
+      paise: tds ? percentOf(base, Number(tds)) : 0 },
+    ...(side === 'client' ? [
+      { key: 'ret', label: say('lessRetention'), paise: paiseOf(retention) },
+      { key: 'dep', label: say('lessDeposit'), paise: paiseOf(deposit) },
+    ] : []),
+  ].filter((c) => c.paise > 0);
+  const net = total - cuts.reduce((sum, c) => sum + c.paise, 0);
 
   const field = (name: string, label: string, control: (a: { id: string; invalid?: true; describedBy?: string }) => React.ReactNode,
     opts: { optional?: boolean; className?: string } = {}) => {
@@ -143,60 +159,52 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
         </div>
       </header>
 
-      <BillItems
-        materials={choices.materials ?? []}
-        units={choices.units ?? []}
-        gstRates={choices.gstRates ?? []}
-        values={state.values ?? {}}
-        errors={state.errors}
-        kinds={side === 'vendor'}
-        aside={
-          <div className="cb-aside">
-            <fieldset className="cb-cuts">
-              <legend className="bill-section">{say('cuts')}</legend>
-              <p className="hint">{say('cutsHint')}</p>
-              <div className={`cb-cuts-grid ${side}`}>
-                {field('tds_rate', t('fields.tds_rate'), (a) => (
-                  <SearchSelect id={a.id} name="tds_rate" options={tdsRates} value={tds} onChange={setTds}
-                    placeholder={say('noTds')} emptyLabel={say('noTds')}
-                    aria-invalid={a.invalid} aria-describedby={a.describedBy} />
-                ))}
-                {side === 'client' && field('retention', say('retention'), rupees('retention', retention, setRetention))}
-                {side === 'client' && field('security_deposit', say('deposit'), rupees('security_deposit', deposit, setDeposit))}
-              </div>
-            </fieldset>
-            {field('narration', t('fields.narration'), (a) => (
-              <input id={a.id} name="narration" defaultValue={value('narration')} autoComplete="off"
-                placeholder={say('notePlaceholder')} aria-invalid={a.invalid} aria-describedby={a.describedBy} />
-            ), { optional: true })}
+      <div className="cb-amount">
+        {field('amount', say('amount'), rupees('amount', amount, setAmount))}
+        {field('gst_rate', t('fields.gst_rate'), (a) => (
+          <SearchSelect id={a.id} name="gst_rate" options={gstRates} value={gstRate} onChange={setGstRate}
+            placeholder={say('noGst')} emptyLabel={say('noGst')} aria-invalid={a.invalid} aria-describedby={a.describedBy} />
+        ))}
+      </div>
+
+      <div className="bill-foot">
+        <div className="cb-aside">
+          <fieldset className="cb-cuts">
+            <legend className="bill-section">{say('cuts')}</legend>
+            <p className="hint">{say('cutsHint')}</p>
+            <div className={`cb-cuts-grid ${side}`}>
+              {field('tds_rate', t('fields.tds_rate'), (a) => (
+                <SearchSelect id={a.id} name="tds_rate" options={tdsRates} value={tds} onChange={setTds}
+                  placeholder={say('noTds')} emptyLabel={say('noTds')}
+                  aria-invalid={a.invalid} aria-describedby={a.describedBy} />
+              ))}
+              {side === 'client' && field('retention', say('retention'), rupees('retention', retention, setRetention))}
+              {side === 'client' && field('security_deposit', say('deposit'), rupees('security_deposit', deposit, setDeposit))}
+            </div>
+          </fieldset>
+          {field('narration', t('fields.narration'), (a) => (
+            <input id={a.id} name="narration" defaultValue={value('narration')} autoComplete="off"
+              placeholder={say('notePlaceholder')} aria-invalid={a.invalid} aria-describedby={a.describedBy} />
+          ), { optional: true })}
+        </div>
+        <div className="bill-sum">
+          <dl className="bill-totals">
+            <div><dt>{t('items.base')}</dt><dd>{showPaise(base)}</dd></div>
+            <div><dt>{t('items.gstTotal')}</dt><dd>{showPaise(gst)}</dd></div>
+            <div className="grand"><dt>{t('items.grand')}</dt><dd>{showPaise(total)}</dd></div>
+          </dl>
+          {cuts.length > 0 && (
+            <dl className="bill-totals cb-less">
+              {cuts.map((c) => <div key={c.key}><dt>{c.label}</dt><dd className="minus">− {showPaise(c.paise)}</dd></div>)}
+            </dl>
+          )}
+          <div className={`cb-net ${side}`}>
+            <span>{say('net')}</span>
+            <strong className={net < 0 ? 'minus' : undefined}>{showPaise(net)}</strong>
           </div>
-        }
-        summary={({ base, total }) => {
-          const cuts = [
-            { key: 'tds', label: say('lessTds', { rate: tdsRates.find((r) => r.value === tds)?.label ?? '' }),
-              paise: tds ? percentOf(base, Number(tds)) : 0 },
-            ...(side === 'client' ? [
-              { key: 'ret', label: say('lessRetention'), paise: paiseOf(retention) },
-              { key: 'dep', label: say('lessDeposit'), paise: paiseOf(deposit) },
-            ] : []),
-          ].filter((c) => c.paise > 0);
-          const net = total - cuts.reduce((s, c) => s + c.paise, 0);
-          return (
-            <>
-              {cuts.length > 0 && (
-                <dl className="bill-totals cb-less">
-                  {cuts.map((c) => <div key={c.key}><dt>{c.label}</dt><dd className="minus">− {showPaise(c.paise)}</dd></div>)}
-                </dl>
-              )}
-              <div className={`cb-net ${side}`}>
-                <span>{say('net')}</span>
-                <strong className={net < 0 ? 'minus' : undefined}>{showPaise(net)}</strong>
-              </div>
-              {net > 0 && <p className="amount-words">{rupeesInWords(net)}</p>}
-            </>
-          );
-        }}
-      />
+          {net > 0 && <p className="amount-words">{rupeesInWords(net)}</p>}
+        </div>
+      </div>
 
       {state.errors?._form && (
         <p role="alert" className="error form-error">

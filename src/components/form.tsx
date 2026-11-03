@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useRef, useState } from 'react';
-import { BillItems } from '@/components/bill-items';
 import { SearchSelect } from '@/components/search-select';
 import { ENUMS, type Choice, type Field, type RefSource } from '@/lib/masters/registry';
 import { rupeesToPaise, showPaise } from '@/lib/money';
@@ -106,7 +105,7 @@ export function Form({
   }, [state]);
 
   return (
-    <form ref={form} action={formAction} className={fields.some((f) => f.kind === 'items') ? 'form bill' : 'form'}>
+    <form ref={form} action={formAction} className="form">
       {state.saved && (
         <p role="status" className="banner"><Icon name="check" /> {t('entries.saved', { serial: state.saved })}</p>
       )}
@@ -168,8 +167,6 @@ function Fields({
   const onPick = (name: string) => (name === 'vendor_id' ? setVendor : name === 'payment_method' ? setMethod : undefined);
 
   const renderField = (field: Field) => {
-        // The items table is drawn by BillItems, below.
-        if (field.kind === 'items') return null;
         const id = `field-${field.name}`;
         const error = state.errors?.[field.name];
         const hintKey = hintPrefix ? `${hintPrefix}.${field.name}` : undefined;
@@ -268,21 +265,5 @@ function Fields({
         );
   };
 
-  // A bill has an items table: the details above it, and the notes, deductions and totals below it.
-  const itemsAt = fields.findIndex((f) => f.kind === 'items');
-  if (itemsAt < 0) return <>{fields.map(renderField)}</>;
-  return (
-    <>
-      <p className="bill-section">{t('items.details')}</p>
-      <div className="bill-head">{fields.slice(0, itemsAt).map(renderField)}</div>
-      <BillItems
-        materials={choices.materials ?? []}
-        units={choices.units ?? []}
-        gstRates={choices.gstRates ?? []}
-        values={state.values ?? {}}
-        errors={state.errors}
-        aside={<div className="bill-aside">{fields.slice(itemsAt + 1).map(renderField)}</div>}
-      />
-    </>
-  );
+  return <>{fields.map(renderField)}</>;
 }

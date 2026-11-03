@@ -1,5 +1,9 @@
-/** A material bought on a party's bill (from stock_in_rows), or used on a daily report (from material_use). */
-export interface Bought { site_id: string; material_id: string; entry_date: string; quantity: number | string; amount_paise: number | string }
+/** A material that arrived at a site (from stock_in_rows), or used on a daily report (from material_use). */
+export interface Bought {
+  site_id: string; material_id: string; entry_date: string; quantity: number | string;
+  /** Quantity × rate; null when the supervisor did not know the rate. */
+  amount_paise: number | string | null;
+}
 export interface Used { site_id: string; material_id: string; use_date: string; quantity: number | string }
 
 export interface StockLine {
@@ -9,7 +13,7 @@ export interface StockLine {
   used: number;
   /** Bought less used; below zero when more was reported used than bought (a bill not entered yet). */
   left: number;
-  /** Average purchase rate before GST, in paise per unit; null when nothing was bought. */
+  /** Average rate before GST of what arrived with a rate, in paise per unit; null when none had one. */
   rate: number | null;
 }
 
@@ -18,17 +22,19 @@ const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 /** Stock per site and material, whichever firm bought it. Only what happened up to `upTo` (a report's day) when given. */
 export function stockLines(bought: Bought[], used: Used[], upTo?: string): StockLine[] {
-  const lines = new Map<string, { site_id: string; material_id: string; bought: number; used: number; paid: number }>();
+  const lines = new Map<string, { site_id: string; material_id: string; bought: number; used: number; paid: number; priced: number }>();
   const line = (r: { site_id: string; material_id: string }) => {
     const k = `${r.site_id}|${r.material_id}`;
-    if (!lines.has(k)) lines.set(k, { site_id: r.site_id, material_id: r.material_id, bought: 0, used: 0, paid: 0 });
+    if (!lines.has(k)) lines.set(k, { site_id: r.site_id, material_id: r.material_id, bought: 0, used: 0, paid: 0, priced: 0 });
     return lines.get(k)!;
   };
   for (const r of bought) {
     if (upTo && r.entry_date > upTo) continue;
     const l = line(r);
     l.bought += Number(r.quantity);
+    if (r.amount_paise === null) continue;
     l.paid += Number(r.amount_paise);
+    l.priced += Number(r.quantity);
   }
   for (const r of used) {
     if (upTo && r.use_date > upTo) continue;
@@ -40,7 +46,7 @@ export function stockLines(bought: Bought[], used: Used[], upTo?: string): Stock
     bought: round3(l.bought),
     used: round3(l.used),
     left: round3(l.bought - l.used),
-    rate: l.bought > 0 ? l.paid / l.bought : null,
+    rate: l.priced > 0 ? l.paid / l.priced : null,
   }));
 }
 

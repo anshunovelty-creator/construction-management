@@ -1,9 +1,8 @@
 import { assertDate } from '@/lib/ledger/balance';
-import { ITEM_KINDS, priceItem, quantityToMilli, type ItemKind, type PricedItem } from '@/lib/ledger/bill-items';
 import { rupeesToPaise } from '@/lib/money';
 import { ENUMS, type Field } from './registry';
 
-export type Value = string | number | boolean | null | string[] | PricedItem[];
+export type Value = string | number | boolean | null | string[];
 export type ParseResult =
   | { ok: true; values: Record<string, Value> }
   | { ok: false; errors: Record<string, string> };
@@ -47,54 +46,6 @@ export function moneyAccountErrors(v: Record<string, Value>): Record<string, str
   return Object.keys(errors).length ? errors : null;
 }
 
-/** The names a bill's item boxes are posted under, one value per line. */
-export const ITEM_INPUTS = { material: 'item_material', quantity: 'item_qty', rate: 'item_rate', gst: 'item_gst', kind: 'item_kind' } as const;
-
-/**
- * A bill's item lines, priced. Lines left blank are skipped; a half-filled line is an error on that line
- * (`items.<n>`, counted from 1). At least one line is needed.
- */
-export function parseItems(data: FormData): { items: PricedItem[]; errors: Record<string, string> } {
-  const column = (name: string) => data.getAll(name).map((v) => (typeof v === 'string' ? v.trim() : ''));
-  const materials = column(ITEM_INPUTS.material);
-  const quantities = column(ITEM_INPUTS.quantity);
-  const rates = column(ITEM_INPUTS.rate);
-  const gsts = column(ITEM_INPUTS.gst);
-  // Only a party's bill sends a kind per line; anything else is consumable.
-  const kinds = column(ITEM_INPUTS.kind);
-  const items: PricedItem[] = [];
-  const errors: Record<string, string> = {};
-  materials.forEach((materialId, i) => {
-    const [quantity = '', rate = '', gst = ''] = [quantities[i], rates[i], gsts[i]];
-    if (!materialId && !quantity && !rate) return;
-    try {
-      if (!UUID.test(materialId)) throw new Error('item_material');
-      if (!/^\d+$/.test(gst) || Number(gst) > 10_000) throw new Error('item_gst');
-      let quantityMilli: number;
-      let ratePaise: number;
-      try {
-        quantityMilli = quantityToMilli(quantity);
-      } catch {
-        throw new Error('item_quantity');
-      }
-      try {
-        ratePaise = rupeesToPaise(rate);
-      } catch {
-        throw new Error('item_rate');
-      }
-      if (ratePaise <= 0) throw new Error('item_rate');
-      const kind = (ITEM_KINDS as readonly string[]).includes(kinds[i] ?? '') ? (kinds[i] as ItemKind) : 'consumable';
-      const item = { ...priceItem({ materialId, quantityMilli, ratePaise, gstBp: Number(gst) }), kind };
-      if (item.amountPaise <= 0) throw new Error('item_quantity');
-      items.push(item);
-    } catch (error) {
-      errors[`items.${i + 1}`] = (error as Error).message;
-    }
-  });
-  if (items.length === 0 && Object.keys(errors).length === 0) errors.items = 'items_needed';
-  return { items, errors };
-}
-
 export function parseFields(fields: Field[], data: FormData): ParseResult {
   const values: Record<string, Value> = {};
   const errors: Record<string, string> = {};
@@ -102,12 +53,6 @@ export function parseFields(fields: Field[], data: FormData): ParseResult {
     const raw = data.get(field.name);
     const text = typeof raw === 'string' ? raw.trim() : '';
 
-    if (field.kind === 'items') {
-      const parsed = parseItems(data);
-      Object.assign(errors, parsed.errors);
-      values[field.name] = parsed.items;
-      continue;
-    }
     if (field.kind === 'checkbox') {
       values[field.name] = raw === 'on';
       continue;
@@ -151,8 +96,8 @@ export function parseFields(fields: Field[], data: FormData): ParseResult {
         else errors[field.name] = 'invalid_choice';
         break;
       case 'ref':
-        // A TDS rate is a value (basis points), not a row, so it is a number rather than an id.
-        if (UUID.test(text) || (field.ref === 'tdsRates' && /^\d{1,5}$/.test(text))) values[field.name] = text;
+        // A GST or TDS rate is a value (basis points), not a row, so it is a number rather than an id.
+        if (UUID.test(text) || ((field.ref === 'tdsRates' || field.ref === 'gstRates') && /^\d{1,5}$/.test(text))) values[field.name] = text;
         else errors[field.name] = 'invalid_choice';
         break;
       case 'rupees':

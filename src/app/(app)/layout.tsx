@@ -53,8 +53,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLink href="/report" section="/report"><Icon name="report" /><span>{t('nav.report')}</span></NavLink>
           <NavLink href="/entries" exact><Icon name="daybook" /><span>{t('nav.daybook')}</span></NavLink>
           {office && <NavLink href="/ledger" section="/ledger"><Icon name="invoice" /><span>{t('nav.ledger')}</span></NavLink>}
-          {office && <NavLink href="/stock" section="/stock"><Icon name="stock" /><span>{t('nav.stock')}</span></NavLink>}
-          {office && <NavLink href="/assets" section="/assets"><Icon name="tool" /><span>{t('nav.assets')}</span></NavLink>}
+          <NavLink href="/stock" section="/stock"><Icon name="stock" /><span>{t('nav.stock')}</span></NavLink>
+          <NavLink href="/assets" section="/assets"><Icon name="tool" /><span>{t('nav.assets')}</span></NavLink>
           <NavLink href="/rentals" section="/rentals"><Icon name="rent" /><span>{t('nav.rentals')}</span></NavLink>
           {office && <NavLink href="/salary" section="/salary"><Icon name="payOut" /><span>{t('nav.salary')}</span></NavLink>}
           {office && <NavLink href="/tds" section="/tds"><Icon name="tds" /><span>{t('nav.tds')}</span></NavLink>}
@@ -69,11 +69,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {owner && <NavLink href="/history"><Icon name="history" /><span>{t('nav.history')}</span></NavLink>}
           </nav>
         )}
-        {office && (
-          <nav aria-label={t('nav.masters')} className="nav nav-foot">
-            <NavLink href="/masters/firms" section="/masters"><Icon name="setup" /><span>{t('nav.masters')}</span></NavLink>
-          </nav>
-        )}
+        {/* Supervisors keep their own lists (workers, materials, units); the office the rest too. */}
+        <nav aria-label={t('nav.masters')} className="nav nav-foot">
+          <NavLink href={office ? '/masters/firms' : '/masters/workers'} section="/masters"><Icon name="setup" /><span>{t('nav.masters')}</span></NavLink>
+        </nav>
       </NavMenu>
       <div className="main-col">
         <header className="topbar">

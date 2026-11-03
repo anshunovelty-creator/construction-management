@@ -1,9 +1,9 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Form } from '@/components/form';
 import { ListLink } from '@/components/list-link';
 import { requireProfile } from '@/lib/auth';
-import { getMaster } from '@/lib/masters/registry';
+import { getMaster, mayEdit, mayView } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
 import { saveMaster } from '../actions';
 import { displayValue, loadChoices } from '../options';
@@ -12,8 +12,9 @@ export default async function MasterListPage({ params }: { params: Promise<{ tab
   const { table: slug } = await params;
   const def = getMaster(slug);
   if (!def) notFound();
-  const profile = await requireProfile('owner', 'office');
-  const canEdit = !def.ownerOnly || profile.role === 'owner';
+  const profile = await requireProfile();
+  if (!mayView(def, profile.role)) redirect('/masters/workers');
+  const canEdit = mayEdit(def, profile.role);
   const db = await createClient();
   const query = db.from(def.table).select('*');
   const [{ data: rows }, choices, t] = await Promise.all([

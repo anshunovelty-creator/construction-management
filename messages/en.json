@@ -119,7 +119,6 @@
     "account_id": "Bank or cash",
     "direction": "In or out",
     "material_id": "Material",
-    "items": "Items",
     "rate_bp": "Rate (%)",
     "section": "Section",
     "tds_rate": "TDS",
@@ -138,7 +137,8 @@
     "rent_rate": "Rent per item per day",
     "rented_on": "Rented on",
     "rented_from": "Rented from",
-    "item_kind": "Bought as"
+    "item_kind": "Type",
+    "gst_rate": "GST"
   },
   "options": {
     "party_kind": {
@@ -273,11 +273,6 @@
     "cash_no_firm": "Supervisor cash belongs to a supervisor, not a firm. Leave the firm empty.",
     "needs_supervisor": "Choose the supervisor who holds this cash.",
     "only_supervisor_cash": "Only supervisor cash is held by a supervisor. Leave this empty.",
-    "items_needed": "Add at least one item: pick it, then type the quantity and rate.",
-    "item_material": "Pick the item.",
-    "item_quantity": "Type the quantity, e.g. 10 or 2.5.",
-    "item_rate": "Type the rate for one unit, e.g. 350 or 1,250.50.",
-    "item_gst": "Pick the GST rate.",
     "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
     "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
     "cash_needs_firm": "Each firm keeps its own cash. Choose the firm."
@@ -426,7 +421,7 @@
     "vendor-bill": {
       "title": "Bill from a party",
       "when": "A party sent a bill for material, machines or work.",
-      "what": "The site’s cost goes up by the bill before GST, except lines marked Asset: those go to the company’s assets, not the site’s cost. Stock lines go into the site’s stock; Rented lines do not. The GST is kept apart: the firm claims it back. If TDS is deducted, it is kept apart too: it is owed to the government, so the party is paid less. The firm owes the party the total less TDS, even before anyone pays. Paying it later is a separate entry: “Pay a party”.",
+      "what": "The site’s cost goes up by the bill before GST. The GST is kept apart: the firm claims it back. If TDS is deducted, it is kept apart too: it is owed to the government, so the party is paid less. The firm owes the party the total less TDS, even before anyone pays. Paying it later is a separate entry: “Pay a party”. What arrived at the site is added to its stock by the supervisor, not here.",
       "hints": {
         "firm_id": "The firm named on the bill.",
         "vendor_id": "Not in the list? Add them in Setup → Parties.",
@@ -628,8 +623,6 @@
     "needSite": "Add your sites first: every bill needs the site it was for.",
     "needAccount": "Add this firm's bank and cash accounts first: every payment needs where the money came from.",
     "goSetup": "Go to Setup →",
-    "material": "Material",
-    "noMaterials": "Your materials list is empty. Add cement, sand, steel and the rest once, and they show up here on every bill.",
     "gst": "GST number: {number}",
     "noGst": "not added yet"
   },
@@ -694,8 +687,7 @@
     "receivedIn": "Received in",
     "balanceAfter": "Balance after receipt",
     "addBills": "Add bills given",
-    "addReceipts": "Add money received",
-    "addBillsHint": "Add each item with its GST. Leave TDS, retention or deposit empty if the client cut none. Then press Save."
+    "addReceipts": "Add money received"
   },
   "quick": {
     "addBill": "Add bill",
@@ -728,38 +720,26 @@
     "gst": "GST",
     "gstAmount": "GST ₹",
     "total": "Total",
-    "remove": "Remove line",
-    "add": "Add item",
     "base": "Total without GST",
     "gstTotal": "Total GST",
     "grand": "Total (with GST)",
     "tds": "TDS at {rate}%",
-    "netVendor": "Net payable to party",
-    "details": "Bill details",
-    "kind": "Type"
+    "netVendor": "Net payable to party"
   },
   "stock": {
     "title": "Stock",
-    "lede": "Stock at each site, whichever firm bought it. Everything bought on a party’s bill comes in by itself; what supervisors report used on the daily report goes out. Cancel a bill and it comes out again.",
+    "lede": "Stock at each site, whichever firm paid for it. Supervisors add what arrives at their site; what they report used on the daily report goes out.",
     "value": "Value of stock left (before GST)",
-    "boughtQty": "Bought",
+    "boughtQty": "Arrived",
     "usedQty": "Used",
     "left": "Left",
     "avgRate": "Average rate",
     "leftValue": "Value left",
-    "belowZero": "More was reported used than bought here. A party bill may not be entered yet.",
+    "belowZero": "More was reported used than arrived here. What arrived may not be added yet.",
     "inStock": "In stock",
-    "bought": "Bought",
-    "none": "Nothing bought yet. Add a party bill with its items and it shows here.",
+    "none": "Nothing in stock yet. Add what arrives at a site under “Arrived”.",
     "material": "Material",
-    "site": "Site",
-    "quantity": "Quantity",
-    "cost": "Cost (before GST)",
-    "rate": "Rate",
-    "lastBought": "Last bought",
-    "date": "Date",
-    "bill": "Bill",
-    "party": "Party"
+    "site": "Site"
   },
   "report": {
     "title": "Daily report",
@@ -778,7 +758,7 @@
     "nextDay": "Next day",
     "workHeading": "Work done",
     "materialHeading": "Material used",
-    "materialNote": "Comes out of this site’s stock, at the average rate it was bought at",
+    "materialNote": "Comes out of this site’s stock, at the average rate it arrived at",
     "activityTotal": "{name} total",
     "noSites": "No sites given to you yet. Ask the office to add you to a site in People.",
     "site": "Site",
@@ -792,14 +772,14 @@
     "lines": "{n, plural, =0 {Nothing entered yet} one {# line} other {# lines}}",
     "use": {
       "addTitle": "Add material used",
-      "addHint": "Pick the material and type how much was used. Its unit, rate and amount fill in by themselves, with what will be left at this site. Red means more than the stock shows: a party bill may not be entered yet.",
+      "addHint": "Pick the material and type how much was used. Its unit, rate and amount fill in by themselves, with what will be left at this site. Red means more than the stock shows: what arrived may not be added yet.",
       "material": "Material",
       "pickMaterial": "Pick a material…",
       "quantity": "Quantity used",
       "rate": "Rate",
       "amount": "Amount",
       "leftAfter": "Left at site after",
-      "belowZero": "More than this site’s stock. A party bill may not be entered yet.",
+      "belowZero": "More than this site’s stock. What arrived may not be added yet.",
       "remark": "Remark",
       "remarkExample": "e.g. Brick work, ground floor",
       "addLine": "Add material",
@@ -1125,6 +1105,8 @@
     "from": "From {firm}",
     "date": "Bill date",
     "billNoPlaceholder": "e.g. RA-3",
+    "amount": "Amount before GST",
+    "noGst": "No GST",
     "cuts": "What the client cuts",
     "cutsHint": "Leave empty what the client does not cut. TDS is worked out on the bill before GST.",
     "noTds": "No TDS",
@@ -1153,29 +1135,22 @@
   },
   "assets": {
     "title": "Assets",
-    "lede": "Tools and other things bought to reuse at any site, like axes and bowls. They come from party bills whose lines are marked “Asset”. They are the company’s, not a site’s cost or stock. Move them here when they go to another site.",
+    "lede": "Tools and other things kept to reuse at any site, like axes and bowls (materials whose type is “Asset” in Setup). Supervisors add them when they arrive, and move them here when they go to another site. They are not a site’s stock.",
     "value": "Worth of assets held",
-    "valueNote": "At what each cost on average",
+    "valueNote": "At the average rate they arrived at",
     "kinds": "Kinds of assets",
     "atSites": "{count, plural, =0 {At no site} one {At # site} other {At # sites}}",
     "tabNow": "Where they are",
-    "tabBought": "Bought",
     "tabMoves": "Moves between sites",
-    "none": "No assets yet. Mark a line on a party’s bill as “Asset” and it shows here.",
-    "noneBought": "No assets bought yet.",
+    "none": "No assets yet. Add them under “Arrived” when they reach a site.",
     "asset": "Asset",
     "site": "Site",
-    "boughtHere": "Bought here",
     "movedIn": "Moved in",
     "movedOut": "Moved out",
     "atSiteNow": "At the site now",
     "worth": "Worth",
     "date": "Date",
-    "bill": "Bill",
-    "party": "Party",
     "qty": "Qty",
-    "rate": "Rate",
-    "cost": "Cost",
     "moveTitle": "Move assets to another site",
     "howMany": "How many",
     "from": "From site",
@@ -1191,6 +1166,35 @@
       "not_enough": "That site does not have that many of this asset.",
       "not_saved": "Could not save the move.",
       "not_removed": "Could not remove the move."
+    },
+    "arrivedHere": "Arrived here"
+  },
+  "arrivals": {
+    "tab": "Arrived",
+    "title": {
+      "stock": "Add stock that arrived at a site",
+      "assets": "Add assets that arrived at a site"
+    },
+    "material": "Material",
+    "quantity": "Quantity",
+    "rate": "Rate per unit (₹, before GST)",
+    "rateShort": "Rate",
+    "cost": "Cost (before GST)",
+    "site": "Site",
+    "date": "Date",
+    "note": "From / note",
+    "notePlaceholder": "e.g. Ansari Traders, challan 112",
+    "hint": "Leave the rate empty if you do not know it; then this line is not valued. A material missing from the list can be added in Setup → Materials.",
+    "add": "Add",
+    "none": "Nothing added yet.",
+    "remove": "Remove this line",
+    "errors": {
+      "pick_all": "Pick the material and the site.",
+      "invalid_date": "That date is not valid.",
+      "bad_quantity": "Type the quantity, e.g. 10 or 2.5.",
+      "bad_rate": "Type the rate for one unit, e.g. 350, or leave it empty.",
+      "not_saved": "Could not save. You can add only for your own sites.",
+      "not_removed": "Could not remove. A supervisor can remove their own line on the day it was added only."
     }
   }
 }

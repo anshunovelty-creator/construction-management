@@ -9,9 +9,9 @@ import { heldAt } from './held';
 
 const back = (error?: string): never => redirect(`/assets?tab=moves${error ? `&error=${error}` : ''}`);
 
-/** Takes assets from one site to another; no more than that site holds. */
+/** Takes assets from one site to another; no more than that site holds. Supervisors from their own sites (the database checks). */
 export async function moveAsset(data: FormData): Promise<void> {
-  await requireProfile('owner', 'office');
+  await requireProfile();
   const v = (name: string) => String(data.get(name) ?? '').trim();
   const [material, from, to, date] = [v('material_id'), v('from_site_id'), v('to_site_id'), v('move_date')];
   if (!material || !from || !to) back('pick_all');
@@ -37,9 +37,9 @@ export async function moveAsset(data: FormData): Promise<void> {
   back();
 }
 
-/** Takes a move typed wrong off the list. */
+/** Takes a move typed wrong off the list: the office any move, a supervisor their own. */
 export async function removeMove(id: string): Promise<void> {
-  await requireProfile('owner', 'office');
+  await requireProfile();
   const { data, error } = await (await createClient()).from('asset_moves').delete().eq('id', id).select('id');
   if (error || !data?.length) back('not_removed');
   revalidatePath('/assets');

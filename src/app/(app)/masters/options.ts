@@ -51,7 +51,7 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
       return (data ?? []).map((r) => ({ value: r.id, label: r.name, kind: r.item_kind as string }));
     }
     case 'gstRates': {
-      // A bill line keeps the rate itself, not the row, so the value is the rate in basis points.
+      // A bill keeps the rate itself, not the row, so the value is the rate in basis points.
       const { data } = await db.from('gst_rates').select('rate_bp').eq('is_active', true).order('rate_bp');
       return (data ?? []).map((r) => ({ value: String(r.rate_bp), label: `${r.rate_bp / 100}%` }));
     }
@@ -78,7 +78,7 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
 /** Choices for every reference field in `fields`, as the signed-in user may see them; in `scope`'s firm when given. */
 export async function loadChoices(db: Db, fields: Field[], scope?: ChoiceScope): Promise<Choices> {
   const sources = [...new Set(fields.flatMap((f): RefSource[] =>
-    f.kind === 'ref' || f.kind === 'multi' ? [f.ref] : f.kind === 'items' ? ['materials', 'gstRates', 'units'] : []))];
+    f.kind === 'ref' || f.kind === 'multi' ? [f.ref] : []))];
   const loaded = await Promise.all(sources.map((source) => load(db, source, scope)));
   return Object.fromEntries(sources.map((source, i) => [source, loaded[i]]));
 }

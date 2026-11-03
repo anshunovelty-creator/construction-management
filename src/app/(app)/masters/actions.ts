@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import type { FormState } from '@/components/form';
 import { requireProfile } from '@/lib/auth';
 import { moneyAccountErrors, parseFields, submittedValues } from '@/lib/masters/parse';
-import { getMaster } from '@/lib/masters/registry';
+import { getMaster, mayEdit } from '@/lib/masters/registry';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { allowDelete } from '@/lib/supabase/env';
 import { createClient } from '@/lib/supabase/server';
@@ -13,8 +13,8 @@ import { createClient } from '@/lib/supabase/server';
 /** Adds (id = null) or edits a master row as the signed-in user. Row level security has the final say. */
 export async function saveMaster(slug: string, id: string | null, _state: FormState, data: FormData): Promise<FormState> {
   const def = getMaster(slug);
-  const profile = await requireProfile('owner', 'office');
-  if (!def || (def.ownerOnly && profile.role !== 'owner')) return { errors: { _form: 'not_allowed' } };
+  const profile = await requireProfile();
+  if (!def || !mayEdit(def, profile.role)) return { errors: { _form: 'not_allowed' } };
 
   const values = submittedValues(data);
   const parsed = parseFields(def.fields, data);

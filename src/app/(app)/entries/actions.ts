@@ -8,7 +8,6 @@ import { accountScope, firmErrors } from '@/lib/firm';
 import { cashCloseDifference, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
-import { billTotals, type PricedItem } from '@/lib/ledger/bill-items';
 import type { CostHead, EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
 import { showPaise, percentOf } from '@/lib/money';
 import { parseFields, submittedValues, type Value } from '@/lib/masters/parse';
@@ -68,6 +67,9 @@ async function firmsPicked(fields: Field[], v: Record<string, Value>, db: Db): P
   return picked;
 }
 
+/** A bill's GST: its one rate (basis points) on the amount before GST; none when no rate was picked. */
+const gstOf = (v: Record<string, Value>) => (v.gst_rate === null ? 0 : percentOf(v.amount as number, Number(v.gst_rate)));
+
 /** Turns a submitted form into a balanced ledger entry, using the tested posting rules. `firmId` is the form's firm. */
 async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId: string | null, db: Db): Promise<EntryDraft> {
   const s = (name: string) => v[name] as string;
@@ -75,17 +77,12 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
 
   switch (slug) {
     case 'vendor-bill': {
-      const billItems = v.items as PricedItem[];
-      const { gst } = billTotals(billItems);
-      // Assets go to the company's assets; consumables and rented things are the site's cost.
-      const assets = billTotals(billItems.filter((i) => i.kind === 'asset')).base;
-      const cost = billTotals(billItems.filter((i) => i.kind !== 'asset')).base;
       // Left empty, no TDS is deducted.
       const rate = v.tds_rate as string | null;
       return vendorBill({
         firmId: firmId!, vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
-        items: cost > 0 ? [{ costHead: (s('cost_head') || 'material') as CostHead, amountPaise: cost }] : [],
-        assetsPaise: assets, gstPaise: gst, billItems,
+        items: [{ costHead: (s('cost_head') || 'material') as CostHead, amountPaise: n('amount') }],
+        gstPaise: gstOf(v),
         tds: rate === null ? undefined : await tdsFor(db, Number(rate)),
         narration: s('narration'),
       });
@@ -99,14 +96,13 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
       });
     }
     case 'client-bill': {
-      const billItems = v.items as PricedItem[];
-      const { base: gross, gst } = billTotals(billItems);
+      const gross = n('amount');
       // Left empty, no TDS, retention or deposit is cut. TDS is worked out on the bill before GST.
       const tds = v.tds_rate === null ? undefined : await tdsFor(db, Number(v.tds_rate));
       const cut = (name: string) => (v[name] === null ? undefined : n(name));
       return clientBill({
         client: { firmId: firmId!, clientId: s('client_id'), siteId: s('site_id') },
-        billDate: s('entry_date'), billNo: s('bill_no'), grossPaise: gross, gstPaise: gst, billItems,
+        billDate: s('entry_date'), billNo: s('bill_no'), grossPaise: gross, gstPaise: gstOf(v),
         narration: s('narration'),
         deductions: {
           tdsPaise: tds && percentOf(gross, tds.rateBp),
