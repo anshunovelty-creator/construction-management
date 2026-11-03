@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useState } from 'react';
-import { showPaise } from '@/lib/money';
+import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY, valueOf } from '@/lib/stock';
 import { Icon } from '@/components/icons';
 import { NewMaterial } from '@/components/new-material';
@@ -12,7 +12,11 @@ import type { Choice } from '@/lib/masters/registry';
 export interface MaterialLine {
   materialId: string;
   quantity: string;
+  /** Rupees per unit; filled with the site's average rate, which the supervisor may change. Empty: the average. */
+  rate: string;
   remark: string;
+  /** For a line added from a combination work: how much 1 unit of the work takes, shown as a guide. */
+  guide?: string;
 }
 
 /** What saving comes back with: when it was saved, or the mistake and the line it is on (from 0). */
@@ -32,7 +36,26 @@ export interface MaterialChoice {
   left: number;
 }
 
-const emptyLine = (): MaterialLine => ({ materialId: '', quantity: '', remark: '' });
+/** A combination work from Setup (PCC, RCC…): its unit and how much of each material 1 unit takes. */
+export interface MixChoice {
+  id: string;
+  name: string;
+  unit: string;
+  items: { materialId: string; quantity: number }[];
+}
+
+const emptyLine = (): MaterialLine => ({ materialId: '', quantity: '', rate: '', remark: '' });
+const isEmpty = (x: MaterialLine) => !x.materialId && !x.quantity.trim() && !x.remark.trim();
+/** The site's average rate as rupees to type over, e.g. 35000 paise -> "350". */
+const rateText = (m: MaterialChoice | undefined) => (m?.rate == null ? '' : String(Math.round(m.rate) / 100));
+const paiseOf = (text: string) => {
+  try {
+    const paise = rupeesToPaise(text);
+    return paise >= 0 ? paise : null;
+  } catch {
+    return null;
+  }
+};
 const NUMBER = /^(\d+(\.\d*)?|\.\d+)$/;
 
 /**
@@ -41,10 +64,13 @@ const NUMBER = /^(\d+(\.\d*)?|\.\d+)$/;
  */
 export function MaterialUseForm({
   materials: given,
+  mixes,
   units,
   action,
 }: {
   materials: MaterialChoice[];
+  /** Picking one adds its materials as lines. */
+  mixes: MixChoice[];
   /** For a material added here: its unit. */
   units: Choice[];
   action: (state: MaterialState, data: FormData) => Promise<MaterialState>;
@@ -56,6 +82,7 @@ export function MaterialUseForm({
   // Materials added from this form: none of this site's stock yet, so no rate and nothing left.
   const [added, setAdded] = useState<MaterialChoice[]>([]);
   const [creating, setCreating] = useState<{ line: number; name: string } | null>(null);
+  const [mixPick, setMixPick] = useState(0);
   const materials = [...given, ...added];
   const material = new Map(materials.map((m) => [m.id, m]));
 
@@ -66,6 +93,20 @@ export function MaterialUseForm({
   const change = (l: number, patch: Partial<MaterialLine>) =>
     setLines((all) => all.map((x, i) => (i === l ? { ...x, ...patch } : x)));
 
+  // A combination work adds a line for each of its materials, after the lines already typed; the quantities are typed by hand.
+  const addMix = (id: string) => {
+    const mix = mixes.find((x) => x.id === id);
+    setMixPick((n) => n + 1);
+    if (!mix) return;
+    const kept = lines.filter((x) => !isEmpty(x));
+    setLines([...kept, ...mix.items.map((item) => {
+      const m = material.get(item.materialId);
+      return { ...emptyLine(), materialId: item.materialId, rate: rateText(m), remark: mix.name,
+        guide: t('use.mixGuide', { qty: `${QTY.format(item.quantity)} ${m?.unit ?? ''}`.trim(), unit: mix.unit || t('use.mixUnit') }) };
+    })]);
+    requestAnimationFrame(() => document.getElementById(`use-qty-${kept.length}`)?.focus());
+  };
+
   // What is left after each line: the stock now, less this line and the lines above it for the same material.
   const usedSoFar = new Map<string, number>();
   const preview = lines.map((line) => {
@@ -74,7 +115,8 @@ export function MaterialUseForm({
     if (!m || qty === null) return { m, amount: null, left: null };
     const used = (usedSoFar.get(m.id) ?? 0) + qty;
     usedSoFar.set(m.id, used);
-    return { m, amount: m.rate === null ? null : valueOf(qty, m.rate), left: Math.round((m.left - used) * 1000) / 1000 };
+    const rate = line.rate.trim() ? paiseOf(line.rate) : m.rate;
+    return { m, amount: rate === null ? null : valueOf(qty, rate), left: Math.round((m.left - used) * 1000) / 1000 };
   });
   const total = preview.reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
@@ -107,7 +149,7 @@ export function MaterialUseForm({
                 <th className="box">#</th>
                 <th className="box">{t('use.material')}</th>
                 <th className="box">{t('use.quantity')}</th>
-                <th className="num">{t('use.rate')}</th>
+                <th className="box">{t('use.rate')}</th>
                 <th className="num">{t('use.amount')}</th>
                 <th className="num">{t('use.leftAfter')}</th>
                 <th>{t('use.remark')}</th>
@@ -124,7 +166,7 @@ export function MaterialUseForm({
                       <SearchSelect
                         value={line.materialId}
                         onChange={(v) => {
-                          change(l, { materialId: v });
+                          change(l, { materialId: v, rate: rateText(material.get(v)) });
                           // Picked: the quantity is next, so the cursor goes there.
                           if (v) requestAnimationFrame(() => document.getElementById(`use-qty-${l}`)?.focus());
                         }}
@@ -148,8 +190,18 @@ export function MaterialUseForm({
                         />
                         <span className="unit-tag">{m?.unit}</span>
                       </span>
+                      {line.guide && <span className="line-guide">{line.guide}</span>}
                     </td>
-                    <td className="num result" data-label={t('use.rate')}>{m?.rate == null ? '—' : showPaise(Math.round(m.rate))}</td>
+                    <td className="box rate" data-label={t('use.rate')}>
+                      <input
+                        value={line.rate}
+                        onChange={(e) => change(l, { rate: e.target.value })}
+                        inputMode="decimal"
+                        className="num"
+                        placeholder="—"
+                        aria-label={`${t('use.rate')}, ${t('work.lineNo', { n: l + 1 })}`}
+                      />
+                    </td>
                     <td className="num result" data-label={t('use.amount')}>{amount === null ? '—' : showPaise(amount)}</td>
                     <td data-label={t('use.leftAfter')} className={`num result${left !== null && left < 0 ? ' minus' : ''}`} title={left !== null && left < 0 ? t('use.belowZero') : undefined}>
                       {left === null ? (m ? `${QTY.format(m.left)} ${m.unit}` : '—') : `${QTY.format(left)} ${m!.unit}`}
@@ -183,6 +235,12 @@ export function MaterialUseForm({
           <button type="button" className="btn ghost small" onClick={() => setLines((all) => [...all, emptyLine()])}>
             ＋ {t('use.addLine')}
           </button>
+          {mixes.length > 0 && (
+            <span className="mix-pick">
+              <SearchSelect key={mixPick} value="" onChange={addMix} placeholder={t('use.pickMix')} aria-label={t('use.pickMix')}
+                options={mixes.map((x) => ({ value: x.id, label: x.name }))} />
+            </span>
+          )}
         </div>
       </div>
 

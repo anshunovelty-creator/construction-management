@@ -97,3 +97,28 @@ it('lets a supervisor keep materials, units and workers in Setup, but not vendor
   await expect(as(`insert into parties (kind, name) values ('vendor', 'Some Shop')`)).rejects.toThrow('row-level security');
   expect((await as(`update parties set name = 'X' where id = $1`, [seed.ansari])).affectedRows).toBe(0);
 });
+
+it('lets a supervisor keep combination works, and saves a rate typed on a used line', async () => {
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const sand = (await db.query<{ id: string }>(`insert into materials (name) values ('Sand') returning id`)).rows[0]!.id;
+  const mix = await asUser(db, ramesh, async (tx) => {
+    const id = (await tx.query<{ id: string }>(
+      `insert into mixes (name, unit_id) select 'PCC', id from units where name = 'M3' returning id`)).rows[0]!.id;
+    await tx.query(`insert into mix_items (mix_id, material_id, quantity, position) values ($1, $2, 6.3, 0), ($1, $3, 0.44, 1)`,
+      [id, cement, sand]);
+    // Changed later: its materials are saved again whole.
+    await tx.query(`delete from mix_items where mix_id = $1`, [id]);
+    await tx.query(`insert into mix_items (mix_id, material_id, quantity) values ($1, $2, 6.5)`, [id, cement]);
+    return id;
+  });
+  const { rows } = await db.query(`select material_id, quantity::text from mix_items where mix_id = $1`, [mix]);
+  expect(rows).toEqual([{ material_id: cement, quantity: '6.500' }]);
+  await expect(db.query(`insert into mixes (name) values ('PCC')`)).rejects.toThrow('duplicate');
+
+  await asUser(db, ramesh, (tx) => tx.query(
+    `insert into material_use (site_id, use_date, material_id, quantity, rate_paise) values ($1, '2026-10-30', $2, 2, 36000)`,
+    [seed.svgSite, cement]));
+  await expect(asUser(db, ramesh, (tx) => tx.query(
+    `insert into material_use (site_id, use_date, material_id, quantity, rate_paise) values ($1, '2026-10-30', $2, 2, -1)`,
+    [seed.svgSite, cement]))).rejects.toThrow('check');
+});

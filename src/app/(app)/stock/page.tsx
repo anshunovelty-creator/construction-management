@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { Arrivals, type ArrivalRow } from './arrivals';
 
-interface UseRow extends Used { id: string; remark: string }
+interface UseRow extends Used { id: string; remark: string; rate_paise: number | string | null }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -42,7 +42,7 @@ export default async function StockPage({ searchParams }: {
 
   // Everything up to the period's end: the opening stock needs what came before it.
   let inQuery = db.from('stock_in_rows').select('*').lte('entry_date', to);
-  let useQuery = db.from('material_use').select('id, site_id, material_id, use_date, quantity, remark').lte('use_date', to);
+  let useQuery = db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark').lte('use_date', to);
   if (site) {
     inQuery = inQuery.eq('site_id', site);
     useQuery = useQuery.eq('site_id', site);
@@ -63,9 +63,10 @@ export default async function StockPage({ searchParams }: {
   const sortName = (s: { material_id: string; site_id: string }) => `${material.get(s.material_id)?.name ?? ''} ${siteName(s.site_id)}`;
   const lines = stockRegister(bought, used, from, to).sort((a, b) => sortName(a).localeCompare(sortName(b)));
   const value = lines.reduce((sum, s) => sum + valueOf(Math.max(s.closing, 0), s.rate), 0);
-  // A use is valued at the average rate of what had arrived at that site by that day, as on its daily report.
-  const rateOn = (r: UseRow) =>
-    stockLines(bought.filter((b) => b.site_id === r.site_id && b.material_id === r.material_id), [], r.use_date)[0]?.rate ?? null;
+  // A use is valued at the rate the supervisor gave it, else the average rate of what had arrived at that site by that
+  // day, as on its daily report.
+  const rateOn = (r: UseRow) => r.rate_paise !== null ? Number(r.rate_paise)
+    : stockLines(bought.filter((b) => b.site_id === r.site_id && b.material_id === r.material_id), [], r.use_date)[0]?.rate ?? null;
   const usedValue = usedRows.reduce((sum, r) => sum + valueOf(Number(r.quantity), rateOn(r)), 0);
   const period = `${showDate(from)} – ${showDate(to)}`;
   const passbookLink = (s: { site_id: string; material_id: string }) =>
@@ -164,7 +165,7 @@ export default async function StockPage({ searchParams }: {
                   <th>{t('stock.material')}</th>
                   <th>{t('stock.site')}</th>
                   <th className="num">{t('stock.usedQty')}</th>
-                  <th className="num">{t('stock.avgRate')}</th>
+                  <th className="num">{t('stock.rate')}</th>
                   <th className="num">{t('stock.amount')}</th>
                   <th>{t('stock.remark')}</th>
                 </tr>

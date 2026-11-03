@@ -15,6 +15,7 @@ export default async function MastersLayout({ children }: { children: React.Reac
             {t(`masters.${slug}`)}
           </NavLink>
         ))}
+        <NavLink href="/masters/mixes">{t('masters.mixes')}</NavLink>
       </nav>
       <div className="card">{children}</div>
     </>

@@ -107,7 +107,7 @@ export async function addOtherCost(siteId: string, date: string, _state: LineSta
 }
 
 /**
- * The material used on a site's day: a material, a quantity and a remark per line. All lines are saved or none;
+ * The material used on a site's day: a material, a quantity, a rate (optional) and a remark per line. All lines are saved or none;
  * on a mistake the form keeps what was typed and is told which line is wrong.
  */
 export async function addMaterialUse(siteId: string, date: string, _state: MaterialState, data: FormData): Promise<MaterialState> {
@@ -130,7 +130,11 @@ export async function addMaterialUse(siteId: string, date: string, _state: Mater
     } catch {
       return { error: 'bad_quantity', line: i };
     }
-    rows.push({ site_id: siteId, use_date: date, material_id: line.materialId, quantity: milli / 1000, remark: (line.remark ?? '').trim() });
+    // An empty rate is valued at the site's average when shown.
+    const rate = (line.rate ?? '').trim() ? ratePaise(line.rate) : null;
+    if ((line.rate ?? '').trim() && rate === null) return { error: 'bad_rate', line: i };
+    rows.push({ site_id: siteId, use_date: date, material_id: line.materialId, quantity: milli / 1000, rate_paise: rate,
+      remark: (line.remark ?? '').trim() });
   }
   if (rows.length === 0) return { error: 'nothing' };
   const { error } = await (await createClient()).from('material_use').insert(rows);

@@ -19,6 +19,7 @@ import { PrintButton } from '@/components/print-button';
 import { PrintSheet, type SheetData } from './print-sheet';
 
 interface UseRow extends Used {
+  rate_paise: number | string | null;
   id: string;
   remark: string;
   created_by: string;
@@ -94,8 +95,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const unitOf = (id: string) => material.get(id)?.unit?.name ?? '';
   const unitName = new Map((units ?? []).map((u) => [u.id as string, u.name as string]));
 
-  const [{ data: used }, { data: bought }, { data: work }, { data: workers }, { data: labour }, { data: other }] = await Promise.all([
-    db.from('material_use').select('id, site_id, material_id, use_date, quantity, remark, created_by')
+  const [{ data: used }, { data: bought }, { data: work }, { data: workers }, { data: labour }, { data: other }, { data: mixes }] = await Promise.all([
+    db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark, created_by')
       .eq('site_id', site.id).lte('use_date', date).order('created_at').returns<UseRow[]>(),
     db.from('stock_in_rows').select('site_id, material_id, entry_date, quantity, amount_paise')
       .eq('site_id', site.id).lte('entry_date', date).returns<Bought[]>(),
@@ -108,10 +109,14 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       .eq('site_id', site.id).eq('work_date', date).returns<LabourRow[]>(),
     db.from('other_cost').select('id, description, cost_head, quantity, rate_paise, amount_paise, created_by')
       .eq('site_id', site.id).eq('work_date', date).order('created_at').returns<OtherRow[]>(),
+    db.from('mixes').select('id, name, unit:units(name), items:mix_items(material_id, quantity, position)').eq('is_active', true).order('name')
+      .returns<{ id: string; name: string; unit: { name: string } | null; items: { material_id: string; quantity: number | string; position: number }[] }[]>(),
   ]);
   const stock = new Map(stockLines(bought ?? [], used ?? [], date).map((s) => [s.material_id, s]));
   const usedToday = (used ?? []).filter((r) => r.use_date === date);
-  const amount = (r: UseRow) => valueOf(Number(r.quantity), stock.get(r.material_id)?.rate ?? null);
+  // The rate the supervisor gave the line, else the site's average.
+  const rateOf = (r: UseRow) => (r.rate_paise !== null ? Number(r.rate_paise) : stock.get(r.material_id)?.rate ?? null);
+  const amount = (r: UseRow) => valueOf(Number(r.quantity), rateOf(r));
   const materialTotal = usedToday.reduce((sum, r) => sum + amount(r), 0);
   const workRows = work ?? [];
   const workTotal = sum(workRows);
@@ -152,6 +157,12 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     const s = stock.get(m.id);
     return { id: m.id, name: m.name, unit: m.unit?.name ?? '', rate: s?.rate ?? null, left: s?.left ?? 0 };
   });
+  const offered = new Set(materialChoices.map((m) => m.id));
+  const mixChoices = (mixes ?? []).map((x) => ({
+    id: x.id, name: x.name, unit: x.unit?.name ?? '',
+    items: [...x.items].sort((a, b) => a.position - b.position).filter((i) => offered.has(i.material_id))
+      .map((i) => ({ materialId: i.material_id, quantity: Number(i.quantity) })),
+  }));
   const canRemove = (createdBy: string) => office || createdBy === profile.user_id;
   const remove = (table: 'material_use' | 'work_done' | 'labour_day' | 'other_cost', id: string) => (
     <form action={removeReportLine.bind(null, table, id, site.id, date)}>
@@ -174,7 +185,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     material: usedToday.map((r) => {
       const s = stock.get(r.material_id);
       return { id: r.id, name: material.get(r.material_id)?.name ?? '', quantity: Number(r.quantity), unit: unitOf(r.material_id),
-        rate: s?.rate ?? null, amount: amount(r), left: s ? `${QTY.format(s.left)} ${unitOf(r.material_id)}` : '', remark: r.remark ?? '' };
+        rate: rateOf(r), amount: amount(r), left: s ? `${QTY.format(s.left)} ${unitOf(r.material_id)}` : '', remark: r.remark ?? '' };
     }),
     labour: labourRows.map((r) => ({ id: r.id, name: person.get(r.party_id)?.name ?? '', staff: isStaff(r), present: r.present,
       ot: Number(r.ot_hours), dayPay: Number(r.day_pay_paise), amount: Number(r.amount_paise) })),
@@ -312,7 +323,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                     <tr key={r.id}>
                       <td><strong>{material.get(r.material_id)?.name}</strong></td>
                       <td className="num">{QTY.format(Number(r.quantity))} {unitOf(r.material_id)}</td>
-                      <td className="num">{s?.rate == null ? '—' : showPaise(Math.round(s.rate))}</td>
+                      <td className="num">{rateOf(r) === null ? '—' : showPaise(Math.round(rateOf(r)!))}</td>
                       <td className="num">{showPaise(amount(r))}</td>
                       <td className={s && s.left < 0 ? 'num minus' : 'num'} title={s && s.left < 0 ? t('stock.belowZero') : undefined}>
                         {s ? `${QTY.format(s.left)} ${unitOf(r.material_id)}` : ''}
@@ -334,7 +345,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </div>
         )}
 
-        <MaterialUseForm key={`${site.id}/${date}`} materials={materialChoices} units={unitChoices.map((u) => ({ value: u.id, label: u.name }))} action={addMaterialUse.bind(null, site.id, date)} />
+        <MaterialUseForm key={`${site.id}/${date}`} materials={materialChoices} mixes={mixChoices} units={unitChoices.map((u) => ({ value: u.id, label: u.name }))} action={addMaterialUse.bind(null, site.id, date)} />
       </section>
 
       <section className="report-section" aria-labelledby="labour-title">

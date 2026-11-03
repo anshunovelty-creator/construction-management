@@ -74,7 +74,8 @@
     "units": "Units",
     "gst-rates": "GST rates",
     "tds-rates": "TDS rates",
-    "workers": "Workers and staff"
+    "workers": "Workers and staff",
+    "mixes": "Combination works"
   },
   "fields": {
     "code": "Short code (2–4 capital letters)",
@@ -755,7 +756,8 @@
     "outQty": "Out",
     "arrivedLine": "Arrived",
     "usedLine": "Used (daily report)",
-    "noMoves": "Nothing arrived or used in this period."
+    "noMoves": "Nothing arrived or used in this period.",
+    "rate": "Rate"
   },
   "report": {
     "title": "Daily report",
@@ -774,7 +776,7 @@
     "nextDay": "Next day",
     "workHeading": "Work done",
     "materialHeading": "Material used",
-    "materialNote": "Comes out of this site’s stock, at the average rate it arrived at",
+    "materialNote": "Comes out of this site’s stock, at the rate typed on the line, else the average rate it arrived at",
     "activityTotal": "{name} total",
     "noSites": "No sites given to you yet. Ask the office to add you to a site in People.",
     "site": "Site",
@@ -788,7 +790,7 @@
     "lines": "{n, plural, =0 {Nothing entered yet} one {# line} other {# lines}}",
     "use": {
       "addTitle": "Add material used",
-      "addHint": "Pick the material and type how much was used. Its unit, rate and amount fill in by themselves, with what will be left at this site. Red means more than the stock shows: what arrived may not be added yet.",
+      "addHint": "Pick the material and type how much was used, or pick a combination work (PCC, RCC…) to add all its materials at once. The rate fills in with the site’s average; change it if this lot cost different. Red means more than the stock shows: what arrived may not be added yet.",
       "material": "Material",
       "pickMaterial": "Pick a material…",
       "quantity": "Quantity used",
@@ -803,7 +805,10 @@
       "dayTotal": "Total material used",
       "save": "Save material used",
       "whereLine": "Line {line}:",
-      "leftInList": "{left} left"
+      "leftInList": "{left} left",
+      "pickMix": "Add a work’s materials (PCC, RCC…)",
+      "mixGuide": "{qty} for 1 {unit}",
+      "mixUnit": "unit"
     },
     "work": {
       "addTitle": "Add work done",
@@ -1217,6 +1222,39 @@
       "bad_rate": "Type the rate for one unit, e.g. 350, or leave it empty.",
       "not_saved": "Could not save. You can add only for your own sites.",
       "not_removed": "Could not remove. A supervisor can remove their own line on the day it was added only."
+    }
+  },
+  "mixes": {
+    "addTitle": "Add a combination work",
+    "editTitle": "Change this combination work",
+    "hint": "A work made of several materials, like PCC, RCC, plaster or tiles. Give its unit, then how much of each material 1 unit of it takes. On the daily report, picking this work adds these materials to the material used list.",
+    "name": "Work",
+    "nameExample": "e.g. PCC 1:2:4",
+    "unit": "Unit of the work",
+    "pickUnit": "Pick the unit…",
+    "unitOfWork": "unit",
+    "material": "Material",
+    "pickMaterial": "Pick a material…",
+    "perUnit": "For 1 {unit}",
+    "takes": "1 unit takes",
+    "addLine": "Add material",
+    "removeLine": "Remove this material",
+    "active": "In use",
+    "yes": "Yes",
+    "no": "No (switched off)",
+    "none": "No combination works yet. Add PCC, RCC, plaster… below.",
+    "save": "Save work",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "line": "Line {line}:",
+    "errors": {
+      "need_name": "Write the name of the work, like PCC.",
+      "pick_material": "Pick the material.",
+      "bad_quantity": "Type how much 1 unit takes, a number above zero like 6.3 or 0.44.",
+      "twice": "This material is on the list twice.",
+      "need_material": "Add at least one material.",
+      "duplicate": "A work with this name is already there.",
+      "save_failed": "Could not save."
     }
   }
 }
