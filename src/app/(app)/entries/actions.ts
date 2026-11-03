@@ -81,7 +81,8 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
       const rate = v.tds_rate as string | null;
       return vendorBill({
         firmId: firmId!, vendorId: s('vendor_id'), siteId: s('site_id'), billDate: s('entry_date'), billNo: s('bill_no'),
-        items: [{ costHead: (s('cost_head') || 'material') as CostHead, amountPaise: n('amount') }],
+        // The owner keeps the money only (owner decision 2026-11-03), so a bill is not split by type: it counts as material.
+        items: [{ costHead: 'material', amountPaise: n('amount') }],
         gstPaise: gstOf(v),
         tds: rate === null ? undefined : await tdsFor(db, Number(rate)),
         narration: s('narration'),

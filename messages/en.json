@@ -428,7 +428,6 @@
         "site_id": "Where the material or work was used.",
         "bill_no": "The number printed on the party’s bill.",
         "narration": "Anything worth remembering, e.g. “40 bags cement”.",
-        "cost_head": "Left empty, the bill counts as material.",
         "tds_rate": "Left empty, no TDS is deducted. The rate is worked out on the bill before GST."
       }
     },
@@ -1016,7 +1015,6 @@
     "start": "the start",
     "allEntries": "All entries up to {to}",
     "date": "Date",
-    "entry": "Entry",
     "particulars": "Particulars",
     "balance": "Balance",
     "debit": {
@@ -1031,9 +1029,7 @@
     },
     "dr": "Dr",
     "cr": "Cr",
-    "broughtForward": "Balance brought forward",
     "none": "No entries in this period.",
-    "totals": "Totals",
     "common": "Common",
     "closingTitle": "Closing balance:",
     "settled": "Nothing is due either way.",
@@ -1056,7 +1052,13 @@
       "gross": "Gross {amount}",
       "gst": "+ GST {amount}",
       "cut": "− cut by client {amount}"
-    }
+    },
+    "openingBalance": "Opening Balance",
+    "currentTotal": "Current Total",
+    "closingBalance": "Closing Balance",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "billNo": "Bill No."
   },
   "search": {
     "placeholder": "Type to search…",
@@ -1144,7 +1146,6 @@
     "billTo": "Bill from",
     "from": "To {firm}",
     "gstin": "GSTIN {gstin}",
-    "type": "Type of cost",
     "billNoPlaceholder": "As printed on their bill",
     "cuts": "TDS you keep back",
     "cutsHint": "Leave empty if no TDS is deducted. Worked out on the bill before GST; you pay the party that much less.",

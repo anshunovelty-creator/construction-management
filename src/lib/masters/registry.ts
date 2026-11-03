@@ -210,8 +210,6 @@ export const ENTRY_FORMS = {
       { name: 'bill_no', kind: 'text', required: true },
       date,
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
-      // Left empty, the type is material.
-      { ...costHead, required: false },
       ...billAmount,
       // Left empty, no TDS is deducted.
       { name: 'tds_rate', kind: 'ref', ref: 'tdsRates' },

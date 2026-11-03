@@ -28,7 +28,6 @@ interface PartyRow {
   status: 'verified' | 'unverified';
   amount_paise: number | string;
   site_id: string | null;
-  cost_head: string | null;
   money_account_id: string | null;
 }
 
@@ -36,7 +35,7 @@ type Slug = 'vendor-bill' | 'pay-vendor';
 /** Sheet columns in the workbook's order. Bills are typed in the pop-up, with their GST and TDS. */
 const PAY_COLUMNS = ['entry_date', 'amount', 'from_account_id', 'reference', 'narration'];
 /** The pop-ups' questions: the bill's details, then what it comes to. */
-const BILL_QUICK = ['bill_no', 'entry_date', 'site_id', 'cost_head', 'amount', 'gst_rate', 'tds_rate', 'narration'];
+const BILL_QUICK = ['bill_no', 'entry_date', 'site_id', 'amount', 'gst_rate', 'tds_rate', 'narration'];
 const PAY_QUICK = ['amount', 'from_account_id', 'entry_date', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them (party.* keys). */
@@ -141,7 +140,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
           <BillSheet side="vendor" action={postPartyEntry.bind(null, 'vendor-bill', firm.id, party.id)} party={party.name}
             partyNote={party.gst_number ? t('vendorBill.gstin', { gstin: party.gst_number }) : undefined} firm={firm.name}
             choices={choices} today={todayInIndia()}
-            defaults={{ site_id: lastBill?.site_id ?? '', cost_head: lastBill?.cost_head ?? '' }} />
+            defaults={{ site_id: lastBill?.site_id ?? '' }} />
         }
         pay={
           <Form
@@ -194,7 +193,6 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                         <MoneyCell paise={r.amount} strong />
                         <td>
                           {r.site_id ? names.sites.get(r.site_id) : ''}
-                          {r.cost_head && <span className="muted"> · {t(`options.cost_head.${r.cost_head}`)}</span>}
                         </td>
                         <td>{r.narration}</td>
                         <td className="nowrap">{entryLink(r)}</td>

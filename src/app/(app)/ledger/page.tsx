@@ -2,11 +2,13 @@ import { getTranslations } from 'next-intl/server';
 import { ListLink } from '@/components/list-link';
 import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
-import { buildStatement } from '@/lib/ledger/statement';
+import { buildStatement, tallyFoot } from '@/lib/ledger/statement';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { PrintButton } from '@/components/print-button';
+import { Icon } from '@/components/icons';
+import Link from 'next/link';
 
 interface Line {
   entry_id: string;
@@ -38,13 +40,26 @@ const base = (r: ViewRow) => ({
 });
 const named = (...bits: (string | null | undefined)[]) => bits.filter((b): b is string => !!b);
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** The first and last day of the month `shift` months from the one `date` falls in. */
+function monthOf(date: string, shift = 0): { from: string; to: string } {
+  const first = new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1 + shift, 1));
+  const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0));
+  return { from: first.toISOString().slice(0, 10), to: last.toISOString().slice(0, 10) };
+}
+
 /**
  * One vendor's, client's or site's statement in the working firm, like a bank statement:
  * date, entry, particulars, debit, credit and the running balance. ?of=party:<id> or site:<id>, &from, &to.
  */
 export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ of?: string; from?: string; to?: string }> }) {
   await requireProfile('owner', 'office');
-  const { of = '', from = '', to = '' } = await searchParams;
+  const params = await searchParams;
+  const of = params.of ?? '';
+  // Like Tally, a ledger is read a month at a time: this month unless dates are given.
+  const given = DATE.test(params.from ?? '') || DATE.test(params.to ?? '');
+  const from = given ? (DATE.test(params.from ?? '') ? params.from! : '') : monthOf(todayInIndia()).from;
+  const to = given ? (DATE.test(params.to ?? '') ? params.to! : '') : monthOf(todayInIndia()).to;
   const [kind, id = ''] = of.split(':');
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
@@ -117,6 +132,11 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   }
 
   const s = buildStatement(rows, from, to);
+  const foot = tallyFoot(s);
+  const monthLink = (shift: number) => {
+    const m = monthOf(from || todayInIndia(), shift);
+    return `/ledger?of=${encodeURIComponent(of)}&from=${m.from}&to=${m.to}`;
+  };
   const side = party?.kind ?? 'site';
   const drCr = (paise: number) => (paise === 0 ? showPaise(0) : `${showPaise(Math.abs(paise))} ${paise > 0 ? t('ledger.dr') : t('ledger.cr')}`);
   const closingWords = s.closing === 0
@@ -154,6 +174,12 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
           <input id="ledger-to" type="date" name="to" defaultValue={to} />
         </div>
         <button type="submit" className="btn">{t('ledger.show')}</button>
+        {of && (
+          <div className="day-picker">
+            <Link href={monthLink(-1)} className="btn ghost" aria-label={t('ledger.prevMonth')}><Icon name="chevronLeft" /> {t('ledger.prevMonth')}</Link>
+            <Link href={monthLink(1)} className="btn ghost" aria-label={t('ledger.nextMonth')}>{t('ledger.nextMonth')} <Icon name="chevronRight" /></Link>
+          </div>
+        )}
       </form>
 
       {!subject ? (
@@ -165,37 +191,39 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
               <thead>
                 <tr>
                   <th>{t('ledger.date')}</th>
-                  <th>{t('ledger.entry')}</th>
                   <th>{t('ledger.particulars')}</th>
+                  <th>{t('ledger.billNo')}</th>
                   <th className="num">{t(`ledger.debit.${side}`)}</th>
                   <th className="num">{t(`ledger.credit.${side}`)}</th>
                   <th className="num">{t('ledger.balance')}</th>
                 </tr>
               </thead>
               <tbody>
-                {from && (
-                  <tr>
-                    <td className="nowrap">{showDate(from)}</td>
-                    <td />
-                    <td><strong>{t('ledger.broughtForward')}</strong></td>
-                    <td /><td />
-                    <td className="num strong">{drCr(s.opening)}</td>
-                  </tr>
-                )}
+                <tr>
+                  <td className="nowrap">{from ? showDate(from) : ''}</td>
+                  <td><strong>{t('ledger.openingBalance')}</strong></td>
+                  <td />
+                  <td className="num">{s.opening > 0 ? showPaise(s.opening) : ''}</td>
+                  <td className="num">{s.opening < 0 ? showPaise(-s.opening) : ''}</td>
+                  <td className="num strong">{drCr(s.opening)}</td>
+                </tr>
                 {s.lines.length === 0 && (
                   <tr><td colSpan={6} className="muted">{t('ledger.none')}</td></tr>
                 )}
                 {s.lines.map((r) => (
                   <tr key={r.entry_id}>
                     <td className="nowrap">{showDate(r.date)}</td>
-                    <td className="nowrap">
-                      <ListLink href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</ListLink>
-                    </td>
                     <td className="particulars">
-                      <strong>{t(`entryTypes.${r.entry_type}.title`)}{r.reference && ` ${r.reference}`}</strong>
+                      <strong>{t(`entryTypes.${r.entry_type}.title`)}</strong>
                       {r.common && <span className="pill small-pill">{t('ledger.common')}</span>}
                       {r.detail.length > 0 && <span className="muted"> · {r.detail.join(' · ')}</span>}
                       {r.narration && <span className="ledger-note">{r.narration}</span>}
+                    </td>
+                    {/* The bill (or cheque) number as typed; the app's own number when there is none. Opens the entry. */}
+                    <td className="nowrap">
+                      <ListLink href={`/entries/${r.entry_id}`} className="underline">
+                        {r.reference || <span className="serial muted">{r.serial}</span>}
+                      </ListLink>
                     </td>
                     <td className="num">{r.debit ? showPaise(r.debit) : ''}</td>
                     <td className="num">{r.credit ? showPaise(r.credit) : ''}</td>
@@ -203,12 +231,28 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                   </tr>
                 ))}
               </tbody>
+              {/* Tally's foot: the current totals (with the opening balance), the closing balance on the other side,
+                  then both columns on the same total. */}
               <tfoot>
                 <tr>
-                  <td colSpan={3}>{t('ledger.totals')}</td>
-                  <td className="num">{showPaise(s.debit)}</td>
-                  <td className="num">{showPaise(s.credit)}</td>
+                  <td colSpan={3}>{t('ledger.currentTotal')}</td>
+                  <td className="num">{showPaise(foot.debit)}</td>
+                  <td className="num">{showPaise(foot.credit)}</td>
+                  <td />
+                </tr>
+                <tr>
+                  <td className="nowrap">{showDate(to || todayInIndia())}</td>
+                  <td><strong>{t('ledger.closingBalance')}</strong></td>
+                  <td />
+                  <td className="num">{foot.closingDebit ? showPaise(foot.closingDebit) : ''}</td>
+                  <td className="num">{foot.closingCredit ? showPaise(foot.closingCredit) : ''}</td>
                   <td className="num strong">{drCr(s.closing)}</td>
+                </tr>
+                <tr className="ledger-grand">
+                  <td colSpan={3} />
+                  <td className="num">{showPaise(foot.total)}</td>
+                  <td className="num">{showPaise(foot.total)}</td>
+                  <td />
                 </tr>
               </tfoot>
             </table>

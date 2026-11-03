@@ -769,6 +769,8 @@ section > .bill-totals { margin-top: 10px; }
 .ledger-filters .field:first-child { flex: 1 1 18rem; }
 .ledger-filters select, .ledger-filters input, .ledger-filters .btn { min-height: 44px; }
 table.statement td.particulars { white-space: normal; min-width: 18rem; max-width: 34rem; }
+/* Tally's last line: both columns on the same total, under a double rule. */
+table.statement tr.ledger-grand td { border-top: 3px double var(--rule-strong); font-weight: 700; }
 table.statement .pill { margin-left: 6px; }
 .ledger-note { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
 .ledger-closing { margin: 16px 0 4px; font-size: 15px; }

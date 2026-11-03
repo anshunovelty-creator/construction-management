@@ -5,7 +5,6 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 import type { Choices, FormAction, FormState } from '@/components/form';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
-import { ENUMS } from '@/lib/masters/registry';
 import { percentOf, rupeesToPaise, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
 
@@ -137,12 +136,6 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
             {field('site_id', t('fields.site_id'), (a) => (
               <SearchSelect id={a.id} name="site_id" options={sites} required placeholder={t('common.choose')}
                 defaultValue={value('site_id') || (sites.length === 1 ? sites[0]!.value : '')}
-                aria-invalid={a.invalid} aria-describedby={a.describedBy} />
-            ))}
-            {side === 'vendor' && field('cost_head', say('type'), (a) => (
-              <SearchSelect id={a.id} name="cost_head" defaultValue={value('cost_head')}
-                placeholder={t('options.cost_head.material')}
-                options={ENUMS.cost_head.map((o) => ({ value: o, label: t(`options.cost_head.${o}`) }))}
                 aria-invalid={a.invalid} aria-describedby={a.describedBy} />
             ))}
           </div>

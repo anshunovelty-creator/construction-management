@@ -37,3 +37,21 @@ export function buildStatement<T extends StatementInput>(rows: T[], from = '', t
   }
   return { opening, lines, debit, credit, closing: opening + debit - credit };
 }
+
+/**
+ * The foot of a ledger as Tally prints it: the opening balance counts in its own column, the current totals, then the
+ * closing balance in the opposite column so that both columns end on the same grand total.
+ */
+export function tallyFoot(s: Pick<Statement<StatementInput>, 'opening' | 'debit' | 'credit'>) {
+  const debit = Math.max(s.opening, 0) + s.debit;
+  const credit = Math.max(-s.opening, 0) + s.credit;
+  const closing = debit - credit;
+  return {
+    debit,
+    credit,
+    /** A debit balance closes on the credit side, and a credit balance on the debit side. */
+    closingDebit: Math.max(-closing, 0),
+    closingCredit: Math.max(closing, 0),
+    total: Math.max(debit, credit),
+  };
+}
