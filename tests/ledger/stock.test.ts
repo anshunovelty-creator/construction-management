@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stockLines, valueOf } from '@/lib/stock';
+import { passbook, stockLines, stockRegister, valueOf } from '@/lib/stock';
 
 const sand = { site_id: 'svg', material_id: 'sand' };
 
@@ -29,5 +29,33 @@ describe('stock', () => {
     const used = [{ ...sand, use_date: '2026-10-18', quantity: 1 }];
     expect(stockLines(bought, used, '2026-10-18')).toEqual([{ ...sand, bought: 0, used: 1, left: -1, rate: null }]);
     expect(valueOf(1, null)).toBe(0);
+  });
+});
+
+describe('stock register and passbook', () => {
+  const bought = [
+    { ...sand, entry_date: '2026-10-01', quantity: 10, amount_paise: 100_000 },
+    { ...sand, entry_date: '2026-10-15', quantity: 5, amount_paise: null },
+  ];
+  const used = [
+    { ...sand, use_date: '2026-10-05', quantity: 4 },
+    { ...sand, use_date: '2026-10-15', quantity: 2 },
+    { ...sand, use_date: '2026-10-25', quantity: 1 },
+  ];
+
+  it('gives opening, arrived, used and closing for a period', () => {
+    expect(stockRegister(bought, used, '2026-10-10', '2026-10-20')).toEqual([
+      { ...sand, opening: 6, arrived: 5, used: 2, closing: 9, rate: 10_000 },
+    ]);
+  });
+
+  it('runs a balance through each arrival and use, arrivals first on the same day', () => {
+    const { opening, lines } = passbook(bought, used, '2026-10-10', '2026-10-31');
+    expect(opening).toBe(6);
+    expect(lines.map((l) => [l.date, l.in, l.out, l.balance])).toEqual([
+      ['2026-10-15', 5, 0, 11],
+      ['2026-10-15', 0, 2, 9],
+      ['2026-10-25', 0, 1, 8],
+    ]);
   });
 });

@@ -56,17 +56,18 @@ export async function deleteMaster(slug: string, id: string): Promise<void> {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Adds a material from the form being filled in (daily report, bill items), so a material not on the list yet does
+ * Adds a material from the form being filled in (daily report, stock or assets arrived), so a material not on the list yet does
  * not mean a trip to Setup. Supervisors may add; changing materials stays in Setup.
  */
-export async function addMaterial(name: string, unitId: string): Promise<{ id: string; name: string } | { error: string }> {
+export async function addMaterial(name: string, unitId: string, kind: 'consumable' | 'asset' = 'consumable'):
+  Promise<{ id: string; name: string } | { error: string }> {
   await requireProfile('owner', 'office', 'supervisor');
   const clean = name.trim().replace(/\s+/g, ' ');
   if (!clean) return { error: 'need_name' };
-  if (unitId && !UUID.test(unitId)) return { error: 'save_failed' };
+  if ((unitId && !UUID.test(unitId)) || (kind !== 'consumable' && kind !== 'asset')) return { error: 'save_failed' };
   const db = await createClient();
-  const { data, error } = await db.from('materials').insert({ name: clean, unit_id: unitId || null }).select('id, name').single();
+  const { data, error } = await db.from('materials').insert({ name: clean, unit_id: unitId || null, item_kind: kind }).select('id, name').single();
   if (error) return { error: error.code === '23505' ? 'duplicate' : 'save_failed' };
-  revalidatePath('/report');
+  revalidatePath('/', 'layout');
   return data;
 }

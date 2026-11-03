@@ -54,3 +54,62 @@ export function stockLines(bought: Bought[], used: Used[], upTo?: string): Stock
 export const valueOf = (quantity: number, rate: number | null): number => (rate === null ? 0 : Math.round(quantity * rate));
 
 export const QTY = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 });
+
+export interface RegisterLine {
+  site_id: string;
+  material_id: string;
+  /** What was at the site before `from`. */
+  opening: number;
+  arrived: number;
+  used: number;
+  /** Opening + arrived − used; below zero when more was reported used than arrived. */
+  closing: number;
+  /** Average rate of what arrived with a rate, up to `to`; null when none had one. */
+  rate: number | null;
+}
+
+/**
+ * A stock register for a period, per site and material: opening, arrived and used between `from` and `to` (both days
+ * included), and closing. Materials that never moved by `to` are left out.
+ */
+export function stockRegister(bought: Bought[], used: Used[], from: string, to: string): RegisterLine[] {
+  const dayBefore = (d: string) => d < from;
+  const before = new Map(stockLines(bought.filter((b) => dayBefore(b.entry_date)), used.filter((u) => dayBefore(u.use_date)))
+    .map((l) => [`${l.site_id}|${l.material_id}`, l]));
+  return stockLines(bought, used, to).map((l) => {
+    const open = before.get(`${l.site_id}|${l.material_id}`);
+    const opening = open ? open.left : 0;
+    return {
+      site_id: l.site_id,
+      material_id: l.material_id,
+      opening,
+      arrived: round3(l.bought - (open?.bought ?? 0)),
+      used: round3(l.used - (open?.used ?? 0)),
+      closing: l.left,
+      rate: l.rate,
+    };
+  });
+}
+
+/** One line of a material's passbook at a site: an arrival (in) or a use on a daily report (out). */
+export interface PassbookLine<T> { date: string; in: number; out: number; balance: number; row: T }
+
+/**
+ * A material's movement at one site, like a bank passbook: the balance before `from`, then each arrival and use in the
+ * period with the running balance. On the same day arrivals come before uses.
+ */
+export function passbook<B extends Bought, U extends Used>(bought: B[], used: U[], from: string, to: string):
+  { opening: number; lines: PassbookLine<B | U>[] } {
+  let balance = round3(bought.filter((b) => b.entry_date < from).reduce((s, b) => s + Number(b.quantity), 0)
+    - used.filter((u) => u.use_date < from).reduce((s, u) => s + Number(u.quantity), 0));
+  const opening = balance;
+  const events = [
+    ...bought.filter((b) => b.entry_date >= from && b.entry_date <= to).map((b) => ({ date: b.entry_date, qty: Number(b.quantity), row: b as B | U })),
+    ...used.filter((u) => u.use_date >= from && u.use_date <= to).map((u) => ({ date: u.use_date, qty: -Number(u.quantity), row: u as B | U })),
+  ].sort((a, b) => a.date.localeCompare(b.date) || b.qty - a.qty);
+  const lines = events.map((e) => {
+    balance = round3(balance + e.qty);
+    return { date: e.date, in: Math.max(e.qty, 0), out: Math.max(-e.qty, 0), balance, row: e.row };
+  });
+  return { opening, lines };
+}

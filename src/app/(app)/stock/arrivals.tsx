@@ -5,6 +5,7 @@ import { showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
 import { showDate, todayInIndia } from '../entries/data';
 import { addArrival, removeArrival } from './actions';
+import { MaterialPicker } from './material-picker';
 
 /** One line of stock_in_rows or asset_in_rows. */
 export interface ArrivalRow {
@@ -25,10 +26,12 @@ type Choice = { value: string; label: string };
  * What arrived at the sites, typed by the supervisors: the form to add a line, then the lines, newest first.
  * The Stock page lists consumables; the Assets page lists assets. `materials` are the ones this page takes.
  */
-export function Arrivals({ page, rows, materials, sites, materialName, unitOf, siteName, canRemove, t }: {
+export function Arrivals({ page, rows, materials, units, sites, materialName, unitOf, siteName, canRemove, t }: {
   page: '/stock' | '/assets';
   rows: ArrivalRow[];
   materials: Choice[];
+  /** For a material added from the form: its unit. */
+  units: Choice[];
   sites: Choice[];
   materialName: (id: string) => string;
   unitOf: (id: string) => string;
@@ -46,7 +49,7 @@ export function Arrivals({ page, rows, materials, sites, materialName, unitOf, s
         <div className="asset-move-grid">
           <div className="field wide">
             <label htmlFor={id('material')}>{t('arrivals.material')}</label>
-            <SearchSelect id={id('material')} name="material_id" options={materials} required placeholder={t('common.choose')} />
+            <MaterialPicker id={id('material')} materials={materials} units={units} kind={page === '/stock' ? 'consumable' : 'asset'} />
           </div>
           <div className="field">
             <label htmlFor={id('qty')}>{t('arrivals.quantity')}</label>

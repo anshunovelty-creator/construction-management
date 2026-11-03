@@ -10,8 +10,10 @@ import { SearchSelect } from '@/components/search-select';
  * A small box for adding a material from the form being filled in: its name (as typed in the list) and unit. It sits
  * inside that form, so it has no form of its own and its boxes have no names: nothing of it is sent with the form.
  */
-export function NewMaterial({ name, units, onAdded, onClose }: {
+export function NewMaterial({ name, units, kind, onAdded, onClose }: {
   name: string;
+  /** What it is kept as: stock (the default) or an asset, for the Assets page. */
+  kind?: 'consumable' | 'asset';
   units: Choice[];
   onAdded: (material: { id: string; name: string; unitId: string }) => void;
   onClose: () => void;
@@ -30,7 +32,7 @@ export function NewMaterial({ name, units, onAdded, onClose }: {
   async function add() {
     setSaving(true);
     setError('');
-    const result = await addMaterial(text, unitId);
+    const result = await addMaterial(text, unitId, kind);
     setSaving(false);
     if ('error' in result) return setError(result.error);
     onAdded({ ...result, unitId });

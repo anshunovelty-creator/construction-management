@@ -33,10 +33,11 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
   const { tab = 'now', error } = await searchParams;
   const t = await getTranslations();
   const db = await createClient();
-  const [{ data: bought }, { data: moves }, { data: materials }, { data: sites }, names] = await Promise.all([
+  const [{ data: bought }, { data: moves }, { data: units }, { data: materials }, { data: sites }, names] = await Promise.all([
     db.from('asset_in_rows').select('*').order('entry_date', { ascending: false }).returns<ArrivalRow[]>(),
     db.from('asset_moves').select('id, material_id, from_site_id, to_site_id, quantity, move_date, note, created_by')
       .order('move_date', { ascending: false }).order('created_at', { ascending: false }).returns<MoveRow[]>(),
+    db.from('units').select('id, name').eq('is_active', true).order('name'),
     db.from('materials').select('id, name, is_active, item_kind, unit:units(name)').order('name')
       .returns<{ id: string; name: string; is_active: boolean; item_kind: string; unit: { name: string } | null }[]>(),
     db.from('sites').select('id, name').eq('is_active', true).order('name'),
@@ -113,7 +114,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
           <Arrivals page="/assets" rows={boughtRows} t={t}
             materials={(materials ?? []).filter((m) => m.is_active && m.item_kind === 'asset')
               .map((m) => ({ value: m.id, label: m.unit ? `${m.name} (${m.unit.name})` : m.name }))}
-            sites={siteChoices}
+            units={(units ?? []).map((u) => ({ value: u.id as string, label: u.name as string }))} sites={siteChoices}
             materialName={(id) => material.get(id)?.name ?? ''} unitOf={(id) => material.get(id)?.unit?.name ?? ''}
             siteName={(id) => names.sites.get(id) ?? ''} canRemove={(by) => office || by === profile.user_id} />
         ) },

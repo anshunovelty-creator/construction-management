@@ -776,7 +776,7 @@ table.statement .pill { margin-left: 6px; }
 
 @media print {
   @page { size: A4; margin: 12mm; }
-  .sidebar, .tabbar, .topbar, .no-print { display: none !important; }
+  .sidebar, .tabbar, .topbar, .no-print, .tab-list { display: none !important; }
   body { background: #fff; }
   .shell, .main-col { display: block; margin: 0; }
   .wrap { padding: 0; max-width: none; }
@@ -866,6 +866,13 @@ table.statement .pill { margin-left: 6px; }
 .rent-grid > .field.wide { grid-column: span 2; }
 .rent-grid > .field.half { grid-column: span 2; }
 .rent-form input.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+/* Password box: the eye button sits inside the box on the right. */
+.pw { position: relative; }
+.pw > input { width: 100%; padding-right: 44px; box-sizing: border-box; }
+.pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center;
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; }
+.pw-toggle:hover { color: var(--ink); background: var(--sunken); }
+.pw-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .affix { position: relative; }
 .affix > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .affix > input:not([type='checkbox']) { padding-left: 28px; }

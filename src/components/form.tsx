@@ -71,6 +71,21 @@ function RupeesInput({ input, owed }: { input: React.InputHTMLAttributes<HTMLInp
   );
 }
 
+/** A password box with an eye button to show what was typed, so a typo can be seen before signing in. */
+function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const t = useTranslations();
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="pw">
+      <input {...props} type={shown ? 'text' : 'password'} />
+      <button type="button" className="pw-toggle" aria-label={t(shown ? 'form.hidePassword' : 'form.showPassword')}
+        aria-pressed={shown} onClick={() => setShown((s) => !s)}>
+        <Icon name={shown ? 'eyeOff' : 'eye'} size={18} />
+      </button>
+    </div>
+  );
+}
+
 /** One form for every screen: renders `fields`, posts to a server action, shows its errors. */
 export function Form({
   fields,
@@ -241,12 +256,14 @@ function Fields({
                 );
               })() : field.kind === 'rupees' ? (
                 <RupeesInput input={shared} owed={field.name === 'amount' && owed ? owed[vendor] : undefined} />
+              ) : field.kind === 'password' ? (
+                <PasswordInput {...shared} autoComplete={passwordAutoComplete} />
               ) : (
                 <input
                   {...shared}
                   type={INPUT_TYPES[field.kind]}
                   inputMode={field.kind === 'percent' ? 'decimal' : undefined}
-                  autoComplete={field.kind === 'password' ? passwordAutoComplete : field.kind === 'email' ? 'username' : 'off'}
+                  autoComplete={field.kind === 'email' ? 'username' : 'off'}
                 />
               )}
             </>
