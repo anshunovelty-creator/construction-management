@@ -14,7 +14,7 @@ import { Icon } from '@/components/icons';
 /** Many entries of one kind at once, typed into rows like a spreadsheet, in the working firm. ?type=<entry form slug>. */
 export default async function SheetPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const { type } = await searchParams;
-  const profile = await requireProfile();
+  const profile = await requireProfile('owner', 'office');
   // Bills are typed on their own bill sheet, with their GST and cuts.
   const slugs = Object.keys(ENTRY_FORMS).filter((s) =>
     (getEntryForm(s)!.roles as string[]).includes(profile.role) && s !== 'vendor-bill' && s !== 'client-bill');

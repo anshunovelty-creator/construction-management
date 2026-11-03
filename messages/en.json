@@ -37,7 +37,7 @@
     "welcome": "Namaste, {name}",
     "greeting": "Overview",
     "lede": "This is where every rupee sits right now. Add an entry whenever money moves.",
-    "ledeSupervisor": "Record what you spend at the site, and count your cash at the end of the day.",
+    "ledeSupervisor": "What you spend at the site goes on the daily report. Stock that arrives goes under Stock.",
     "addEntry": "Add an entry",
     "emptyTitle": "No entries yet",
     "emptyHint": "Start in Setup: add your firms, sites, parties, clients and bank accounts. Then add your first entry.",

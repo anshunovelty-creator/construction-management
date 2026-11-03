@@ -5,7 +5,7 @@ import { ENTRY_FORMS } from '@/lib/masters/registry';
 import { Icon } from '@/components/icons';
 
 export default async function NewEntryPage() {
-  const profile = await requireProfile();
+  const profile = await requireProfile('owner', 'office');
   const t = await getTranslations();
   const forms = Object.entries(ENTRY_FORMS).filter(([, form]) => (form.roles as string[]).includes(profile.role));
 

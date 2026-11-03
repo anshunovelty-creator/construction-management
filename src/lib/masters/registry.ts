@@ -196,7 +196,8 @@ const billAmount: Field[] = [{ name: 'amount', kind: 'rupees', required: true },
 
 /**
  * The money forms, keyed by URL slug (/entries/new/<slug>), in the order the "Add an entry" page shows them.
- * `roles` mirrors what the database lets each role post (app_assert_can_post); the database has the final say.
+ * `roles` is who is offered each form. Supervisors are offered none: what they spend goes on the daily report (owner
+ * decision 2026-11-03), though the database (app_assert_can_post) would still take their site spend and cash count.
  * None asks for the firm: forms are filled in the working firm, the one chosen at the top right.
  */
 export const ENTRY_FORMS = {
@@ -251,7 +252,7 @@ export const ENTRY_FORMS = {
   },
   'site-spend': {
     icon: 'tool' as IconName,
-    roles: ['owner', 'supervisor'],
+    roles: ['owner'],
     fields: [
       from,
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
@@ -264,7 +265,7 @@ export const ENTRY_FORMS = {
   },
   'day-close': {
     icon: 'calc' as IconName,
-    roles: ['owner', 'supervisor'],
+    roles: ['owner'],
     fields: [
       { name: 'account_id', kind: 'ref', ref: 'moneyAccounts', required: true },
       { name: 'counted', kind: 'rupees', required: true, allowZero: true },

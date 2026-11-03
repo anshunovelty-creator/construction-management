@@ -9,11 +9,8 @@ import { createClient } from '@/lib/supabase/server';
 import { loadNames } from '../entries/data';
 import { Icon } from '@/components/icons';
 
-const QUICK: Record<string, EntryFormSlug[]> = {
-  owner: ['vendor-bill', 'pay-vendor', 'client-receipt'],
-  office: ['vendor-bill', 'pay-vendor', 'client-receipt'],
-  supervisor: ['site-spend', 'day-close'],
-};
+/** The owner's and office's quick buttons. Supervisors add no money entries: what they spend goes on the daily report. */
+const QUICK: EntryFormSlug[] = ['vendor-bill', 'pay-vendor', 'client-receipt'];
 
 export default async function HomePage() {
   const profile = await requireProfile();
@@ -38,14 +35,16 @@ export default async function HomePage() {
           <h1>{t('home.welcome', { name: profile.full_name })}</h1>
           <p className="lede">{t(supervisor ? 'home.ledeSupervisor' : 'home.lede')}</p>
         </div>
-        <div className="hero-actions">
-          <Link href="/entries/new" className="btn big"><Icon name="plus" /> {t('home.addEntry')}</Link>
-          {QUICK[profile.role]!.map((slug) => (
-            <Link key={slug} href={`/entries/new/${slug}`} className="btn ghost">
-              <Icon name={ENTRY_FORMS[slug].icon} /> {t(`entryForms.${slug}.title`)}
-            </Link>
-          ))}
-        </div>
+        {!supervisor && (
+          <div className="hero-actions">
+            <Link href="/entries/new" className="btn big"><Icon name="plus" /> {t('home.addEntry')}</Link>
+            {QUICK.map((slug) => (
+              <Link key={slug} href={`/entries/new/${slug}`} className="btn ghost">
+                <Icon name={ENTRY_FORMS[slug].icon} /> {t(`entryForms.${slug}.title`)}
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
 

@@ -29,8 +29,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ) : (
     <>
       <NavLink href="/overview" className="tab-item"><Icon name="home" size={22} /><span>{t('nav.home')}</span></NavLink>
-      <NavLink href="/entries/new" className="tab-item"><Icon name="add" size={22} /><span>{t('nav.add')}</span></NavLink>
       <NavLink href="/report" section="/report" className="tab-item"><Icon name="report" size={22} /><span>{t('nav.report')}</span></NavLink>
+      <NavLink href="/stock" section="/stock" className="tab-item"><Icon name="stock" size={22} /><span>{t('nav.stock')}</span></NavLink>
       <NavLink href="/entries" exact className="tab-item"><Icon name="daybook" size={22} /><span>{t('nav.daybook')}</span></NavLink>
     </>
   );
@@ -46,8 +46,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </>
           ) : (
             <>
+              {/* Supervisors put what is spent on the daily report, so they add no money entries (owner decision 2026-11-03). */}
               <NavLink href="/overview"><Icon name="home" /><span>{t('nav.home')}</span></NavLink>
-              <NavLink href="/entries/new"><Icon name="add" /><span>{t('nav.add')}</span></NavLink>
             </>
           )}
           <NavLink href="/report" section="/report"><Icon name="report" /><span>{t('nav.report')}</span></NavLink>
