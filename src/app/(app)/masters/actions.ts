@@ -120,3 +120,13 @@ export async function saveMix(id: string | null, _state: MixState, data: FormDat
   revalidatePath('/report');
   redirect('/masters/mixes');
 }
+
+/** The owner deletes a combination work for good; saved daily reports keep its name on their own lines. */
+export async function deleteMix(id: string): Promise<void> {
+  await requireProfile('owner');
+  const { error } = await (await createClient()).from('mixes').delete().eq('id', id);
+  if (error) redirect('/masters/mixes?error=delete_failed');
+  revalidatePath('/masters/mixes');
+  revalidatePath('/report');
+  redirect('/masters/mixes');
+}

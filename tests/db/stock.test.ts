@@ -98,6 +98,29 @@ it('lets a supervisor keep materials, units and workers in Setup, but not vendor
   expect((await as(`update parties set name = 'X' where id = $1`, [seed.ansari])).affectedRows).toBe(0);
 });
 
+it('lets only the owner delete a combination work; saved lines keep its name', async () => {
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const office = await createUser(db, 'office', 'Priya');
+  const owner = await createUser(db, 'owner', 'Boss');
+  const mix = (await db.query<{ id: string }>(`insert into mixes (name) values ('PCC') returning id`)).rows[0]!.id;
+  await db.query(`insert into mix_items (mix_id, material_id, quantity) values ($1, $2, 6.3)`, [mix, cement]);
+  await asUser(db, ramesh, (tx) => tx.query(
+    `insert into material_use (site_id, use_date, material_id, quantity, mix_name) values ($1, '2026-10-30', $2, 2, 'PCC')`,
+    [seed.svgSite, cement]));
+
+  for (const user of [ramesh, office]) {
+    const tried = await asUser(db, user, (tx) => tx.query(`delete from mixes where id = $1`, [mix]));
+    expect(tried.affectedRows).toBe(0);
+  }
+  expect((await asUser(db, owner, (tx) => tx.query(`delete from mixes where id = $1`, [mix]))).affectedRows).toBe(1);
+
+  expect((await db.query(`select 1 from mix_items where mix_id = $1`, [mix])).rows).toHaveLength(0);
+  expect((await db.query(`select mix_name from material_use`)).rows).toEqual([{ mix_name: 'PCC' }]);
+  const log = await db.query<{ changed_by: string }>(
+    `select changed_by from master_changes where table_name = 'mixes' and action = 'delete'`);
+  expect(log.rows).toEqual([{ changed_by: owner }]);
+});
+
 it('lets a supervisor keep combination works, and saves a rate typed on a used line', async () => {
   const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
   const sand = (await db.query<{ id: string }>(`insert into materials (name) values ('Sand') returning id`)).rows[0]!.id;

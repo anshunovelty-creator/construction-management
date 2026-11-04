@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { requireProfile } from '@/lib/auth';
 import { QTY } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
-import { saveMix } from '../actions';
+import { deleteMix, saveMix } from '../actions';
 import { MixForm } from './mix-form';
 
 interface MixRow {
@@ -18,9 +18,9 @@ interface MixRow {
  * Setup → Combination works: PCC, RCC, plaster, tiles… and how much of each material 1 unit of the work takes.
  * Picking one on the daily report adds its materials to the material used list. ?edit=<id> changes one.
  */
-export default async function MixesPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
-  await requireProfile();
-  const { edit } = await searchParams;
+export default async function MixesPage({ searchParams }: { searchParams: Promise<{ edit?: string; error?: string }> }) {
+  const profile = await requireProfile();
+  const { edit, error } = await searchParams;
   const t = await getTranslations();
   const db = await createClient();
   const [{ data: mixes }, { data: units }, { data: materials }] = await Promise.all([
@@ -43,6 +43,7 @@ export default async function MixesPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <h2 className="card-title">{t('masters.mixes')}</h2>
+      {error === 'delete_failed' && <p className="banner bad" role="alert">{t('mixes.delete.failed')}</p>}
       {mixes && mixes.length > 0 ? (
         <div className="table-wrap">
           <table>
@@ -81,6 +82,15 @@ export default async function MixesPage({ searchParams }: { searchParams: Promis
           name: editing.name, unitId: editing.unit_id ?? '', isActive: editing.is_active,
           lines: items(editing).map((x) => ({ materialId: x.material_id, quantity: String(Number(x.quantity)) })),
         }} />
+      {editing && profile.role === 'owner' && (
+        <details className="cancel card delete-box mt-6">
+          <summary>{t('mixes.delete.title')}</summary>
+          <p className="hint">{t('mixes.delete.warning')}</p>
+          <form action={deleteMix.bind(null, editing.id)}>
+            <button type="submit" className="btn danger">{t('mixes.delete.confirm', { name: editing.name })}</button>
+          </form>
+        </details>
+      )}
     </>
   );
 }

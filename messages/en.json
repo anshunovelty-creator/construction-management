@@ -1251,6 +1251,12 @@
     "saving": "Saving…",
     "cancel": "Cancel",
     "line": "Line {line}:",
+    "delete": {
+      "title": "Delete this work",
+      "warning": "Deleting is permanent. Daily reports already saved keep the work’s name and their materials. To stop offering it but keep it, switch it off instead.",
+      "confirm": "Yes, delete {name} for good",
+      "failed": "Could not delete this work. Nothing was changed."
+    },
     "errors": {
       "need_name": "Write the name of the work, like PCC.",
       "pick_material": "Pick the material.",
