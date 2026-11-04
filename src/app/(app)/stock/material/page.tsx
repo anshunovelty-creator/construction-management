@@ -5,12 +5,12 @@ import { Icon } from '@/components/icons';
 import { PrintButton } from '@/components/print-button';
 import { requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
-import { passbook, QTY, type Used } from '@/lib/stock';
+import { passbook, QTY, usedNote, type Used } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
 import { showDate, todayInIndia } from '../../entries/data';
 import type { ArrivalRow } from '../arrivals';
 
-interface UseRow extends Used { id: string; remark: string }
+interface UseRow extends Used { id: string; remark: string; mix_name: string }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,7 +37,7 @@ export default async function MaterialPassbookPage({ searchParams }: {
       .returns<{ id: string; name: string; unit: { name: string } | null }[]>().maybeSingle(),
     db.from('stock_in_rows').select('*').eq('site_id', params.site!).eq('material_id', params.material!)
       .lte('entry_date', to).returns<ArrivalRow[]>(),
-    db.from('material_use').select('id, site_id, material_id, use_date, quantity, remark')
+    db.from('material_use').select('id, site_id, material_id, use_date, quantity, remark, mix_name')
       .eq('site_id', params.site!).eq('material_id', params.material!).lte('use_date', to).order('created_at').returns<UseRow[]>(),
   ]);
   if (!site || !material) notFound();
@@ -91,8 +91,8 @@ export default async function MaterialPassbookPage({ searchParams }: {
                 <td>
                   {isArrival(l.row) ? t('stock.arrivedLine') : t('stock.usedLine')}
                   {isArrival(l.row) && l.row.rate_paise !== null && <span className="muted"> · {showPaise(Number(l.row.rate_paise))}</span>}
-                  {(isArrival(l.row) ? l.row.note : l.row.remark) && (
-                    <span className="ledger-note">{isArrival(l.row) ? l.row.note : l.row.remark}</span>
+                  {(isArrival(l.row) ? l.row.note : usedNote(l.row)) && (
+                    <span className="ledger-note">{isArrival(l.row) ? l.row.note : usedNote(l.row)}</span>
                   )}
                 </td>
                 <td className="num">{l.in ? qty(l.in) : ''}</td>

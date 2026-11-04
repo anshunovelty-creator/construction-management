@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useEffect, useState } from 'react';
+import { Fragment, useActionState, useEffect, useState } from 'react';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY, valueOf } from '@/lib/stock';
 import { Icon } from '@/components/icons';
@@ -15,6 +15,8 @@ export interface MaterialLine {
   /** Rupees per unit; filled with the site's average rate, which the supervisor may change. Empty: the average. */
   rate: string;
   remark: string;
+  /** The combination work this line is grouped under (PCC, RCC…). Empty: a material on its own. */
+  mix?: string;
   /** For a line added from a combination work: how much 1 unit of the work takes, shown as a guide. */
   guide?: string;
 }
@@ -93,19 +95,36 @@ export function MaterialUseForm({
   const change = (l: number, patch: Partial<MaterialLine>) =>
     setLines((all) => all.map((x, i) => (i === l ? { ...x, ...patch } : x)));
 
-  // A combination work adds a line for each of its materials, after the lines already typed; the quantities are typed by hand.
+  // A combination work becomes a group with a line for each of its materials, above the materials on their own; the
+  // quantities are typed by hand. A work already in the form is not added twice.
   const addMix = (id: string) => {
     const mix = mixes.find((x) => x.id === id);
     setMixPick((n) => n + 1);
     if (!mix) return;
+    const already = lines.findIndex((x) => x.mix === mix.name);
+    if (already >= 0) {
+      document.getElementById(`use-qty-${already}`)?.focus();
+      return;
+    }
     const kept = lines.filter((x) => !isEmpty(x));
-    setLines([...kept, ...mix.items.map((item) => {
+    const grouped = kept.filter((x) => x.mix);
+    setLines([...grouped, ...mix.items.map((item) => {
       const m = material.get(item.materialId);
-      return { ...emptyLine(), materialId: item.materialId, rate: rateText(m), remark: mix.name,
+      return { ...emptyLine(), materialId: item.materialId, rate: rateText(m), mix: mix.name,
         guide: t('use.mixGuide', { qty: `${QTY.format(item.quantity)} ${m?.unit ?? ''}`.trim(), unit: mix.unit || t('use.mixUnit') }) };
-    })]);
-    requestAnimationFrame(() => document.getElementById(`use-qty-${kept.length}`)?.focus());
+    }), ...kept.filter((x) => !x.mix)]);
+    requestAnimationFrame(() => document.getElementById(`use-qty-${grouped.length}`)?.focus());
   };
+
+  // One more material inside a work's group, below its last line.
+  const addToMix = (name: string) => setLines((all) => {
+    const at = all.map((x) => x.mix).lastIndexOf(name) + 1;
+    return [...all.slice(0, at), { ...emptyLine(), mix: name }, ...all.slice(at)];
+  });
+  const removeMix = (name: string) => setLines((all) => {
+    const rest = all.filter((x) => x.mix !== name);
+    return rest.length > 0 ? rest : [emptyLine()];
+  });
 
   // What is left after each line: the stock now, less this line and the lines above it for the same material.
   const usedSoFar = new Map<string, number>();
@@ -159,8 +178,31 @@ export function MaterialUseForm({
             <tbody>
               {lines.map((line, l) => {
                 const { m, amount, left } = preview[l]!;
+                // A heading wherever the group changes: the work's name, or "Other materials" below the works.
+                const heading = line.mix !== lines[l - 1]?.mix;
                 return (
-                  <tr key={l} className={state.line === l ? 'wrong' : undefined}>
+                  <Fragment key={l}>
+                  {heading && (
+                    <tr className="use-group">
+                      <td colSpan={8}>
+                        <div className="use-group-head">
+                          <strong>{line.mix ?? t('otherMaterials')}</strong>
+                          <span className="activity-total">
+                            <strong>{showPaise(preview.reduce((sum, p, i) => sum + (lines[i]!.mix === line.mix ? p.amount ?? 0 : 0), 0))}</strong>
+                          </span>
+                          {line.mix && (
+                            <>
+                              <button type="button" className="btn ghost small" onClick={() => addToMix(line.mix!)}
+                                aria-label={t('use.addToMix', { name: line.mix })}>＋ {t('use.addLine')}</button>
+                              <button type="button" className="btn ghost small icon-btn" onClick={() => removeMix(line.mix!)}
+                                aria-label={t('use.removeMix', { name: line.mix })}><Icon name="close" size={16} /></button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  <tr className={[state.line === l && 'wrong', line.mix && 'in-group'].filter(Boolean).join(' ') || undefined}>
                     <td className="box muted line-no">{l + 1}</td>
                     <td className="box wide" data-label={t('use.material')}>
                       <SearchSelect
@@ -226,6 +268,7 @@ export function MaterialUseForm({
                       )}
                     </td>
                   </tr>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -233,7 +276,7 @@ export function MaterialUseForm({
         </div>
         <div className="activity-foot">
           <button type="button" className="btn ghost small" onClick={() => setLines((all) => [...all, emptyLine()])}>
-            ＋ {t('use.addLine')}
+            ＋ {lines.some((x) => x.mix) ? t('use.addOther') : t('use.addLine')}
           </button>
           {mixes.length > 0 && (
             <span className="mix-pick">

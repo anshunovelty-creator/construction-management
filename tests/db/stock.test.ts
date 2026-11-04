@@ -118,6 +118,9 @@ it('lets a supervisor keep combination works, and saves a rate typed on a used l
   await asUser(db, ramesh, (tx) => tx.query(
     `insert into material_use (site_id, use_date, material_id, quantity, rate_paise) values ($1, '2026-10-30', $2, 2, 36000)`,
     [seed.svgSite, cement]));
+  await asUser(db, ramesh, (tx) => tx.query(
+    `insert into material_use (site_id, use_date, material_id, quantity, mix_name) values ($1, '2026-10-30', $2, 2, 'PCC')`,
+    [seed.svgSite, cement]));
   await expect(asUser(db, ramesh, (tx) => tx.query(
     `insert into material_use (site_id, use_date, material_id, quantity, rate_paise) values ($1, '2026-10-30', $2, 2, -1)`,
     [seed.svgSite, cement]))).rejects.toThrow('check');

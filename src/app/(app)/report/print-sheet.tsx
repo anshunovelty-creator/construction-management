@@ -11,7 +11,9 @@ export interface SheetData {
   printedOn: string;
   work: { no: number; name: string; location: string | null; total: number;
     rows: { id: string; measurement: string; quantity: number; unit: string; rate: number; amount: number }[] }[];
-  material: { id: string; name: string; quantity: number; unit: string; rate: number | null; amount: number; left: string; remark: string }[];
+  /** Grouped under each combination work; name '' is the materials on their own. */
+  material: { name: string; total: number;
+    rows: { id: string; name: string; quantity: number; unit: string; rate: number | null; amount: number; left: string; remark: string }[] }[];
   labour: { id: string; name: string; staff: boolean; present: boolean; ot: number; dayPay: number; amount: number }[];
   other: { id: string; description: string; head: string; quantity: number; rate: number; amount: number }[];
   totals: { work: number; material: number; labour: number; staff: number; other: number; cost: number; profit: number };
@@ -26,6 +28,7 @@ export async function PrintSheet({ d }: { d: SheetData }) {
   const present = d.labour.filter((l) => l.present).length;
   const nil = (cols: number) => <tr><td colSpan={cols} className="nil">{t('sheet.nil')}</td></tr>;
 
+  let materialNo = 0;
   return (
     <article className="print-only report-sheet">
       <header className="sheet-head">
@@ -83,16 +86,21 @@ export async function PrintSheet({ d }: { d: SheetData }) {
             <th className="num">{t('amount')}</th><th className="num">{t('left')}</th><th>{t('remark')}</th>
           </tr>
         </thead>
-        <tbody>
-          {d.material.length === 0 ? nil(7) : d.material.map((r, i) => (
+        {d.material.length === 0 ? <tbody>{nil(7)}</tbody> : d.material.map((g) => (
+          <tbody key={g.name}>
+          {(g.name || d.material.length > 1) && (
+            <tr className="sub-total"><td /><td colSpan={3}>{g.name || t('otherMaterials')}</td><td className="num">{showPaise(g.total)}</td><td colSpan={2} /></tr>
+          )}
+          {g.rows.map((r) => (
             <tr key={r.id}>
-              <td className="n">{i + 1}</td><td><strong>{r.name}</strong></td>
+              <td className="n">{++materialNo}</td><td><strong>{r.name}</strong></td>
               <td className="num">{QTY.format(r.quantity)} {r.unit}</td>
               <td className="num">{r.rate === null ? '—' : showPaise(Math.round(r.rate))}</td>
               <td className="num">{showPaise(r.amount)}</td><td className="num">{r.left}</td><td>{r.remark}</td>
             </tr>
           ))}
-        </tbody>
+          </tbody>
+        ))}
         <tfoot><tr><td /><td colSpan={3}>{t('sheet.total')}</td><td className="num">{showPaise(d.totals.material)}</td><td colSpan={2} /></tr></tfoot>
       </table>
 

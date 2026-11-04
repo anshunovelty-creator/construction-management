@@ -6,12 +6,12 @@ import { SearchSelect } from '@/components/search-select';
 import { Tabs } from '@/components/tabs';
 import { requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
-import { QTY, stockLines, stockRegister, valueOf, type Used } from '@/lib/stock';
+import { QTY, stockLines, stockRegister, usedNote, valueOf, type Used } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { Arrivals, type ArrivalRow } from './arrivals';
 
-interface UseRow extends Used { id: string; remark: string; rate_paise: number | string | null }
+interface UseRow extends Used { id: string; remark: string; mix_name: string; rate_paise: number | string | null }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -42,7 +42,7 @@ export default async function StockPage({ searchParams }: {
 
   // Everything up to the period's end: the opening stock needs what came before it.
   let inQuery = db.from('stock_in_rows').select('*').lte('entry_date', to);
-  let useQuery = db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark').lte('use_date', to);
+  let useQuery = db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark, mix_name').lte('use_date', to);
   if (site) {
     inQuery = inQuery.eq('site_id', site);
     useQuery = useQuery.eq('site_id', site);
@@ -183,7 +183,7 @@ export default async function StockPage({ searchParams }: {
                       <td className="num">{qty(Number(r.quantity), r.material_id)}</td>
                       <td className="num">{rate === null ? <span className="muted">–</span> : showPaise(Math.round(rate))}</td>
                       <td className="num">{showPaise(valueOf(Number(r.quantity), rate))}</td>
-                      <td>{r.remark}</td>
+                      <td>{usedNote(r)}</td>
                     </tr>
                   );
                 })}

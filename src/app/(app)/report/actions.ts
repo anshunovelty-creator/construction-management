@@ -134,7 +134,7 @@ export async function addMaterialUse(siteId: string, date: string, _state: Mater
     const rate = (line.rate ?? '').trim() ? ratePaise(line.rate) : null;
     if ((line.rate ?? '').trim() && rate === null) return { error: 'bad_rate', line: i };
     rows.push({ site_id: siteId, use_date: date, material_id: line.materialId, quantity: milli / 1000, rate_paise: rate,
-      remark: (line.remark ?? '').trim() });
+      remark: (line.remark ?? '').trim(), mix_name: (line.mix ?? '').trim() });
   }
   if (rows.length === 0) return { error: 'nothing' };
   const { error } = await (await createClient()).from('material_use').insert(rows);

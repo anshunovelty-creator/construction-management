@@ -53,6 +53,16 @@ export function stockLines(bought: Bought[], used: Used[], upTo?: string): Stock
 /** Rupee value of a quantity at a rate, in whole paise. */
 export const valueOf = (quantity: number, rate: number | null): number => (rate === null ? 0 : Math.round(quantity * rate));
 
+/** A day's used lines grouped under their combination work, in the order first used; lines of no work (name '') last. */
+export function byWork<T extends { mix_name: string }>(rows: T[]): { name: string; rows: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const r of rows) groups.set(r.mix_name, [...(groups.get(r.mix_name) ?? []), r]);
+  return [...groups].map(([name, rows]) => ({ name, rows })).sort((a, b) => Number(!a.name) - Number(!b.name));
+}
+
+/** What a used line says about itself in a list: its combination work and its remark. */
+export const usedNote = (r: { mix_name: string; remark: string }) => [r.mix_name, r.remark].filter(Boolean).join(' · ');
+
 export const QTY = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 });
 
 export interface RegisterLine {

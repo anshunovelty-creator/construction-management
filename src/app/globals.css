@@ -347,6 +347,13 @@ summary.firm-pill:hover { border-color: color-mix(in srgb, var(--muted) 55%, var
 table.saved-work tbody + tbody tr:first-child td { border-top: 1px solid var(--rule-strong); }
 table.saved-work tr.subtotal td { background: var(--head); color: var(--muted); font-size: 13.5px; font-weight: 600; }
 table.saved-work tr.subtotal td.num { color: var(--ink); }
+/* A combination work on the daily report: its heading, and its materials set in under it. */
+table.saved-work tr.group-head td { color: var(--ink); font-size: 14.5px; }
+table.saved-work tr.in-group td:first-child { padding-left: 28px; }
+.use-group td { background: var(--head); }
+.use-group-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.use-group-head .activity-total { margin-left: auto; }
+.use-table tr.in-group td:first-child { border-left: 3px solid var(--accent); }
 .qty-with-unit { display: inline-flex; align-items: center; gap: 8px; }
 .unit-tag { min-width: 2.5rem; font-size: 13px; font-weight: 600; color: var(--muted); }
 .use-table select { min-width: 12rem; min-height: 38px; padding: 6px 30px 6px 8px; font-size: 15px; }
@@ -388,6 +395,8 @@ table.saved-work tr.subtotal td.num { color: var(--ink); }
   .measure-table, .measure-table tbody { display: block; }
   .measure-table tr { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px 10px; padding: 12px 52px 12px 14px; border-bottom: 1px solid var(--rule); }
   .measure-table tr.wrong { background: var(--minus-soft); }
+  .measure-table tr.use-group { display: block; padding: 10px 14px; background: var(--head); }
+  .measure-table tr.in-group { border-left: 3px solid var(--accent); }
   .measure-table td, .measure-table .box { display: block; width: auto; padding: 0; border: 0 !important; background: none !important; text-align: left; }
   .measure-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 12px; font-weight: 500; color: var(--muted); }
   .measure-table input, .measure-table select, .use-table select, .use-table .search-select { width: 100%; min-width: 0; }

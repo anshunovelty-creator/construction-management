@@ -6,7 +6,7 @@ import { SearchSelect } from '@/components/search-select';
 import { WorkDoneForm } from '@/components/work-done-form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { showPaise } from '@/lib/money';
-import { QTY, stockLines, valueOf, type Bought, type Used } from '@/lib/stock';
+import { byWork, QTY, stockLines, valueOf, type Bought, type Used } from '@/lib/stock';
 import { createClient } from '@/lib/supabase/server';
 import { lineSerial, type Measure } from '@/lib/work';
 import { dayPay } from '@/lib/wages';
@@ -22,6 +22,7 @@ interface UseRow extends Used {
   rate_paise: number | string | null;
   id: string;
   remark: string;
+  mix_name: string;
   created_by: string;
 }
 
@@ -96,7 +97,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const unitName = new Map((units ?? []).map((u) => [u.id as string, u.name as string]));
 
   const [{ data: used }, { data: bought }, { data: work }, { data: workers }, { data: labour }, { data: other }, { data: mixes }] = await Promise.all([
-    db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark, created_by')
+    db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark, mix_name, created_by')
       .eq('site_id', site.id).lte('use_date', date).order('created_at').returns<UseRow[]>(),
     db.from('stock_in_rows').select('site_id, material_id, entry_date, quantity, amount_paise')
       .eq('site_id', site.id).lte('entry_date', date).returns<Bought[]>(),
@@ -118,6 +119,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const rateOf = (r: UseRow) => (r.rate_paise !== null ? Number(r.rate_paise) : stock.get(r.material_id)?.rate ?? null);
   const amount = (r: UseRow) => valueOf(Number(r.quantity), rateOf(r));
   const materialTotal = usedToday.reduce((sum, r) => sum + amount(r), 0);
+  const usedGroups = byWork(usedToday).map((g) => ({ ...g, total: g.rows.reduce((sum, r) => sum + amount(r), 0) }));
   const workRows = work ?? [];
   const workTotal = sum(workRows);
 
@@ -182,11 +184,11 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       id: r.id, measurement: r.measurement, quantity: Number(r.quantity), unit: unitName.get(r.unit_id) ?? '',
       rate: Number(r.rate_paise), amount: Number(r.amount_paise),
     })) })),
-    material: usedToday.map((r) => {
+    material: usedGroups.map((g) => ({ name: g.name, total: g.total, rows: g.rows.map((r) => {
       const s = stock.get(r.material_id);
       return { id: r.id, name: material.get(r.material_id)?.name ?? '', quantity: Number(r.quantity), unit: unitOf(r.material_id),
         rate: rateOf(r), amount: amount(r), left: s ? `${QTY.format(s.left)} ${unitOf(r.material_id)}` : '', remark: r.remark ?? '' };
-    }),
+    }) })),
     labour: labourRows.map((r) => ({ id: r.id, name: person.get(r.party_id)?.name ?? '', staff: isStaff(r), present: r.present,
       ot: Number(r.ot_hours), dayPay: Number(r.day_pay_paise), amount: Number(r.amount_paise) })),
     other: otherRows.map((r) => ({ id: r.id, description: r.description, head: t(`options.cost_head.${r.cost_head}`),
@@ -304,7 +306,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           <p className="card empty-state">{t('report.noneUsed')}</p>
         ) : (
           <div className="card table-wrap flush">
-            <table className="ledger">
+            <table className="ledger saved-work">
               <thead>
                 <tr>
                   <th>{t('report.material')}</th>
@@ -316,11 +318,19 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                   <th aria-label={t('report.remove')} />
                 </tr>
               </thead>
-              <tbody>
-                {usedToday.map((r) => {
+              {usedGroups.map((g) => (
+                <tbody key={g.name}>
+                {(g.name || usedGroups.length > 1) && (
+                  <tr className="subtotal group-head">
+                    <td colSpan={3}>{g.name || t('report.otherMaterials')}</td>
+                    <td className="num">{showPaise(g.total)}</td>
+                    <td colSpan={3} />
+                  </tr>
+                )}
+                {g.rows.map((r) => {
                   const s = stock.get(r.material_id);
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} className={g.name ? 'in-group' : undefined}>
                       <td><strong>{material.get(r.material_id)?.name}</strong></td>
                       <td className="num">{QTY.format(Number(r.quantity))} {unitOf(r.material_id)}</td>
                       <td className="num">{rateOf(r) === null ? '—' : showPaise(Math.round(rateOf(r)!))}</td>
@@ -333,7 +343,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                     </tr>
                   );
                 })}
-              </tbody>
+                </tbody>
+              ))}
               <tfoot>
                 <tr>
                   <td colSpan={3}>{t('report.total')}</td>
