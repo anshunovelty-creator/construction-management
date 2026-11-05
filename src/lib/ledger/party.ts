@@ -10,7 +10,7 @@ export interface PartyTotalRow {
   last_payment: string | null;
 }
 
-export type PartyStatus = 'cleared' | 'partPaid' | 'pending';
+export type PartyStatus = 'cleared' | 'partPaid' | 'pending' | 'extra';
 
 export interface PartyFigures {
   opening: Paise;
@@ -34,18 +34,21 @@ export function partyFigures(row: Pick<PartyTotalRow, 'opening_paise' | 'bills_p
   return {
     opening, bills, total, paid, balance,
     percentPaid: total <= 0 ? 0 : Math.floor((paid * 100) / total),
-    status: balance <= 0 ? 'cleared' : paid > 0 ? 'partPaid' : 'pending',
+    status: balance < 0 ? 'extra' : balance === 0 ? 'cleared' : paid > 0 ? 'partPaid' : 'pending',
     lastPayment: row.last_payment,
   };
 }
 
 /** Adds up several parties' figures for a grand total line. */
-export function sumFigures(all: PartyFigures[]): Omit<PartyFigures, 'status' | 'lastPayment'> {
+export function sumFigures(all: PartyFigures[]): Omit<PartyFigures, 'status' | 'lastPayment'> & { toPay: Paise; extra: Paise } {
   const add = (key: 'opening' | 'bills' | 'total' | 'paid' | 'balance') => all.reduce((s, f) => s + f[key], 0);
   const total = add('total');
   const paid = add('paid');
   return {
     opening: add('opening'), bills: add('bills'), total, paid, balance: add('balance'),
+    // Kept apart: extra paid to one party does not pay what another is still owed.
+    toPay: all.reduce((s, f) => s + Math.max(f.balance, 0), 0),
+    extra: all.reduce((s, f) => s + Math.max(-f.balance, 0), 0),
     percentPaid: total <= 0 ? 0 : Math.floor((paid * 100) / total),
   };
 }

@@ -139,6 +139,16 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   };
   const side = party?.kind ?? 'site';
   const drCr = (paise: number) => (paise === 0 ? showPaise(0) : `${showPaise(Math.abs(paise))} ${paise > 0 ? t('ledger.dr') : t('ledger.cr')}`);
+  // Dr/Cr alone does not say who owes whom, so a vendor's or client's balance also says it in words and colour.
+  // In both, a debit balance is money we get: extra paid to a vendor, or what a client still owes.
+  const balanceCell = (paise: number) => (side === 'site' || paise === 0 ? drCr(paise) : (
+    <span className={paise > 0 ? 'plus' : 'minus'}>
+      {drCr(paise)}
+      <span className="balance-word">{t(`ledger.balanceWord.${side}.${paise > 0 ? 'dr' : 'cr'}`)}</span>
+    </span>
+  ));
+  // Green when the balance comes to us, red when it goes from us.
+  const closingGood = side === 'site' ? s.closing <= 0 : s.closing >= 0;
   const closingWords = s.closing === 0
     ? t('ledger.settled')
     : t(`ledger.closing.${side}.${s.closing > 0 ? 'dr' : 'cr'}`, { firm: firm.name, name: subject ?? '', amount: showPaise(Math.abs(s.closing)) });
@@ -186,6 +196,9 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         <p className="card empty">{of ? t('ledger.notFound') : t('ledger.hint')}</p>
       ) : (
         <>
+          <p className={`banner${closingGood ? '' : ' bad'}`}>
+            <span><strong>{t('ledger.closingTitle', { date: showDate(to || todayInIndia()) })}</strong> {closingWords}</span>
+          </p>
           <div className="card table-wrap flush">
             <table className="ledger statement">
               <thead>
@@ -205,7 +218,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                   <td />
                   <td className="num">{s.opening > 0 ? showPaise(s.opening) : ''}</td>
                   <td className="num">{s.opening < 0 ? showPaise(-s.opening) : ''}</td>
-                  <td className="num strong">{drCr(s.opening)}</td>
+                  <td className="num strong">{balanceCell(s.opening)}</td>
                 </tr>
                 {s.lines.length === 0 && (
                   <tr><td colSpan={6} className="muted">{t('ledger.none')}</td></tr>
@@ -227,7 +240,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                     </td>
                     <td className="num">{r.debit ? showPaise(r.debit) : ''}</td>
                     <td className="num">{r.credit ? showPaise(r.credit) : ''}</td>
-                    <td className="num">{drCr(r.balance)}</td>
+                    <td className="num">{balanceCell(r.balance)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -246,7 +259,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                   <td />
                   <td className="num">{foot.closingDebit ? showPaise(foot.closingDebit) : ''}</td>
                   <td className="num">{foot.closingCredit ? showPaise(foot.closingCredit) : ''}</td>
-                  <td className="num strong">{drCr(s.closing)}</td>
+                  <td className="num strong">{balanceCell(s.closing)}</td>
                 </tr>
                 <tr className="ledger-grand">
                   <td colSpan={3} />
@@ -257,7 +270,6 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
               </tfoot>
             </table>
           </div>
-          <p className="ledger-closing"><strong>{t('ledger.closingTitle')}</strong> {closingWords}</p>
           <p className="muted ledger-printed">{t('ledger.printedOn', { date: showDate(todayInIndia()) })}</p>
         </>
       )}

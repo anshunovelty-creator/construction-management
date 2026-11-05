@@ -558,14 +558,14 @@
   },
   "party": {
     "indexTitle": "{firm} – Parties",
-    "indexLede": "Every party this firm owes money to, just like the outstanding sheet.",
+    "indexLede": "Red is what we still have to pay. Green is what we paid extra and will get back.",
     "sr": "Sr.",
     "name": "Party name",
-    "opening": "Opening outstanding",
+    "opening": "Opening balance",
     "bills": "New bills",
-    "total": "Total outstanding",
+    "total": "Total to pay",
     "paid": "Total paid",
-    "balance": "Balance",
+    "balance": "Remaining to pay",
     "percentPaid": "% paid",
     "status": "Status",
     "lastPayment": "Last payment",
@@ -580,9 +580,12 @@
     "statuses": {
       "cleared": "Cleared",
       "partPaid": "Part paid",
-      "pending": "Pending"
+      "pending": "Pending",
+      "extra": "Extra paid"
     },
-    "openingAsOf": "{firm} · opening outstanding as on {date}",
+    "extraNote": "To get back, or adjust in the next bill",
+    "nothingLeft": "Nothing left to pay",
+    "openingAsOf": "{firm} · opening balance as on {date}",
     "noOpening": "{firm} · no opening balance",
     "billsTitle": "Bills",
     "billsHint": "The opening balance comes first, then every bill from this party. Bill amount is with GST; the TDS is kept back and paid to the government, so the party is paid the bill amount less TDS.",
@@ -600,7 +603,7 @@
     "payDate": "Payment date",
     "paidFrom": "Paid from",
     "reference": "Cheque / UTR",
-    "balanceAfter": "Balance after payment",
+    "balanceAfter": "Remaining after payment",
     "entry": "Entry",
     "noBills": "No bills yet. The opening balance and every new bill will show here.",
     "noPayments": "No payments yet. Money paid to this party will show here.",
@@ -628,25 +631,24 @@
   },
   "dashboard": {
     "title": "{firm} – Dashboard",
-    "lede": "How much this firm owes its parties, and how much is paid.",
-    "balance": "Balance outstanding",
+    "lede": "How much this firm still has to pay its parties, and how much it paid extra and will get back.",
     "newBills": "New bills added",
     "parties": "Total parties",
-    "top5": "Top 5 parties – highest balance",
+    "top5": "Top 5 parties – most remaining to pay",
     "rank": "Rank",
     "chart": "Each party: paid out of total",
     "chartHint": "Bar length is what we owed in all. Green is paid, red is still to pay."
   },
   "client": {
     "indexTitle": "{firm} – Clients",
-    "indexLede": "Every client who owes this firm money: bills given and money received.",
+    "indexLede": "Green is what we will still get. Red is what we received extra and have to give back.",
     "name": "Client name",
     "opening": "Opening due",
     "billsGiven": "Bills given",
     "deductions": "Deductions",
     "total": "Total to receive",
     "received": "Received",
-    "balance": "Balance to receive",
+    "balance": "Remaining to receive",
     "balanceNote": "Still to come in",
     "includesOpening": "Includes opening due {amount}",
     "percentReceived": "% received",
@@ -664,8 +666,11 @@
     "statuses": {
       "cleared": "Fully received",
       "partPaid": "Part received",
-      "pending": "Pending"
+      "pending": "Pending",
+      "extra": "Extra received"
     },
+    "extraNote": "To give back, or adjust in the next bill",
+    "nothingLeft": "Nothing left to receive",
     "openingAsOf": "{firm} · opening due as on {date}",
     "noOpening": "{firm} · no opening amount",
     "lastOn": "Last received on {date}",
@@ -685,7 +690,7 @@
     "net": "Net to receive",
     "receiptDate": "Date received",
     "receivedIn": "Received in",
-    "balanceAfter": "Balance after receipt",
+    "balanceAfter": "Remaining after receipt",
     "addBills": "Add bills given",
     "addReceipts": "Add money received"
   },
@@ -695,7 +700,7 @@
     "billTitle": "New bill from {name}",
     "payTitle": "Pay {name}",
     "close": "Close",
-    "owe": "Still to pay {name}: {amount}",
+    "owe": "Remaining to pay {name}: {amount}",
     "payFull": "Pay full {amount}",
     "nothingOwed": "Nothing is due to {name} right now.",
     "saved": "✓ Saved. Serial number {serial}."
@@ -1042,16 +1047,20 @@
     "cr": "Cr",
     "none": "No entries in this period.",
     "common": "Common",
-    "closingTitle": "Closing balance:",
+    "closingTitle": "Closing balance on {date}:",
+    "balanceWord": {
+      "vendor": { "dr": "Extra paid", "cr": "Remaining to pay" },
+      "client": { "dr": "Remaining to receive", "cr": "Extra received" }
+    },
     "settled": "Nothing is due either way.",
     "closing": {
       "vendor": {
-        "cr": "{firm} owes {name} {amount}.",
-        "dr": "{name} has been paid {amount} more than billed (advance)."
+        "cr": "{firm} still has to pay {name} {amount}.",
+        "dr": "{firm} has paid {name} {amount} extra. {name} has to give it back, or it is adjusted in the next bill."
       },
       "client": {
-        "dr": "{name} owes {firm} {amount}.",
-        "cr": "{name} has paid {amount} more than billed (advance)."
+        "dr": "{name} still has to pay {firm} {amount}.",
+        "cr": "{firm} has received {amount} extra from {name}. {firm} has to give it back, or it is adjusted in the next bill."
       },
       "site": {
         "cr": "Billed {amount} more than spent at {name}.",

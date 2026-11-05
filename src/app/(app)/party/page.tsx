@@ -16,7 +16,7 @@ import { loadChoices } from '../masters/options';
 import { postPartyEntry, postPartyRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
-import { MoneyCell, Stat, StatusPill } from './shared';
+import { BalanceCell, MoneyCell, Stat, StatusPill } from './shared';
 
 interface PartyRow {
   entry_id: string;
@@ -131,7 +131,9 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
         <Stat label={t('party.paid')} value={showPaise(f.paid)} tone="done"
           note={f.lastPayment ? t('party.lastOn', { date: showDate(f.lastPayment) }) : t('party.nothingPaid')} />
         <span className="op" aria-hidden="true">=</span>
-        <Stat label={t('dashboard.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'owe' : 'done'} note={t('party.balanceNote')} />
+        {f.balance < 0
+          ? <Stat label={t('party.statuses.extra')} value={showPaise(-f.balance)} tone="done" note={t('party.extraNote')} />
+          : <Stat label={t('party.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'owe' : 'done'} note={t(f.balance > 0 ? 'party.balanceNote' : 'party.nothingLeft')} />}
       </div>
 
       <QuickAdd
@@ -241,7 +243,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
                         <td>{r.money_account_id ? names.accounts.get(r.money_account_id) : ''}</td>
                         <td>{r.reference}</td>
                         <td>{r.narration}</td>
-                        <MoneyCell paise={balanceAfter.get(r.entry_id)!} strong />
+                        <BalanceCell paise={balanceAfter.get(r.entry_id)!} t={t} />
                         <td className="nowrap">{entryLink(r)}</td>
                       </tr>
                     ))}

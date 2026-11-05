@@ -14,7 +14,7 @@ import { loadChoices } from '../masters/options';
 import { postClientBill, postClientRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
-import { MoneyCell, Stat, StatusPill } from '../party/shared';
+import { BalanceCell, MoneyCell, Stat, StatusPill } from '../party/shared';
 
 interface ClientRow {
   entry_id: string;
@@ -130,7 +130,9 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
         <Stat label={t('client.received')} value={showPaise(f.paid)} tone="done"
           note={f.lastPayment ? t('client.lastOn', { date: showDate(f.lastPayment) }) : t('client.nothingReceived')} />
         <span className="op" aria-hidden="true">=</span>
-        <Stat label={t('client.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'due' : 'done'} note={t('client.balanceNote')} />
+        {f.balance < 0
+          ? <Stat label={t('client.statuses.extra')} value={showPaise(-f.balance)} tone="owe" note={t('client.extraNote')} />
+          : <Stat label={t('client.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'due' : 'done'} note={t(f.balance > 0 ? 'client.balanceNote' : 'client.nothingLeft')} />}
       </div>
 
       <Tabs initial={tab} tabs={[
@@ -225,7 +227,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
                         <td>{r.money_account_id ? names.accounts.get(r.money_account_id) : ''}</td>
                         <td>{r.reference}</td>
                         <td>{r.narration}</td>
-                        <MoneyCell paise={balanceAfter.get(r.entry_id)!} strong />
+                        <BalanceCell paise={balanceAfter.get(r.entry_id)!} t={t} side="client" />
                         <td className="nowrap">{entryLink(r)}</td>
                       </tr>
                     ))}

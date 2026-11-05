@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   const parties = await loadFirmParties(await createClient(), firm.id);
   const sum = sumFigures(parties.map((p) => p.f));
   const count = (status: string) => parties.filter((p) => p.f.status === status).length;
-  const top = [...parties].sort((a, b) => b.f.balance - a.f.balance).slice(0, 5);
+  const top = parties.filter((p) => p.f.balance > 0).sort((a, b) => b.f.balance - a.f.balance).slice(0, 5);
   const widest = Math.max(1, ...parties.map((p) => p.f.total));
 
   return (
@@ -32,7 +32,8 @@ export default async function DashboardPage() {
       <div className="stats big">
         <Stat label={t('party.total')} value={showPaise(sum.total)} />
         <Stat label={t('party.paid')} value={showPaise(sum.paid)} tone="done" />
-        <Stat label={t('dashboard.balance')} value={showPaise(sum.balance)} tone="owe" note={t('party.balanceNote')} />
+        <Stat label={t('party.balance')} value={showPaise(sum.toPay)} tone="owe" note={t('party.balanceNote')} />
+        {sum.extra > 0 && <Stat label={t('party.statuses.extra')} value={showPaise(sum.extra)} tone="done" note={t('party.extraNote')} />}
         <Stat label={t('party.percentPaid')} value={`${sum.percentPaid}%`} />
       </div>
       <div className="stats">
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
         <Stat label={t('party.statuses.cleared')} value={String(count('cleared'))} />
         <Stat label={t('party.statuses.partPaid')} value={String(count('partPaid'))} />
         <Stat label={t('party.statuses.pending')} value={String(count('pending'))} />
+        <Stat label={t('party.statuses.extra')} value={String(count('extra'))} />
       </div>
 
       {top.length > 0 && (
@@ -65,7 +67,7 @@ export default async function DashboardPage() {
                   <td><ListLink href={`/party?id=${id}`} className="party-link">{name}</ListLink></td>
                   <MoneyCell paise={f.total} />
                   <MoneyCell paise={f.paid} />
-                  <MoneyCell paise={f.balance} strong />
+                  <MoneyCell paise={f.balance} strong tone="minus" />
                   <td><PercentBar percent={f.percentPaid} /></td>
                 </tr>
               ))}

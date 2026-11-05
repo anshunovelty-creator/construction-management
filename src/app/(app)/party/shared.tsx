@@ -40,10 +40,23 @@ export function StatusPill({ status, t, side = 'party' }: { status: PartyStatus;
   return <span className={`pill ${status}`}>{t(`${side}.statuses.${status}`)}</span>;
 }
 
-/** A money table cell; nothing (a dash) reads quicker than ₹0 down a long column. */
-export function MoneyCell({ paise, strong = false }: { paise: number; strong?: boolean }) {
+/** A money table cell; nothing (a dash) reads quicker than ₹0 down a long column. Red is money we pay, green money we get. */
+export function MoneyCell({ paise, strong = false, tone }: { paise: number; strong?: boolean; tone?: 'plus' | 'minus' }) {
   return (
-    <td className={`num${strong ? ' strong' : ''}${paise === 0 ? ' muted' : ''}`}>{paise === 0 ? '–' : showPaise(paise)}</td>
+    <td className={`num${strong ? ' strong' : ''}${paise === 0 ? ' muted' : tone ? ` ${tone}` : ''}`}>{paise === 0 ? '–' : showPaise(paise)}</td>
+  );
+}
+
+/** What is left after a payment, said in words and colour rather than with a minus sign. */
+export function BalanceCell({ paise, t, side = 'party' }: { paise: number; t: T; side?: 'party' | 'client' }) {
+  if (paise === 0) return <MoneyCell paise={0} />;
+  const weGet = side === 'party' ? paise < 0 : paise > 0;
+  const word = side === 'party' ? (paise > 0 ? 'vendor.cr' : 'vendor.dr') : (paise > 0 ? 'client.dr' : 'client.cr');
+  return (
+    <td className={`num strong ${weGet ? 'plus' : 'minus'}`}>
+      {showPaise(Math.abs(paise))}
+      <span className="balance-word">{t(`ledger.balanceWord.${word}`)}</span>
+    </td>
   );
 }
 

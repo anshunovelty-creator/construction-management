@@ -43,7 +43,8 @@ export default async function ClientIndexPage() {
           {clients.length > 0 && <div className="stats">
             <Stat label={t('client.total')} value={showPaise(sum.total)} note={t('client.clientCount', { count: clients.length })} />
             <Stat label={t('client.received')} value={showPaise(sum.paid)} note={t('party.percentNote', { percent: sum.percentPaid })} tone="done" />
-            <Stat label={t('client.balance')} value={showPaise(sum.balance)} note={t('client.balanceNote')} tone="due" />
+            <Stat label={t('client.balance')} value={showPaise(sum.toPay)} note={t('client.balanceNote')} tone="due" />
+            {sum.extra > 0 && <Stat label={t('client.statuses.extra')} value={showPaise(sum.extra)} note={t('client.extraNote')} tone="owe" />}
           </div>}
 
           <div className="toolbar">
@@ -62,6 +63,7 @@ export default async function ClientIndexPage() {
                   <th className="num">{t('client.total')}</th>
                   <th className="num">{t('client.received')}</th>
                   <th className="num">{t('client.balance')}</th>
+                  <th className="num">{t('client.statuses.extra')}</th>
                   <th className="num">{t('client.percentReceived')}</th>
                   <th>{t('party.status')}</th>
                   <th>{t('client.lastReceipt')}</th>
@@ -77,7 +79,8 @@ export default async function ClientIndexPage() {
                     <MoneyCell paise={f.deductions} />
                     <MoneyCell paise={f.total} />
                     <MoneyCell paise={f.paid} />
-                    <MoneyCell paise={f.balance} strong />
+                    <MoneyCell paise={Math.max(f.balance, 0)} strong tone="plus" />
+                    <MoneyCell paise={Math.max(-f.balance, 0)} strong tone="minus" />
                     <td><PercentBar percent={f.percentPaid} /></td>
                     <td><StatusPill status={f.status} t={t} side="client" /></td>
                     <td className="nowrap">{f.lastPayment ? showDate(f.lastPayment) : <span className="muted">–</span>}</td>
@@ -87,7 +90,7 @@ export default async function ClientIndexPage() {
                   <tr key={id} data-name={name} data-quiet="" hidden>
                     <td className="num muted">–</td>
                     <td><ListLink href={`/client?id=${id}`} className="party-link">{name}</ListLink></td>
-                    <td colSpan={9} className="muted">{t('party.noEntriesYet')}</td>
+                    <td colSpan={10} className="muted">{t('party.noEntriesYet')}</td>
                   </tr>
                 ))}
               </tbody>
@@ -100,7 +103,8 @@ export default async function ClientIndexPage() {
                   <MoneyCell paise={deductions} />
                   <MoneyCell paise={sum.total} />
                   <MoneyCell paise={sum.paid} />
-                  <MoneyCell paise={sum.balance} strong />
+                  <MoneyCell paise={sum.toPay} strong tone="plus" />
+                  <MoneyCell paise={sum.extra} strong tone="minus" />
                   <td className="num">{sum.percentPaid}%</td>
                   <td colSpan={2} />
                 </tr>

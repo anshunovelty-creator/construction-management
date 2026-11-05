@@ -8,11 +8,14 @@ it('follows the workbook: total = opening + bills, balance = total - paid, and i
   expect(row(1000, 500, 0)).toMatchObject({ total: 1500, balance: 1500, percentPaid: 0, status: 'pending' });
   expect(row(1000, 500, 600)).toMatchObject({ balance: 900, percentPaid: 40, status: 'partPaid' });
   expect(row(1000, 0, 1000)).toMatchObject({ balance: 0, percentPaid: 100, status: 'cleared' });
-  // Paid more than owed: an advance, still cleared.
-  expect(row(0, 0, 200)).toMatchObject({ balance: -200, percentPaid: 0, status: 'cleared' });
+  // Paid more than owed: not cleared, the extra is still to be settled.
+  expect(row(0, 0, 200)).toMatchObject({ balance: -200, percentPaid: 0, status: 'extra' });
+  expect(row(100, 0, 200)).toMatchObject({ balance: -100, status: 'extra' });
   expect(sumFigures([row(1000, 500, 600), row(1000, 0, 1000)])).toEqual({
-    opening: 2000, bills: 500, total: 2500, paid: 1600, balance: 900, percentPaid: 64,
+    opening: 2000, bills: 500, total: 2500, paid: 1600, balance: 900, toPay: 900, extra: 0, percentPaid: 64,
   });
+  // Extra paid to one party does not reduce what another is still owed.
+  expect(sumFigures([row(1000, 0, 400), row(0, 100, 300)])).toMatchObject({ balance: 400, toPay: 600, extra: 200 });
 });
 
 it('counts a client bill net of its deductions', () => {
