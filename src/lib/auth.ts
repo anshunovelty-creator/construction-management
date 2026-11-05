@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { allowedFirms, pickWorkingFirm, type Firm } from '@/lib/firm';
 import { createClient } from '@/lib/supabase/server';
 
-export type AppRole = 'owner' | 'office' | 'supervisor';
+export type AppRole = 'owner' | 'office' | 'supervisor' | 'labour';
 
 export interface Profile {
   user_id: string;
@@ -51,16 +51,20 @@ export const getWorkingFirm = cache(async (): Promise<WorkingFirm | null> => {
     db.from('user_firms').select('firm_id').eq('user_id', userId),
     db.from('working_firms').select('firm_id').eq('user_id', userId).maybeSingle(),
   ]);
-  if (!profile || profile.role === 'supervisor') return null;
+  if (!profile || profile.role === 'supervisor' || profile.role === 'labour') return null;
   const allowed = allowedFirms(profile.role, firms ?? [], (assigned ?? []).map((r) => r.firm_id as string));
   const firm = pickWorkingFirm(allowed, saved?.firm_id as string | undefined);
   return firm ? { firms: allowed, firm } : null;
 });
 
-/** Sends signed-out users to /login, and users without one of `roles` to the home page. */
+/**
+ * Sends signed-out users to /login, and users without one of `roles` to the home page. A Labour login belongs to the
+ * labour section alone: it passes only where a page names it, so every other page and action stays closed to it.
+ */
 export async function requireProfile(...roles: AppRole[]): Promise<Profile> {
   const profile = await getProfile();
   if (!profile) redirect('/login');
+  if (profile.role === 'labour' && !roles.includes('labour')) redirect('/labour');
   if (roles.length > 0 && !roles.includes(profile.role)) redirect('/');
   return profile;
 }

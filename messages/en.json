@@ -26,7 +26,8 @@
     "salary": "Salary",
     "ledger": "Ledger",
     "rentals": "Rentals",
-    "assets": "Assets"
+    "assets": "Assets",
+    "labour": "Labour supply"
   },
   "login": {
     "title": "Sign in",
@@ -172,7 +173,8 @@
     "role": {
       "owner": "Owner",
       "office": "Office staff",
-      "supervisor": "Supervisor"
+      "supervisor": "Supervisor",
+      "labour": "Labour supply"
     },
     "cost_head": {
       "material": "Material",
@@ -1049,8 +1051,14 @@
     "common": "Common",
     "closingTitle": "Closing balance on {date}:",
     "balanceWord": {
-      "vendor": { "dr": "Extra paid", "cr": "Remaining to pay" },
-      "client": { "dr": "Remaining to receive", "cr": "Extra received" }
+      "vendor": {
+        "dr": "Extra paid",
+        "cr": "Remaining to pay"
+      },
+      "client": {
+        "dr": "Remaining to receive",
+        "cr": "Extra received"
+      }
     },
     "settled": "Nothing is due either way.",
     "closing": {
@@ -1274,6 +1282,139 @@
       "need_material": "Add at least one material.",
       "duplicate": "A work with this name is already there.",
       "save_failed": "Could not save."
+    }
+  },
+  "labour": {
+    "tabs": {
+      "workers": "Workers",
+      "attendance": "Attendance",
+      "settings": "PF and ESIC"
+    },
+    "title": "Labour supply",
+    "lede": "Red is what we still have to pay. Green is what we paid extra and will get back. This business is kept apart from the firms.",
+    "addWorker": "Add a worker or staff",
+    "extraNote": "To get back, or cut from the next salary",
+    "earnedIn": "Earned in {month}",
+    "pfEsicIn": "PF and ESIC in {month}",
+    "pfEsicNote": "Cut from salaries",
+    "people": "{count, plural, one {# person} other {# people}}",
+    "search": "Find a person",
+    "searchHint": "Type a name…",
+    "searchNone": "Nobody has that name.",
+    "none": "Nobody here yet. Add your first worker or staff member.",
+    "name": "Name",
+    "type": "Type",
+    "earned": "Earned",
+    "pf": "PF",
+    "esic": "ESIC",
+    "net": "Salary after PF and ESIC",
+    "kinds": {
+      "worker": "Worker",
+      "staff": "Staff"
+    },
+    "rate": "Salary (₹)",
+    "rateHint": "Worker: pay for one 8-hour day. Staff: pay for the whole month.",
+    "rateFrom": "Counts from",
+    "rateFromHint": "A changed salary counts from this month. Earlier months stay as they were.",
+    "joined": "Joining date",
+    "left": "Leaving date",
+    "phone": "Phone",
+    "skill": "Work (mason, helper…)",
+    "uan": "PF number (UAN)",
+    "esicNumber": "ESIC number",
+    "pfOn": "Cut PF from this person's salary",
+    "esicOn": "Cut ESIC from this person's salary",
+    "active": "Still working here",
+    "save": "Save",
+    "change": "Change details",
+    "changeOf": "Change {name}",
+    "openCard": "Attendance card",
+    "joinedOn": "Joined {date}",
+    "leftOn": "Left {date}",
+    "cuts": "PF, ESIC and other cuts",
+    "cutsNote": "PF {pf} · ESIC {esic} · Other {other}",
+    "given": "Advances and payments",
+    "givenNote": "Advances {advances} · Paid {paid}",
+    "earnedNote": "From attendance and salary",
+    "addMoney": "Add an advance, payment or other cut",
+    "moneyKind": "What is it?",
+    "moneyKinds": {
+      "advance": "Advance taken",
+      "payment": "Salary paid",
+      "deduction": "Other cut from salary"
+    },
+    "date": "Date",
+    "method": "Paid by",
+    "methods": {
+      "cash": "Cash",
+      "bank": "Bank"
+    },
+    "note": "Note",
+    "noteHint": "For another cut, write the reason here.",
+    "accountTitle": "Account",
+    "noAccount": "Nothing yet. It starts when the attendance card or the first payment is typed.",
+    "salaryAfterCuts": "Salary after PF and ESIC",
+    "paidOrCut": "Paid or cut",
+    "left_after": "Left after this",
+    "remove": "Remove",
+    "salaryOf": "Salary for {month}",
+    "workerLine": "{days} days at {rate} + {hours} OT hours {ot} = {earned}.",
+    "staffLine": "Monthly salary {rate}, earned {earned}.",
+    "cutsLine": " PF {pf}, ESIC {esic}.",
+    "monthsTitle": "Attendance month by month",
+    "noCards": "No attendance typed yet.",
+    "notEntered": "Not entered",
+    "attendanceTitle": "Attendance cards",
+    "attendanceLede": "Type each person's monthly card here. Tap a date once for present, again for absent, again to clear.",
+    "staffCardHint": "Staff get their fixed salary whatever this card says. It is kept only as a record of their days.",
+    "cardSaved": "Card saved.",
+    "cardsTitle": "Cards for {month}",
+    "cardState": "Card",
+    "cardDone": "Typed",
+    "cardWaiting": "Not typed yet",
+    "present": "present",
+    "absent": "absent",
+    "otHours": "OT hours",
+    "ot": "OT",
+    "otOn": "OT hours on {date}",
+    "fillPresent": "Mark the rest present",
+    "marks": {
+      "P": "present",
+      "A": "absent",
+      "none": "not entered"
+    },
+    "saveCard": "Save card",
+    "saveAndNext": "Save and go to {name}",
+    "settingsTitle": "PF and ESIC",
+    "settingsLede": "How much is cut from each salary. Please have your accountant confirm these figures.",
+    "pfPercent": "PF %",
+    "pfCeiling": "PF counted up to (₹)",
+    "pfCeilingHint": "PF is worked out on pay for days worked, up to this amount a month. OT is left out.",
+    "esicPercent": "ESIC %",
+    "esicLimit": "ESIC only up to pay of (₹)",
+    "esicLimitHint": "Someone earning more than this in a month has no ESIC cut.",
+    "otPercent": "OT rate %",
+    "otPercentHint": "100 pays an OT hour the same as a normal hour. 200 pays double.",
+    "settingsFromHint": "These rates count from this month. Earlier months stay as they were.",
+    "settingsSaved": "Rates saved.",
+    "settingsHistory": "Rates so far",
+    "fromStart": "From the start",
+    "errors": {
+      "name": "Please type the name.",
+      "kind": "Please choose what this is.",
+      "joined": "Please give the joining date.",
+      "left": "The leaving date cannot be before the joining date.",
+      "rate": "Please type the salary in rupees.",
+      "rate_from": "Please choose the month it counts from.",
+      "date": "Please give a proper date.",
+      "amount": "Please type the amount in rupees.",
+      "reason": "Please write the reason for this cut in the note.",
+      "method": "Please choose cash or bank.",
+      "ot": "OT hours must be a number from 0 to 16.",
+      "percent": "Please type each percentage as a number from 0 to 100.",
+      "ot_percent": "The OT rate must be a whole number from 0 to 500.",
+      "not_saved": "That could not be saved. Please try again.",
+      "not_removed": "That line could not be removed. Only owner or office staff can remove it after the day it was typed."
     }
   }
 }

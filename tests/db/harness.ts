@@ -122,7 +122,7 @@ export async function balanceOf(
   return rows[0]!.total;
 }
 
-export type AppRole = 'owner' | 'office' | 'supervisor';
+export type AppRole = 'owner' | 'office' | 'supervisor' | 'labour';
 
 /** An app user: a Supabase Auth login plus a profile with a role and assignments. */
 export async function createUser(

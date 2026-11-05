@@ -7,7 +7,7 @@ export const ENUMS = {
   party_kind: ['vendor', 'client', 'worker', 'staff', 'other'],
   contract_type: ['item_rate', 'fixed'],
   money_account_kind: ['bank', 'owner_cash', 'supervisor_cash'],
-  role: ['owner', 'office', 'supervisor'],
+  role: ['owner', 'office', 'supervisor', 'labour'],
   cost_head: COST_HEADS,
   /** Not a database enum: whether the owner puts money in or takes it out. */
   owner_money: ['in', 'out'],
