@@ -1,12 +1,12 @@
 # Labour supply section
 
-Owner decisions, 2026-11-05. The client's other business supplies labour, so it gets its own section, apart from AB Infra and Jayraj Infra.
+Owner decisions, 2026-11-06 (replaces the attendance cards, staff, PF and ESIC of 2026-11-05). The client's other business supplies labour, hundreds of people a month, so marking each person's attendance day by day is too much. It gets its own section, apart from AB Infra and Jayraj Infra.
 
 - **Separate list.** Labour supply workers live in their own tables. Nothing here touches the ledger, site costs, vendor balances or either firm's figures. The existing Workers list and Salary page stay for site work.
-- **Pay.** A worker has a rate for an 8-hour day: days present × rate, plus OT hours × rate ÷ 8 × the OT rate in Setup (100% to start). Staff have a fixed monthly salary: no OT and nothing cut for a day off. In the running month a staff member's salary builds up by calendar day until today. A rate change starts from a chosen month, so past months do not move.
-- **Attendance.** One card per person per month, typed day by day from the paper card: present, absent or not entered, plus OT hours. Workers are paid from it; for staff it is only a record.
-- **Deductions.** PF: a percentage (12%) of pay for days worked, not OT, counted up to a ceiling (₹15,000), to the nearest rupee. ESIC: a percentage (0.75%) of full pay, only for someone earning up to a limit (₹21,000), rounded up to the rupee. Each person can be switched on or off for each. Rates are kept from a chosen month, so changing one leaves past months as they were. Other cuts are typed per person with a reason.
-- **Money.** Advances, payments and other cuts are entries against a person, dated, cash or bank. Remaining to pay = earned − PF − ESIC − other cuts − advances − payments. Below zero it shows as Extra paid. Words and colours follow the app's money rule: red is money we pay, green is money we get.
-- **Logins.** A new Labour login sees only this section and nothing of the firms' money, enforced in the database. Owner and office see it too. Only owner and office change the deduction rates. A money line is removed by owner or office, or by the person who typed it on the same day.
+- **Setup.** A worker has a name and a salary per day. A changed salary counts from a chosen month, so past months do not move.
+- **Monthly entry.** One sheet per month, one row per worker, with only these boxes: Present days, OT hours, Advance, Deduction, Addition, Reason, Paid. Present days can pass the days in the month, because a double duty counts as two days.
+- **Pay.** Salary = present days × salary per day, plus OT hours × salary per day ÷ 8. To pay = salary + addition − deduction − advance + what the months before left. Below zero it is Extra paid.
+- **Ledger.** Each worker has a month-by-month ledger. What one month leaves carries into the next, so extra paid comes off the next salary by itself. A month that ends in extra paid is highlighted. Words and colours follow the app's money rule: red is money we pay, green is money we get.
+- **Logins.** A Labour login sees only this section and nothing of the firms' money, enforced in the database. Owner and office see it too.
 
-Not in this first version: billing clients for the labour supplied, half days, automatic professional tax, the employer's share of PF and ESIC, and which money account a payment came from.
+Not in this version: PF, ESIC, staff on a monthly salary, an OT rate other than a normal hour, opening balances (a first month's Addition or Deduction covers them), billing clients for the labour supplied, and which money account a payment came from. The earlier tables `labour_attendance`, `labour_money` and `labour_settings` stay in the database, unused.

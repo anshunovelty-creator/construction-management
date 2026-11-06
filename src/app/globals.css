@@ -371,27 +371,25 @@ table.saved-work tr.in-group td:first-child { padding-left: 28px; }
 .quick-time .chip.mark-P.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); }
 .quick-time .chip.mark-A.on { background: var(--minus-soft); border-color: var(--minus); color: var(--minus); }
 .labour-table .qty-with-unit input { width: 4.5rem; }
-/* The labour supply section: forms, and the month's attendance card. */
+/* The labour supply section: forms, and the month's sheet. */
 .subnav + h1, .subnav + .page-head { margin-top: 16px; }
 .labour-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 18px; align-items: start; margin-bottom: 16px; }
 .labour-form-title, .labour-form-end { grid-column: 1 / -1; margin: 0; }
-.labour-pick { display: flex; flex-wrap: wrap; gap: 14px 18px; margin-bottom: 16px; }
-.labour-pick .field:first-child { flex: 1 1 16rem; }
+/* A month that ends with more paid than earned stands out, here and in the ledger. */
+tr.extra-month td, table.ledger tbody tr.extra-month td { background: var(--plus-soft); }
+.month-grid td:not(:has(input:not([type='hidden']))) { padding: 6px 10px; white-space: nowrap; }
+.month-grid td small { display: block; }
+.month-grid .sheet td.num input { width: 5.5rem; min-width: 0; }
+.month-grid .sheet td:not(.num) input:not([type='hidden']) { width: 8rem; min-width: 0; }
+.month-grid th:first-child, .month-grid td:first-child { position: sticky; left: 0; z-index: 1; background: var(--sheet); box-shadow: 1px 0 0 var(--rule); }
+.month-grid thead th:first-child { background: var(--head); }
+.month-grid tr.extra-month td:first-child { background: var(--plus-soft); }
+.month-grid tr:target td { background: var(--head); }
+.month-grid tr { scroll-margin-top: 80px; }
+.month-save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.month-save p { margin: 0; }
 .check-line { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .check-line input { width: auto; }
-.att-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 14px; }
-.att-summary .btn { margin-left: auto; }
-.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
-.att-day { display: grid; gap: 4px; }
-.att-day input:not([type='hidden']) { min-height: 32px; padding: 2px 6px; font-size: 13px; text-align: center; }
-.att-mark { display: grid; justify-items: center; gap: 2px; min-height: 58px; padding: 6px 4px; font: inherit; cursor: pointer; color: var(--ink-2); background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 8px; }
-.att-mark:disabled { cursor: not-allowed; opacity: 0.45; }
-.att-mark.mark-P { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); }
-.att-mark.mark-A { background: var(--minus-soft); border-color: var(--minus); color: var(--minus); }
-.att-date { font-size: 12.5px; white-space: nowrap; }
-.att-date small { color: var(--muted); font-size: 11px; }
-.att-day.sunday .att-date small { color: var(--minus); font-weight: 600; }
-.att-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .labour-table input:disabled { background: var(--sunken); }
 /* Phone: name and rate on top, then P/A, OT and the amount on one line. */
 @media (max-width: 640px) {

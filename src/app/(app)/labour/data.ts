@@ -1,21 +1,19 @@
-import { labourLedger, type LabourLedger, type LabourMoney, type LabourPerson, type LabourRate, type LabourSettings, type MonthDays } from '@/lib/labour';
+import { labourLedger, type LabourMonth, type LabourRate, type LedgerMonth } from '@/lib/labour';
 import type { createClient } from '@/lib/supabase/server';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
-export interface LabourWorker extends LabourPerson {
+export interface LabourWorker {
   id: string;
   name: string;
   phone: string;
   skill: string;
-  uan: string;
-  esic_number: string;
   is_active: boolean;
 }
-export type LabourLine = LabourWorker & { rates: LabourRate[]; days: MonthDays[]; money: LabourMoney[]; ledger: LabourLedger };
+export type LabourLine = LabourWorker & { rates: LabourRate[]; ledger: LedgerMonth[]; balance: number };
 
-/** Every row of a table or view: the database hands back at most 1000 at a time. */
-async function allRows<T>(db: Db, table: string, order: string[], filter?: [string, string]): Promise<T[]> {
+/** Every row of a table: the database hands back at most 1000 at a time. */
+export async function allRows<T>(db: Db, table: string, order: string[], filter?: [string, string]): Promise<T[]> {
   const rows: T[] = [];
   for (let from = 0; ; from += 1000) {
     let query = db.from(table).select('*');
@@ -28,25 +26,27 @@ async function allRows<T>(db: Db, table: string, order: string[], filter?: [stri
   }
 }
 
-/** The deduction rates kept, oldest first. */
-export const loadSettings = (db: Db) => allRows<LabourSettings & { id: string }>(db, 'labour_settings', ['from_month']);
+function byWorker<T extends { worker_id: string }>(rows: T[]): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const row of rows) groups.set(row.worker_id, [...(groups.get(row.worker_id) ?? []), row]);
+  return groups;
+}
 
-/** Everyone in the labour section (or one person), each with their running account up to today, A to Z. */
-export async function loadLabour(db: Db, today: string, workerId?: string): Promise<{ settings: LabourSettings[]; people: LabourLine[] }> {
+/** Everyone in the labour section (or one person) with their ledger, A to Z. `balance` is what their last month left. */
+export async function loadLabour(db: Db, workerId?: string): Promise<LabourLine[]> {
   const one = (column: string): [string, string] | undefined => (workerId ? [column, workerId] : undefined);
-  const [settings, workers, rates, days, money] = await Promise.all([
-    loadSettings(db),
+  const [workers, rates, months] = await Promise.all([
     allRows<LabourWorker>(db, 'labour_workers', ['name', 'id'], one('id')),
     allRows<LabourRate & { worker_id: string }>(db, 'labour_rates', ['worker_id', 'from_month'], one('worker_id')),
-    allRows<MonthDays & { worker_id: string }>(db, 'labour_month_days', ['worker_id', 'month'], one('worker_id')),
-    allRows<LabourMoney & { worker_id: string }>(db, 'labour_money', ['money_date', 'created_at'], one('worker_id')),
+    allRows<LabourMonth & { worker_id: string }>(db, 'labour_months', ['worker_id', 'month'], one('worker_id')),
   ]);
-  const of = <T extends { worker_id: string }>(rows: T[], id: string) => rows.filter((r) => r.worker_id === id);
-  const people = workers.map((w) => {
-    const mine = { rates: of(rates, w.id), days: of(days, w.id), money: of(money, w.id) };
-    return { ...w, ...mine, ledger: labourLedger(w, mine.rates, settings, mine.days, mine.money, today) };
+  const ratesOf = byWorker(rates);
+  const monthsOf = byWorker(months);
+  return workers.map((w) => {
+    const mine = ratesOf.get(w.id) ?? [];
+    const ledger = labourLedger(monthsOf.get(w.id) ?? [], mine);
+    return { ...w, rates: mine, ledger, balance: ledger.at(-1)?.balance ?? 0 };
   });
-  return { settings, people };
 }
 
 /** "2026-11" as "November 2026". */

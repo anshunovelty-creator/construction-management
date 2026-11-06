@@ -22,6 +22,9 @@ export function rupeesToPaise(input: string): Paise {
   return minus ? -paise : paise;
 }
 
+/** A balance under ₹1 either way (up to 99 paise) counts as nothing left to pay or get back. Ledger rows are not touched. */
+export const roundOffSmall = (paise: Paise): Paise => (Math.abs(paise) < 100 ? 0 : paise);
+
 const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
 /** 619957800 -> "₹61,99,578.00" (Indian lakh/crore grouping). */

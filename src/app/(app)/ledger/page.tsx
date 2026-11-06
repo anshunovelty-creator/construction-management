@@ -3,7 +3,7 @@ import { ListLink } from '@/components/list-link';
 import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { buildStatement, tallyFoot } from '@/lib/ledger/statement';
-import { showPaise } from '@/lib/money';
+import { showPaise, roundOffSmall } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { PrintButton } from '@/components/print-button';
@@ -141,17 +141,18 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   const drCr = (paise: number) => (paise === 0 ? showPaise(0) : `${showPaise(Math.abs(paise))} ${paise > 0 ? t('ledger.dr') : t('ledger.cr')}`);
   // Dr/Cr alone does not say who owes whom, so a vendor's or client's balance also says it in words and colour.
   // In both, a debit balance is money we get: extra paid to a vendor, or what a client still owes.
-  const balanceCell = (paise: number) => (side === 'site' || paise === 0 ? drCr(paise) : (
+  const balanceCell = (exact: number, paise = side === 'site' ? exact : roundOffSmall(exact)) => (side === 'site' || paise === 0 ? drCr(paise) : (
     <span className={paise > 0 ? 'plus' : 'minus'}>
-      {drCr(paise)}
+      {side === 'vendor' && paise > 0 && '-'}{drCr(paise)}
       <span className="balance-word">{t(`ledger.balanceWord.${side}.${paise > 0 ? 'dr' : 'cr'}`)}</span>
     </span>
   ));
   // Green when the balance comes to us, red when it goes from us.
-  const closingGood = side === 'site' ? s.closing <= 0 : s.closing >= 0;
-  const closingWords = s.closing === 0
+  const closing = side === 'site' ? s.closing : roundOffSmall(s.closing);
+  const closingGood = side === 'site' ? closing <= 0 : closing >= 0;
+  const closingWords = closing === 0
     ? t('ledger.settled')
-    : t(`ledger.closing.${side}.${s.closing > 0 ? 'dr' : 'cr'}`, { firm: firm.name, name: subject ?? '', amount: showPaise(Math.abs(s.closing)) });
+    : t(`ledger.closing.${side}.${closing > 0 ? 'dr' : 'cr'}`, { firm: firm.name, name: subject ?? '', amount: showPaise(Math.abs(closing)) });
   const period = from || to
     ? t('ledger.period', { from: from ? showDate(from) : t('ledger.start'), to: showDate(to || todayInIndia()) })
     : t('ledger.allEntries', { to: showDate(todayInIndia()) });

@@ -1,4 +1,4 @@
-import type { Paise } from '@/lib/money';
+import { roundOffSmall, type Paise } from '@/lib/money';
 
 /** A row of the party_totals view: one firm and vendor. */
 export interface PartyTotalRow {
@@ -30,7 +30,7 @@ export function partyFigures(row: Pick<PartyTotalRow, 'opening_paise' | 'bills_p
   const bills = Number(row.bills_paise);
   const paid = Number(row.paid_paise);
   const total = opening + bills;
-  const balance = total - paid;
+  const balance = roundOffSmall(total - paid);
   return {
     opening, bills, total, paid, balance,
     percentPaid: total <= 0 ? 0 : Math.floor((paid * 100) / total),

@@ -24,3 +24,11 @@ it('counts a client bill net of its deductions', () => {
   });
   expect(f).toMatchObject({ opening: 2000, gross: 10000, deductions: 850, bills: 9150, total: 11150, paid: 4000, balance: 7150, status: 'partPaid' });
 });
+
+it('counts a balance under ₹1 either way as nothing left, but ₹1 still counts', () => {
+  expect(row(10_050, 0, 10_000)).toMatchObject({ balance: 0, status: 'cleared' });
+  expect(row(10_000, 0, 10_099)).toMatchObject({ balance: 0, status: 'cleared' });
+  expect(row(10_100, 0, 10_000)).toMatchObject({ balance: 100, status: 'partPaid' });
+  expect(row(10_000, 0, 10_100)).toMatchObject({ balance: -100, status: 'extra' });
+  expect(sumFigures([row(10_050, 0, 10_000), row(10_000, 0, 10_099)])).toMatchObject({ balance: 0, toPay: 0, extra: 0 });
+});

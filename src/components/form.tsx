@@ -27,7 +27,7 @@ export type Choices = Partial<Record<RefSource, Choice[]>>;
 
 const INPUT_TYPES = { text: 'text', email: 'email', password: 'password', percent: 'text', date: 'date' } as const;
 
-const toPaise = (text: string) => {
+export const toPaise = (text: string) => {
   try {
     return rupeesToPaise(text);
   } catch {
@@ -40,7 +40,7 @@ const asRupees = (paise: number) => (paise % 100 ? (paise / 100).toFixed(2) : St
  * A rupee box that says the amount back as it is typed ("₹1,25,000 · one lakh twenty-five thousand rupees"),
  * so an extra zero shows before saving. With `owed`, it also offers to fill in the full amount still due.
  */
-function RupeesInput({ input, owed }: { input: React.InputHTMLAttributes<HTMLInputElement> & { id: string }; owed?: Owed }) {
+export function RupeesInput({ input, owed }: { input: React.InputHTMLAttributes<HTMLInputElement> & { id: string }; owed?: Owed }) {
   const t = useTranslations();
   const [text, setText] = useState(String(input.defaultValue ?? ''));
   const paise = toPaise(text);

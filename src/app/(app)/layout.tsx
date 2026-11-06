@@ -23,8 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const tabs = labourOnly ? (
     <>
       <NavLink href="/labour" exact className="tab-item"><Icon name="people" size={22} /><span>{t('labour.tabs.workers')}</span></NavLink>
-      <NavLink href="/labour/attendance" className="tab-item"><Icon name="report" size={22} /><span>{t('labour.tabs.attendance')}</span></NavLink>
-      <NavLink href="/labour/settings" className="tab-item"><Icon name="setup" size={22} /><span>{t('labour.tabs.settings')}</span></NavLink>
+      <NavLink href="/labour/month" className="tab-item"><Icon name="report" size={22} /><span>{t('labour.tabs.month')}</span></NavLink>
     </>
   ) : office ? (
     <>
@@ -47,8 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {labourOnly ? (
           <nav aria-label={t('nav.label')} className="nav">
             <NavLink href="/labour" exact><Icon name="people" /><span>{t('labour.tabs.workers')}</span></NavLink>
-            <NavLink href="/labour/attendance"><Icon name="report" /><span>{t('labour.tabs.attendance')}</span></NavLink>
-            <NavLink href="/labour/settings"><Icon name="setup" /><span>{t('labour.tabs.settings')}</span></NavLink>
+            <NavLink href="/labour/month"><Icon name="report" /><span>{t('labour.tabs.month')}</span></NavLink>
           </nav>
         ) : <nav aria-label={t('nav.label')} className="nav">
           {office ? (
@@ -72,6 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {office && <NavLink href="/salary" section="/salary"><Icon name="payOut" /><span>{t('nav.salary')}</span></NavLink>}
           {office && <NavLink href="/tds" section="/tds"><Icon name="tds" /><span>{t('nav.tds')}</span></NavLink>}
           {office && <NavLink href="/labour" section="/labour"><Icon name="people" /><span>{t('nav.labour')}</span></NavLink>}
+          {office && <NavLink href="/machines" section="/machines"><Icon name="tool" /><span>{t('nav.machines')}</span></NavLink>}
         </nav>}
         {office && (
           <nav aria-label={t('nav.tools')} className="nav nav-group">

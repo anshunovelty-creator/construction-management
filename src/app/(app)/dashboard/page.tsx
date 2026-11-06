@@ -33,7 +33,7 @@ export default async function DashboardPage() {
         <Stat label={t('party.total')} value={showPaise(sum.total)} />
         <Stat label={t('party.paid')} value={showPaise(sum.paid)} tone="done" />
         <Stat label={t('party.balance')} value={showPaise(sum.toPay)} tone="owe" note={t('party.balanceNote')} />
-        {sum.extra > 0 && <Stat label={t('party.statuses.extra')} value={showPaise(sum.extra)} tone="done" note={t('party.extraNote')} />}
+        {sum.extra > 0 && <Stat label={t('party.statuses.extra')} value={showPaise(-sum.extra)} tone="done" note={t('party.extraNote')} />}
         <Stat label={t('party.percentPaid')} value={`${sum.percentPaid}%`} />
       </div>
       <div className="stats">

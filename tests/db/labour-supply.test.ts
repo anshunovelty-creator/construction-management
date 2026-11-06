@@ -51,60 +51,44 @@ it('gives a Labour login nothing through the functions that run with raised righ
   });
 });
 
-it('lets a Labour login keep workers, cards and money, but not the deduction rates', async () => {
+it('lets a Labour login keep workers and their months', async () => {
   await asUser(db, labour, async (tx) => {
     const id = await addWorker(tx);
     await tx.query(`insert into labour_rates (worker_id, from_month, rate_paise) values ($1, '2026-01-01', 80000)`, [id]);
-    await tx.query(`insert into labour_attendance (worker_id, work_date, present, ot_hours) values ($1, '2026-10-01', true, 2), ($1, '2026-10-02', false, 0)`, [id]);
-    await tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-05', 'advance', 50000, 'cash')`, [id]);
-    const { rows } = await tx.query<{ present: number; absent: number; ot_hours: string }>(`select present, absent, ot_hours from labour_month_days`);
-    expect(rows).toEqual([{ present: 1, absent: 1, ot_hours: '2.00' }]);
-    const { affectedRows } = await tx.query(`update labour_settings set pf_bp = 0`);
-    expect(affectedRows).toBe(0);
-    await expect(tx.query(`insert into labour_settings (from_month, pf_bp, pf_ceiling_paise, esic_bp, esic_limit_paise) values ('2026-11-01', 0, 0, 0, 0)`)).rejects.toThrow('row-level security');
+    // 35 days in a month of 31: double duties are allowed.
+    await tx.query(`insert into labour_months (worker_id, month, present_days, ot_hours, advance_paise, paid_paise) values ($1, '2026-10-01', 35, 40, 50000, 3000000)`, [id]);
+    await tx.query(`update labour_months set paid_paise = 2500000 where worker_id = $1`, [id]);
+    const { rows } = await tx.query<{ present_days: string; paid_paise: string }>(`select present_days, paid_paise from labour_months`);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ present_days: '35.00' });
+    expect(Number(rows[0]!.paid_paise)).toBe(2_500_000);
+    expect((await tx.query(`delete from labour_months where worker_id = $1`, [id])).affectedRows).toBe(1);
   });
 });
 
-it('keeps supervisors out, and lets the office in and change the rates', async () => {
+it('keeps supervisors out, and lets the office in', async () => {
+  const id = await asUser(db, office, async (tx) => addWorker(tx));
   await asUser(db, supervisor, async (tx) => {
-    expect((await tx.query(`select * from labour_settings`)).rows).toEqual([]);
-    await expect(addWorker(tx)).rejects.toThrow('row-level security');
+    expect((await tx.query(`select * from labour_workers`)).rows).toEqual([]);
+    await expect(tx.query(`insert into labour_months (worker_id, month) values ($1, '2026-10-01')`, [id])).rejects.toThrow('row-level security');
   });
   await asUser(db, office, async (tx) => {
-    await addWorker(tx);
-    await tx.query(`insert into labour_settings (from_month, pf_bp, pf_ceiling_paise, esic_bp, esic_limit_paise) values ('2026-11-01', 1000, 1500000, 75, 2100000)`);
+    await tx.query(`insert into labour_months (worker_id, month, present_days) values ($1, '2026-10-01', 20)`, [id]);
   });
 });
 
-it('refuses OT when absent or for staff, and a money line that makes no sense', async () => {
+it('refuses a second line for the same month and figures that make no sense', async () => {
   await asUser(db, labour, async (tx) => {
-    const worker = await addWorker(tx);
-    const staff = await addWorker(tx, 'staff');
+    const id = await addWorker(tx);
+    await tx.query(`insert into labour_months (worker_id, month) values ($1, '2026-10-01')`, [id]);
     await tx.exec('savepoint a');
-    await expect(tx.query(`insert into labour_attendance (worker_id, work_date, present, ot_hours) values ($1, '2026-10-01', false, 1)`, [worker])).rejects.toThrow('check constraint');
-    await tx.exec('rollback to savepoint a');
-    await expect(tx.query(`insert into labour_attendance (worker_id, work_date, present, ot_hours) values ($1, '2026-10-01', true, 1)`, [staff])).rejects.toThrow('no OT');
-    await tx.exec('rollback to savepoint a');
-    await expect(tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-01', 'deduction', 100, null)`, [worker])).rejects.toThrow('check constraint');
-    await tx.exec('rollback to savepoint a');
-    await expect(tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-01', 'payment', 0, 'cash')`, [worker])).rejects.toThrow('check constraint');
-  });
-});
-
-it('lets the one who typed a money line remove it that day; nobody can change one', async () => {
-  const id = await asUser(db, labour, async (tx) => {
-    const worker = await addWorker(tx);
-    const { rows } = await tx.query<{ id: string }>(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-01', 'payment', 100, 'cash') returning id`, [worker]);
-    return rows[0]!.id;
-  });
-  await asUser(db, labour, async (tx) => {
-    await expect(tx.query(`update labour_money set amount_paise = 5`)).rejects.toThrow('permission denied');
-  });
-  await db.query(`update labour_money set created_at = now() - interval '2 days' where id = $1`, [id]);
-  await asUser(db, labour, async (tx) => {
-    expect((await tx.query(`delete from labour_money where id = $1`, [id])).affectedRows).toBe(0);
-  });
-  await asUser(db, office, async (tx) => {
-    expect((await tx.query(`delete from labour_money where id = $1`, [id])).affectedRows).toBe(1);
+    const refused = async (sql: string, why: string) => {
+      await expect(tx.query(sql, [id])).rejects.toThrow(why);
+      await tx.exec('rollback to savepoint a');
+    };
+    await refused(`insert into labour_months (worker_id, month) values ($1, '2026-10-01')`, 'unique');
+    await refused(`insert into labour_months (worker_id, month) values ($1, '2026-11-05')`, 'check constraint');
+    await refused(`insert into labour_months (worker_id, month, present_days) values ($1, '2026-11-01', 101)`, 'check constraint');
+    await refused(`insert into labour_months (worker_id, month, paid_paise) values ($1, '2026-11-01', -1)`, 'check constraint');
   });
 });

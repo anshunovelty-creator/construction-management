@@ -132,7 +132,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
           note={f.lastPayment ? t('party.lastOn', { date: showDate(f.lastPayment) }) : t('party.nothingPaid')} />
         <span className="op" aria-hidden="true">=</span>
         {f.balance < 0
-          ? <Stat label={t('party.statuses.extra')} value={showPaise(-f.balance)} tone="done" note={t('party.extraNote')} />
+          ? <Stat label={t('party.statuses.extra')} value={showPaise(f.balance)} tone="done" note={t('party.extraNote')} />
           : <Stat label={t('party.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'owe' : 'done'} note={t(f.balance > 0 ? 'party.balanceNote' : 'party.nothingLeft')} />}
       </div>
 

@@ -46,7 +46,7 @@ export default async function PartyIndexPage() {
             <Stat label={t('party.total')} value={showPaise(sum.total)} note={t('party.partyCount', { count: parties.length })} />
             <Stat label={t('party.paid')} value={showPaise(sum.paid)} note={t('party.percentNote', { percent: sum.percentPaid })} tone="done" />
             <Stat label={t('party.balance')} value={showPaise(sum.toPay)} note={t('party.balanceNote')} tone="owe" />
-            {sum.extra > 0 && <Stat label={t('party.statuses.extra')} value={showPaise(sum.extra)} note={t('party.extraNote')} tone="done" />}
+            {sum.extra > 0 && <Stat label={t('party.statuses.extra')} value={showPaise(-sum.extra)} note={t('party.extraNote')} tone="done" />}
           </div>}
 
           <div className="toolbar">
@@ -79,7 +79,7 @@ export default async function PartyIndexPage() {
                     <MoneyCell paise={f.total} />
                     <MoneyCell paise={f.paid} />
                     <MoneyCell paise={Math.max(f.balance, 0)} strong tone="minus" />
-                    <MoneyCell paise={Math.max(-f.balance, 0)} strong tone="plus" />
+                    <MoneyCell paise={Math.min(f.balance, 0)} strong tone="plus" />
                     <td><PercentBar percent={f.percentPaid} /></td>
                     <td><StatusPill status={f.status} t={t} /></td>
                     <td className="nowrap">{f.lastPayment ? showDate(f.lastPayment) : <span className="muted">–</span>}</td>
@@ -101,7 +101,7 @@ export default async function PartyIndexPage() {
                   <MoneyCell paise={sum.total} />
                   <MoneyCell paise={sum.paid} />
                   <MoneyCell paise={sum.toPay} strong tone="minus" />
-                  <MoneyCell paise={sum.extra} strong tone="plus" />
+                  <MoneyCell paise={-sum.extra} strong tone="plus" />
                   <td className="num">{sum.percentPaid}%</td>
                   <td colSpan={2} />
                 </tr>

@@ -50,3 +50,9 @@ describe('percentOf', () => {
     expect(() => percentOf(100, 1.5)).toThrow('basis points');
   });
 });
+
+it('puts the minus before the rupee sign for extra paid, and no minus on nothing', () => {
+  expect(showPaise(-6_795_400)).toBe('-₹67,954');
+  expect(showPaise(-6_795_458)).toBe('-₹67,954.58');
+  expect(showPaise(-0)).toBe('₹0');
+});

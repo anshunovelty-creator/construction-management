@@ -1,5 +1,6 @@
 'use server';
 
+import { partyLine, roundOffAmount, roundOffDraft } from '@/lib/ledger/round-off';
 import { revalidatePath } from 'next/cache';
 import { redirect, RedirectType } from 'next/navigation';
 import type { FormState } from '@/components/form';
@@ -197,7 +198,26 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   if (repeat) return { errors: { _form: 'duplicate_bill', bill_no: 'duplicate' }, detail: repeat, values };
   const { data: result, error } = await db.rpc('app_post_entry', { p_entry: draft });
   if (error) return { errors: { _form: 'save_failed' }, detail: error.message, values };
+  if (!(result as { duplicate?: boolean }).duplicate) await clearSmallRemainder(db, draft);
   return result as Saved;
+}
+
+/**
+ * After an entry, clears anything under ₹1 left on its party, so it never comes back on a later bill. The entry itself
+ * is already saved, so a failure here only leaves the remainder (still shown as nothing left) for the next entry.
+ */
+async function clearSmallRemainder(db: Db, draft: EntryDraft): Promise<void> {
+  const line = partyLine(draft);
+  if (!line?.firmId || !line.partyId) return;
+  const { data, error } = await db.from('balances').select('amount_paise')
+    .eq('account', line.account).eq('firm_id', line.firmId).eq('party_id', line.partyId);
+  if (error) return console.error('round off:', error.message);
+  const after = (data ?? []).reduce((sum, r) => sum + Number(r.amount_paise), 0);
+  const before = after - draft.lines.filter((l) => l.account === line.account && l.partyId === line.partyId).reduce((sum, l) => sum + l.amountPaise, 0);
+  const remainder = roundOffAmount(before, after);
+  if (remainder === 0) return;
+  const { error: postError } = await db.rpc('app_post_entry', { p_entry: roundOffDraft(line, remainder, draft.entryDate) });
+  if (postError) console.error('round off:', postError.message);
 }
 
 /** Saves one money form, then opens the new entry. `firmId`: the firm the form was opened in. */
