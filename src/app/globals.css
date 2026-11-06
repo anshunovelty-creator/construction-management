@@ -698,6 +698,73 @@ tr:hover .party-link { color: var(--accent); }
 .owed > span:first-child:not(.muted) { font-weight: 500; }
 .quick-saved { display: inline-flex; align-items: center; gap: 6px; align-self: center; margin: 0; color: var(--plus); font-weight: 600; }
 
+/* ---------- Money received: the amount first, what it does to the balance right under it ---------- */
+.quick-dialog.rcv { width: min(520px, calc(100vw - 32px)); }
+.rcv-firm { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.rcv-form { display: grid; gap: 14px; margin-top: 14px; }
+.rcv-left { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; margin: 0; font-size: 14px; color: var(--muted); }
+.rcv-left b { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.rcv-left small { flex-basis: 100%; font-size: 13px; }
+.rcv-left.plus b { color: var(--plus); }
+.rcv-left.minus, .rcv-left.minus b { color: var(--minus); }
+.rcv-left.done { color: var(--plus); font-weight: 600; }
+
+.rcv-amount {
+  display: flex; align-items: baseline; justify-content: center; gap: 4px; padding: 14px 12px 10px; overflow: hidden; cursor: text;
+  background: var(--sunken); border: 1px solid var(--rule-strong); border-radius: 12px; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.rcv-amount:focus-within { border-color: var(--accent); box-shadow: var(--ring); }
+.rcv-rupee { font-size: 26px; font-weight: 500; color: var(--faint); }
+.rcv-form .rcv-amount input {
+  max-width: 100%; height: auto; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; outline: none; color: var(--ink);
+  font-size: clamp(30px, 9vw, 40px); font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.rcv-words { margin: -8px 0 0; min-height: 18px; text-align: center; font-size: 13px; color: var(--muted); }
+.rcv-words::first-letter { text-transform: uppercase; }
+.rcv-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.rcv-chips .chip, .rcv-dates .chip { min-height: 38px; padding: 0 12px; cursor: pointer; font-variant-numeric: tabular-nums; }
+
+.rcv-meter { display: flex; height: 10px; overflow: hidden; border-radius: 999px; background: var(--rule); }
+.rcv-meter i { display: block; transition: width 0.22s ease-out; }
+.rcv-meter .got { background: var(--plus); }
+.rcv-meter .now { background: color-mix(in srgb, var(--plus) 45%, var(--sheet)); }
+.rcv-meter .extra { background: var(--minus); }
+
+.rcv-group { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.rcv-group legend { padding: 0 0 8px; font-size: 14px; font-weight: 500; }
+.rcv-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.rcv-tile {
+  position: relative; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; cursor: pointer; font-size: 14px; font-weight: 500;
+  background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: var(--radius-sm); transition: border-color 0.15s, background 0.15s;
+}
+.rcv-tile input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; margin: 0; cursor: pointer; }
+.rcv-tile .icon { flex: none; color: var(--muted); }
+.rcv-tile:hover { border-color: var(--muted); }
+.rcv-tile.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.rcv-tile.on .icon { color: inherit; }
+.rcv-tile:has(input:focus-visible) { box-shadow: var(--ring); }
+.rcv-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rcv-dates input { flex: 1 1 150px; width: auto; }
+.rcv-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rcv-notes label { display: grid; gap: 6px; font-size: 14px; font-weight: 500; }
+.rcv-save { position: sticky; bottom: 0; width: 100%; }
+
+.rcv-done { display: grid; justify-items: center; gap: 4px; padding: 10px 0 6px; text-align: center; }
+.rcv-tick { display: grid; place-items: center; width: 60px; height: 60px; margin-bottom: 6px; border-radius: 50%; background: var(--plus-soft); color: var(--plus); animation: rcv-pop 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.rcv-tick path { stroke-dasharray: 24; animation: rcv-draw 0.28s ease-out; }
+.rcv-done-amount { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--plus); }
+.rcv-done-line { margin: 0; font-size: 14px; color: var(--muted); }
+.rcv-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+@keyframes rcv-pop { from { transform: scale(0.7); opacity: 0; } }
+@keyframes rcv-draw { from { stroke-dashoffset: 24; } }
+@media (max-width: 600px) {
+  .quick-dialog.rcv { width: 100vw; }
+  .rcv-notes { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rcv-meter i, .rcv-tick, .rcv-tick path { transition: none; animation: none; }
+}
+
 /* ---------- Bill forms (vendor and client bills): details on top, the amount, totals and notes below ---------- */
 .quick-dialog:has(.bill-sheet) { width: min(960px, calc(100vw - 32px)); }
 @media (max-width: 600px) { .quick-dialog:has(.bill-sheet) { width: 100vw; } }

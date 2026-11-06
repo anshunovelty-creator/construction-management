@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
 import { BillSheet } from '@/components/bill-sheet';
 import { ListLink } from '@/components/list-link';
+import { ReceiveMoney } from '@/components/receive-money';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { clientFigures } from '@/lib/ledger/party';
@@ -135,6 +136,19 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
           : <Stat label={t('client.balance')} value={showPaise(f.balance)} tone={f.balance > 0 ? 'due' : 'done'} note={t(f.balance > 0 ? 'client.balanceNote' : 'client.nothingLeft')} />}
       </div>
 
+      <ReceiveMoney
+        name={client.name}
+        firm={firm.name}
+        total={f.total}
+        received={f.paid}
+        balance={f.balance}
+        lastBill={bills.at(-1)?.receivable}
+        accounts={choices.firmAccounts ?? []}
+        lastAccount={lastTo}
+        today={todayInIndia()}
+        save={postClientRows.bind(null, firm.id, client.id)}
+      />
+
       <Tabs initial={tab} tabs={[
         { key: 'bills', label: t('client.billsTitle'), count: billRows.length, panel: (
           <>
@@ -239,7 +253,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
               </div>
             )}
             <details className="add-rows">
-              <summary className="btn">＋ {t('client.addReceipts')}</summary>
+              <summary className="btn ghost">＋ {t('client.addReceipts')}</summary>
               {(choices.firmAccounts ?? []).length === 0 && (
                 <p className="banner bad">
                   {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>

@@ -695,7 +695,23 @@
     "receivedIn": "Received in",
     "balanceAfter": "Remaining after receipt",
     "addBills": "Add bills given",
-    "addReceipts": "Add money received"
+    "addReceipts": "Add several at once",
+    "receive": {
+      "button": "Money received",
+      "title": "Money received from {name}",
+      "intoBooks": "Goes into {firm}'s books",
+      "typeAmount": "Type the amount",
+      "full": "Full {amount}",
+      "lastBill": "Last bill {amount}",
+      "after": "Remaining after this",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "save": "Save {amount} received",
+      "savedAmount": "{amount} received",
+      "savedLine": "In {account}. Serial number {serial}.",
+      "another": "Add another",
+      "done": "Done"
+    }
   },
   "quick": {
     "addBill": "Add bill",

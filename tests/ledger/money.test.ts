@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { formatPaise, percentOf, rupeesToPaise, showPaise } from '@/lib/money';
+import { formatPaise, groupRupees, percentOf, rupeesToPaise, showPaise } from '@/lib/money';
+
+describe('groupRupees', () => {
+  it('groups as typed, and what it shows still reads back as the same amount', () => {
+    expect(groupRupees('125000')).toBe('1,25,000');
+    expect(groupRupees('1,25,0005')).toBe('12,50,005');
+    expect(groupRupees('007')).toBe('7');
+    expect(groupRupees('')).toBe('');
+    expect(groupRupees('1000.')).toBe('1,000.');
+    expect(groupRupees('.5')).toBe('0.5');
+    expect(groupRupees('1000.5.6789')).toBe('1,000.56');
+    expect(groupRupees('₹12a3-4')).toBe('1,234');
+    expect(rupeesToPaise(groupRupees('12345678.9'))).toBe(1_234_567_890);
+  });
+});
 
 describe('rupeesToPaise', () => {
   it('parses plain, grouped and symbol-prefixed amounts', () => {

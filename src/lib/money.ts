@@ -22,6 +22,14 @@ export function rupeesToPaise(input: string): Paise {
   return minus ? -paise : paise;
 }
 
+/** What is being typed in a rupee box, grouped the Indian way: "125000.5" -> "1,25,000.5". Drops anything else, and past 2 decimals. */
+export function groupRupees(text: string): string {
+  const [whole = '', ...fraction] = text.replace(/[^\d.]/g, '').split('.');
+  const digits = whole.replace(/^0+(?=\d)/, '');
+  const grouped = digits && new Intl.NumberFormat('en-IN').format(BigInt(digits));
+  return fraction.length ? `${grouped || '0'}.${fraction.join('').slice(0, 2)}` : grouped;
+}
+
 /** A balance under ₹1 either way (up to 99 paise) counts as nothing left to pay or get back. Ledger rows are not touched. */
 export const roundOffSmall = (paise: Paise): Paise => (Math.abs(paise) < 100 ? 0 : paise);
 

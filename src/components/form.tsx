@@ -34,7 +34,7 @@ export const toPaise = (text: string) => {
     return 0;
   }
 };
-const asRupees = (paise: number) => (paise % 100 ? (paise / 100).toFixed(2) : String(paise / 100));
+export const asRupees = (paise: number) => (paise % 100 ? (paise / 100).toFixed(2) : String(paise / 100));
 
 /**
  * A rupee box that says the amount back as it is typed ("₹1,25,000 · one lakh twenty-five thousand rupees"),
