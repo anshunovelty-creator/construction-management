@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { AutoForm } from '@/components/auto-form';
-import { GroupCards, GROUPS, SitesTable } from '@/components/board';
+import { SitesTable } from '@/components/board';
 import { ListLink } from '@/components/list-link';
 import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { isCommonEntry } from '@/lib/firm';
-import { describeAll, type LineRow } from '@/lib/ledger/plain';
+import type { LineRow } from '@/lib/ledger/plain';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, showMoment } from './data';
@@ -28,17 +28,21 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // ponytail: latest 200 only; add paging when the books outgrow it.
 const LIMIT = 200;
 
-type Params = { date?: string; site?: string };
+type Params = { date?: string; site?: string; cancelled?: string };
+
+const WEEKDAY = new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 /**
- * Every entry, newest first. Owner and office staff see the working firm's entries plus the Common ones (no firm on
- * any line, e.g. cash handed to a supervisor), which carry a tag. Supervisors see the entries they may see.
- * Each row says who typed it and when. Filters: ?date=YYYY-MM-DD, ?site=<id>. A firm or site adds a summary of its books.
+ * Every entry by its date, newest day first, under a heading per day. Owner and office staff see the working firm's
+ * entries plus the Common ones (no firm on any line, e.g. cash handed to a supervisor), which carry a tag. Supervisors
+ * see the entries they may see. A cancelled mistake and the entry cancelling it are hidden unless ?cancelled=1.
+ * Filters: ?date=YYYY-MM-DD, ?site=<id>; a site adds a summary of its books (the Dashboard's site names link here).
  */
 export default async function DayBookPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const date = params.date && DATE.test(params.date) ? params.date : undefined;
   const site = params.site && UUID.test(params.site) ? params.site : undefined;
+  const showCancelled = params.cancelled === '1';
   const profile = await requireProfile();
   const working = await getWorkingFirm();
   const firm = working?.firm.id;
@@ -56,6 +60,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
     let query = db
       .from('entries')
       .select(`id, serial, entry_type, entry_date, party_id, narration, created_at, created_by, lines:entry_lines(account, amount_paise, firm_id)${only === 'firm' || site ? ', match:entry_lines!inner(firm_id, site_id)' : ''}`)
+      .order('entry_date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(LIMIT);
     if (date) query = query.eq('entry_date', date);
@@ -65,22 +70,32 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
     return query.returns<Row[]>();
   };
 
-  // What the books show now for this firm and/or site. A firm also sees the between-firm amounts other firms hold against it.
-  let balances = db.from('balances').select('*');
-  if (site) balances = balances.eq('site_id', site);
-  if (firm) balances = site ? balances.eq('firm_id', firm) : balances.or(`firm_id.eq.${firm},counter_firm_id.eq.${firm}`);
+  // What the books show now for a picked site, in the working firm. The firm as a whole is on the Dashboard.
+  let balances = db.from('balances').select('*').eq('site_id', site ?? '');
+  if (firm) balances = balances.eq('firm_id', firm);
 
   const [{ data: own }, { data: cm }, { data: summary }, names, t] = await Promise.all([
     firm ? list('firm') : list(),
     firm ? list('common') : Promise.resolve({ data: [] as Row[] }),
     // Supervisors see their entries but not profits, as on the home page.
-    (firm || site) && profile.role !== 'supervisor' ? balances.returns<LineRow[]>() : Promise.resolve({ data: null }),
+    site && profile.role !== 'supervisor' ? balances.returns<LineRow[]>() : Promise.resolve({ data: null }),
     loadNames(db),
     getTranslations(),
   ]);
   const common = (cm ?? []).filter((r) => isCommonEntry(r.lines));
   const commonIds = new Set(common.map((r) => r.id));
-  const rows = [...(own ?? []), ...common].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, LIMIT);
+  const all = [...(own ?? []), ...common]
+    .sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.created_at.localeCompare(a.created_at)).slice(0, LIMIT);
+  const hidden = all.filter((r) => statusOf.has(r.id)).length;
+  const rows = showCancelled ? all : all.filter((r) => !statusOf.has(r.id));
+  // Rows are already newest day first, so a Map keeps the days in order.
+  const byDay = new Map<string, Row[]>();
+  for (const r of rows) byDay.set(r.entry_date, [...(byDay.get(r.entry_date) ?? []), r]);
+  // The same filters, with cancelled entries shown or not.
+  const cancelledLink = (on: boolean) => {
+    const q = new URLSearchParams({ ...(site && { site }), ...(date && { date }), ...(on && { cancelled: '1' }) }).toString();
+    return q ? `/entries?${q}` : '/entries';
+  };
 
   // The size of an entry: its plus lines, leaving out the automatic between-firm pair.
   const amountOf = (r: Row) =>
@@ -96,7 +111,7 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <h1>{title}</h1>
-      <p className="lede">{t(site ? 'daybook.siteLede' : firm ? 'daybook.firmLede' : 'daybook.lede')}</p>
+      <p className="lede">{t(site ? 'daybook.siteLede' : 'daybook.lede')}</p>
 
       <AutoForm action="/entries" className="filters book-filter">
         <label className="sr-only" htmlFor="site">{t('daybook.site')}</label>
@@ -122,55 +137,57 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
               ))}
             </section>
           )}
-          {firm && !site && (
-            <GroupCards plain={describeAll(summary, names, t)} groups={GROUPS.filter((g) => g !== 'owner')} t={t} />
-          )}
         </div>
       )}
 
       <div className="filters">
         <span className="muted">{t('daybook.count', { count: rows.length })}</span>
+        {hidden > 0 && (
+          <Link href={cancelledLink(!showCancelled)} className="chip">
+            {t(showCancelled ? 'daybook.hideCancelled' : 'daybook.showCancelled', { count: hidden })}
+          </Link>
+        )}
       </div>
       {rows.length > 0 ? (
         <div className="card table-wrap">
-          <table>
+          <table className="day-book">
             <thead>
               <tr>
-                <th>{t('daybook.serial')}</th>
-                <th>{t('daybook.date')}</th>
                 <th>{t('daybook.what')}</th>
                 <th className="num">{t('daybook.amount')}</th>
                 <th>{t('daybook.enteredBy')}</th>
               </tr>
             </thead>
-            <tbody>
-              {rows.map((r) => {
-                const status = statusOf.get(r.id);
-                return (
-                  <tr key={r.id}>
-                    <td>
-                      <ListLink href={`/entries/${r.id}`} className="serial underline">{r.serial}</ListLink>
-                    </td>
-                    <td className="nowrap">{showDate(r.entry_date)}</td>
-                    <td>
-                      <b>{t(`entryTypes.${r.entry_type}.title`)}</b>
-                      {commonIds.has(r.id) && <span className="pill common" title={t('firm.commonHint')}>{t('firm.common')}</span>}
-                      {(r.party_id || r.narration) && (
+            {[...byDay].map(([day, list]) => (
+              <tbody key={day}>
+                <tr className="day-row">
+                  <td colSpan={3}>
+                    <strong>{WEEKDAY.format(new Date(`${day}T00:00:00Z`))}</strong>
+                    <span className="muted"> · {t('daybook.count', { count: list.length })}</span>
+                  </td>
+                </tr>
+                {list.map((r) => {
+                  const status = statusOf.get(r.id);
+                  return (
+                    <tr key={r.id} className={status === 'cancelled' ? 'was-cancelled' : undefined}>
+                      <td>
+                        <ListLink href={`/entries/${r.id}`} className="underline"><b>{(r.party_id && names.parties.get(r.party_id)) || t(`entryTypes.${r.entry_type}.title`)}</b></ListLink>
+                        {commonIds.has(r.id) && <span className="pill common" title={t('firm.commonHint')}>{t('firm.common')}</span>}
+                        {status && <span className={`pill ${status}`}>{t(`entries.status.${status}`)}</span>}
                         <span className="muted block">
-                          {[r.party_id && names.parties.get(r.party_id), r.narration].filter(Boolean).join(' · ')}
+                          {[r.party_id && t(`entryTypes.${r.entry_type}.title`), r.narration, r.serial].filter(Boolean).join(' · ')}
                         </span>
-                      )}
-                    </td>
-                    <td className="num">{showPaise(amountOf(r))}</td>
-                    <td className="nowrap">
-                      {names.people.get(r.created_by) ?? '?'}
-                      <span className="muted block">{showMoment(r.created_at)}</span>
-                      {status && <span className={`pill ${status}`}>{t(`entries.status.${status}`)}</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+                      </td>
+                      <td className="num">{showPaise(amountOf(r))}</td>
+                      <td className="nowrap muted">
+                        {names.people.get(r.created_by) ?? '?'}
+                        <span className="block small">{showMoment(r.created_at)}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            ))}
           </table>
         </div>
       ) : (

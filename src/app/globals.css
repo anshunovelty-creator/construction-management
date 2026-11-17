@@ -353,6 +353,8 @@ table.saved-work tr.in-group td:first-child { padding-left: 28px; }
 .use-group td { background: var(--head); }
 .use-group-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .use-group-head .activity-total { margin-left: auto; }
+.mix-done { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.mix-done input { width: 6rem; }
 .use-table tr.in-group td:first-child { border-left: 3px solid var(--accent); }
 .qty-with-unit { display: inline-flex; align-items: center; gap: 8px; }
 .unit-tag { min-width: 2.5rem; font-size: 13px; font-weight: 600; color: var(--muted); }
@@ -455,6 +457,10 @@ tr.extra-month td, table.ledger tbody tr.extra-month td { background: var(--plus
 .row .val { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; text-align: right; }
 .group details summary { cursor: pointer; color: var(--accent); font-size: 13.5px; font-weight: 500; padding: 8px 0 0; }
 .empty-board h2 { margin-top: 0; }
+.today-report { margin-bottom: 24px; }
+.today-site { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 0; border-top: 1px solid var(--rule); color: inherit; text-decoration: none; }
+.today-site b { min-width: 8rem; }
+.today-parts { display: flex; flex-wrap: wrap; gap: 6px; }
 .sites .section-title { margin-bottom: 2px; }
 
 /* ---------- Add an entry ---------- */
@@ -562,6 +568,10 @@ table.sheet { border-collapse: collapse; width: max-content; min-width: 100%; }
 .wrap:has(.sheet-wrap) { max-width: 1600px; }
 
 /* ---------- Day book by firm / site ---------- */
+table.day-book tr.day-row td { background: var(--head); font-size: 14px; }
+table.day-book tbody + tbody tr.day-row td { border-top: 1px solid var(--rule-strong); }
+table.day-book tr.was-cancelled b, table.day-book tr.was-cancelled td.num { text-decoration: line-through; color: var(--muted); }
+table.day-book .small { font-size: 12.5px; }
 .book-filter select { width: auto; min-height: 38px; padding: 5px 32px 5px 10px; font-size: 14px; }
 .book-filter input { width: auto; min-height: 38px; padding: 5px 10px; font-size: 14px; }
 .book-filter .btn { min-height: 38px; padding: 0 14px; }
@@ -569,6 +579,11 @@ table.sheet { border-collapse: collapse; width: max-content; min-width: 100%; }
 .book-summary .row, .card > .row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--rule); }
 .book-summary .row .val { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 .delete-box { margin-top: 28px; display: grid; gap: 10px; }
+.bin-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.demo-form { display: grid; gap: 14px; }
+.demo-confirm { display: grid; gap: 6px; max-width: 22rem; font-size: 14px; }
+.demo-result { display: grid; gap: 8px; margin-bottom: 18px; }
+.demo-result ul { margin: 0; padding-left: 20px; }
 .delete-box[open] { border-color: color-mix(in srgb, var(--minus) 35%, var(--rule)); }
 
 /* ---------- Parties (laid out like the outstanding workbook) ---------- */

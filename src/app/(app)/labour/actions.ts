@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireProfile } from '@/lib/auth';
 import { rupeesToPaise } from '@/lib/money';
+import { sameName } from '@/lib/delete';
+import { moveToBin } from '@/lib/bin';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
 
@@ -51,6 +53,21 @@ export async function saveWorker(id: string | null, data: FormData): Promise<voi
   }
   revalidatePath('/labour', 'layout');
   redirect(`/labour/${workerId}`);
+}
+
+/**
+ * Deletes a worker added by mistake into the recycle bin: only one with nothing saved in any month, so no pay record is
+ * ever lost (the database checks). A worker with months saved is switched off instead. The name must be typed first.
+ */
+export async function deleteWorker(id: string, data: FormData): Promise<void> {
+  await requireProfile('owner', 'office', 'labour');
+  const fail = (error: string): never => redirect(`/labour/${id}/edit?error=${error}`);
+  const { data: worker } = await (await createClient()).from('labour_workers').select('name').eq('id', id).maybeSingle();
+  if (!worker || !sameName(String(data.get('confirm') ?? ''), worker.name as string)) fail('delete_name');
+  const refused = await moveToBin('labour-workers', id);
+  if (refused) fail(refused.error === 'has_months' ? 'delete_has_months' : 'not_deleted');
+  revalidatePath('/labour', 'layout');
+  redirect('/labour');
 }
 
 export type MonthState = { error?: string; name?: string; saved?: number };

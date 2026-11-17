@@ -8,7 +8,8 @@ import { createClient } from '@/lib/supabase/server';
 import { saveMaster } from '../actions';
 import { displayValue, loadChoices } from '../options';
 
-export default async function MasterListPage({ params }: { params: Promise<{ table: string }> }) {
+export default async function MasterListPage({ params, searchParams }: { params: Promise<{ table: string }>; searchParams: Promise<{ binned?: string }> }) {
+  const { binned } = await searchParams;
   const { table: slug } = await params;
   const def = getMaster(slug);
   if (!def) notFound();
@@ -27,6 +28,7 @@ export default async function MasterListPage({ params }: { params: Promise<{ tab
   return (
     <>
       <h2 className="card-title">{t(`masters.${slug}`)}</h2>
+      {binned && <p className="banner" role="status">{t('masters.delete.binned')}</p>}
       {!canEdit && <p className="mb-4 text-gray-600">{t('masters.readOnly')}</p>}
       {rows && rows.length > 0 ? (
         <div className="overflow-x-auto">

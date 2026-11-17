@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { EntrySheet } from '@/components/entry-sheet';
-import { Form } from '@/components/form';
 import { ListLink } from '@/components/list-link';
 import { QuickAdd } from '@/components/quick-add';
+import { ReceiveMoney } from '@/components/receive-money';
 import { BillSheet } from '@/components/bill-sheet';
 import { Tabs } from '@/components/tabs';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
@@ -36,7 +36,6 @@ type Slug = 'vendor-bill' | 'pay-vendor';
 const PAY_COLUMNS = ['entry_date', 'amount', 'from_account_id', 'reference', 'narration'];
 /** The pop-ups' questions: the bill's details, then what it comes to. */
 const BILL_QUICK = ['bill_no', 'entry_date', 'site_id', 'amount', 'gst_rate', 'tds_rate', 'narration'];
-const PAY_QUICK = ['amount', 'from_account_id', 'entry_date', 'reference', 'narration'];
 const fieldsOf = (slug: Slug, names: string[]) => names.map((name) => getEntryForm(slug)!.fields.find((f) => f.name === name)!);
 /** Sheet headings worded like the tables above them (party.* keys). */
 const LABELS: Record<string, string> = {
@@ -145,16 +144,9 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
             defaults={{ site_id: lastBill?.site_id ?? '' }} />
         }
         pay={
-          <Form
-            fields={fieldsOf('pay-vendor', PAY_QUICK)}
-            defaults={{ entry_date: todayInIndia(), from_account_id: lastFrom ?? '' }}
-            choices={choices}
-            action={postPartyEntry.bind(null, 'pay-vendor', firm.id, party.id)}
-            submitLabel={t('entries.save')}
-            hintPrefix="entryForms.pay-vendor.hints"
-            owed={{ [party.id]: { name: party.name, paise: f.balance } }}
-            vendorId={party.id}
-          />
+          <ReceiveMoney side="party" name={party.name} firm={firm.name} total={f.total} received={f.paid} balance={f.balance}
+            lastBill={lastBill?.amount} accounts={choices.firmAccounts ?? []} lastAccount={lastFrom} today={todayInIndia()}
+            save={postPartyRows.bind(null, 'pay-vendor', firm.id, party.id)} />
         }
       />
 

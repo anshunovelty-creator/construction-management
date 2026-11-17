@@ -19,6 +19,8 @@ export interface MaterialLine {
   mix?: string;
   /** For a line added from a combination work: how much 1 unit of the work takes, shown as a guide. */
   guide?: string;
+  /** For a line added from a combination work: how much 1 unit of the work takes, to fill the quantity from the work done. */
+  per?: number;
 }
 
 /** What saving comes back with: when it was saved, or the mistake and the line it is on (from 0). */
@@ -85,12 +87,27 @@ export function MaterialUseForm({
   const [added, setAdded] = useState<MaterialChoice[]>([]);
   const [creating, setCreating] = useState<{ line: number; name: string } | null>(null);
   const [mixPick, setMixPick] = useState(0);
+  // How much of each combination work was done today, by its name, as typed.
+  const [done, setDone] = useState<Record<string, string>>({});
   const materials = [...given, ...added];
   const material = new Map(materials.map((m) => [m.id, m]));
 
   useEffect(() => {
-    if (state.saved) setLines([emptyLine(), emptyLine(), emptyLine()]);
+    if (state.saved) {
+      setLines([emptyLine(), emptyLine(), emptyLine()]);
+      setDone({});
+    }
   }, [state.saved]);
+
+  // The work done fills each of its materials: done × what 1 unit takes. Lines added to the group by hand are left alone,
+  // and a filled quantity can still be typed over.
+  const fillMix = (name: string, text: string) => {
+    setDone((all) => ({ ...all, [name]: text }));
+    const n = NUMBER.test(text.trim()) ? Number(text) : null;
+    setLines((all) => all.map((x) => (x.mix === name && x.per !== undefined
+      ? { ...x, quantity: n === null ? '' : String(Math.round(x.per * n * 1000) / 1000) }
+      : x)));
+  };
 
   const change = (l: number, patch: Partial<MaterialLine>) =>
     setLines((all) => all.map((x, i) => (i === l ? { ...x, ...patch } : x)));
@@ -110,10 +127,10 @@ export function MaterialUseForm({
     const grouped = kept.filter((x) => x.mix);
     setLines([...grouped, ...mix.items.map((item) => {
       const m = material.get(item.materialId);
-      return { ...emptyLine(), materialId: item.materialId, rate: rateText(m), mix: mix.name,
+      return { ...emptyLine(), materialId: item.materialId, rate: rateText(m), mix: mix.name, per: item.quantity,
         guide: t('use.mixGuide', { qty: `${QTY.format(item.quantity)} ${m?.unit ?? ''}`.trim(), unit: mix.unit || t('use.mixUnit') }) };
     }), ...kept.filter((x) => !x.mix)]);
-    requestAnimationFrame(() => document.getElementById(`use-qty-${grouped.length}`)?.focus());
+    requestAnimationFrame(() => document.getElementById(`mix-done-${mix.id}`)?.focus());
   };
 
   // One more material inside a work's group, below its last line.
@@ -121,10 +138,13 @@ export function MaterialUseForm({
     const at = all.map((x) => x.mix).lastIndexOf(name) + 1;
     return [...all.slice(0, at), { ...emptyLine(), mix: name }, ...all.slice(at)];
   });
-  const removeMix = (name: string) => setLines((all) => {
-    const rest = all.filter((x) => x.mix !== name);
-    return rest.length > 0 ? rest : [emptyLine()];
-  });
+  const removeMix = (name: string) => {
+    setDone(({ [name]: _, ...rest }) => rest);
+    setLines((all) => {
+      const rest = all.filter((x) => x.mix !== name);
+      return rest.length > 0 ? rest : [emptyLine()];
+    });
+  };
 
   // What is left after each line: the stock now, less this line and the lines above it for the same material.
   const usedSoFar = new Map<string, number>();
@@ -180,6 +200,7 @@ export function MaterialUseForm({
                 const { m, amount, left } = preview[l]!;
                 // A heading wherever the group changes: the work's name, or "Other materials" below the works.
                 const heading = line.mix !== lines[l - 1]?.mix;
+                const mix = line.mix ? mixes.find((x) => x.name === line.mix) : undefined;
                 return (
                   <Fragment key={l}>
                   {heading && (
@@ -187,6 +208,22 @@ export function MaterialUseForm({
                       <td colSpan={8}>
                         <div className="use-group-head">
                           <strong>{line.mix ?? t('otherMaterials')}</strong>
+                          {mix && (
+                            <label className="mix-done">
+                              {t('use.mixDone')}
+                              <span className="qty-with-unit">
+                                <input
+                                  id={`mix-done-${mix.id}`}
+                                  value={done[mix.name] ?? ''}
+                                  onChange={(e) => fillMix(mix.name, e.target.value)}
+                                  inputMode="decimal"
+                                  className="num"
+                                  aria-label={t('use.mixDoneLabel', { name: mix.name })}
+                                />
+                                <span className="unit-tag">{mix.unit}</span>
+                              </span>
+                            </label>
+                          )}
                           <span className="activity-total">
                             <strong>{showPaise(preview.reduce((sum, p, i) => sum + (lines[i]!.mix === line.mix ? p.amount ?? 0 : 0), 0))}</strong>
                           </span>

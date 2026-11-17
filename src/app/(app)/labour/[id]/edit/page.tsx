@@ -5,7 +5,8 @@ import { requireProfile } from '@/lib/auth';
 import { rateFor } from '@/lib/labour';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../../../entries/data';
-import { saveWorker } from '../../actions';
+import { DeleteBox } from '@/components/delete-box';
+import { deleteWorker, saveWorker } from '../../actions';
 import { loadLabour } from '../../data';
 import { WorkerForm } from '../../worker-form';
 
@@ -23,6 +24,8 @@ export default async function EditLabourWorkerPage({ params, searchParams }: { p
       <h1>{t('labour.changeOf', { name: person.name })}</h1>
       {error && <p className="banner bad">{t(`labour.errors.${error}`)}</p>}
       <WorkerForm action={saveWorker.bind(null, id)} worker={person} rate={rateFor(person.rates, today.slice(0, 7))} today={today} t={t} />
+      <DeleteBox action={deleteWorker.bind(null, id)} name={person.name} title={t('labour.delete.title')} warning={t('labour.delete.warning')}
+        typeLabel={t('masters.delete.typeName', { name: person.name })} confirmLabel={t('masters.delete.confirm', { name: person.name })} />
     </>
   );
 }

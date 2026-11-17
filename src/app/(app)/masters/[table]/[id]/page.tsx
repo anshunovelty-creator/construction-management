@@ -5,8 +5,9 @@ import { Form } from '@/components/form';
 import { requireProfile } from '@/lib/auth';
 import { toFormValue } from '@/lib/masters/parse';
 import { getMaster, mayEdit } from '@/lib/masters/registry';
-import { allowDelete } from '@/lib/supabase/env';
+import { DeleteBox } from '@/components/delete-box';
 import { createClient } from '@/lib/supabase/server';
+import { TYPE_TO_DELETE } from '@/lib/delete';
 import { deleteMaster, saveMaster } from '../../actions';
 import { loadChoices } from '../../options';
 import { Icon } from '@/components/icons';
@@ -29,6 +30,7 @@ export default async function MasterEditPage({
   if (!row) notFound();
   const [choices, t] = await Promise.all([loadChoices(db, def.fields), getTranslations()]);
   const defaults = Object.fromEntries(def.fields.map((f) => [f.name, toFormValue(f, row[f.name])]));
+  const name = String(row.name ?? row.ref ?? row.code);
   const usedBy = used && t.has(`masters.delete.usedBy.${used}`) ? t(`masters.delete.usedBy.${used}`) : used;
 
   return (
@@ -39,24 +41,19 @@ export default async function MasterEditPage({
         </Link>
       </p>
       <h2 className="card-title">
-        {t('masters.edit')}: {String(row.name ?? row.ref ?? row.code)}
+        {t('masters.edit')}: {name}
       </h2>
       <Form fields={def.fields} defaults={defaults} choices={choices} action={saveMaster.bind(null, slug, id)} submitLabel={t('masters.save')} />
 
-      {profile.role === 'owner' && allowDelete() && (
-        <details className="cancel card delete-box" open={Boolean(error)}>
-          <summary>{t('masters.delete.title')}</summary>
-          <p className="hint">{t('masters.delete.warning')}</p>
-          {error && (
-            <p className="error form-error" role="alert">
-              {error === 'in_use' ? t('masters.delete.inUse', { what: usedBy ?? '' }) : t(`errors.${error === 'not_allowed' ? 'not_allowed' : 'save_failed'}`)}
-            </p>
-          )}
-          <form action={deleteMaster.bind(null, slug, id)}>
-            <button type="submit" className="btn danger">{t('masters.delete.confirm')}</button>
-          </form>
-        </details>
-      )}
+      {/* A firm is never deleted: every entry, site and account hangs off it. It can only be renamed. */}
+      {profile.role === 'owner' && (slug === 'firms' ? <p className="hint mt-6">{t('masters.delete.noFirm')}</p> : (
+        <DeleteBox action={deleteMaster.bind(null, slug, id)} name={name}
+          title={t('masters.delete.title')} warning={t('masters.delete.warning')}
+          typeLabel={TYPE_TO_DELETE.has(slug) ? t('masters.delete.typeName', { name }) : undefined}
+          confirmLabel={t('masters.delete.confirm', { name })}
+          error={!error ? undefined : error === 'in_use' ? t('masters.delete.inUse', { what: usedBy ?? '' })
+            : error === 'name' ? t('masters.delete.wrongName') : t(`errors.${error === 'not_allowed' ? 'not_allowed' : 'save_failed'}`)} />
+      ))}
     </>
   );
 }

@@ -7,8 +7,8 @@ import { quantityToMilli } from '@/lib/ledger/bill-items';
 import { requireProfile } from '@/lib/auth';
 import { moneyAccountErrors, parseFields, submittedValues } from '@/lib/masters/parse';
 import { getMaster, mayEdit } from '@/lib/masters/registry';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { allowDelete } from '@/lib/supabase/env';
+import { moveToBin, refusalQuery, type BinKind } from '@/lib/bin';
+import { sameName, TYPE_TO_DELETE } from '@/lib/delete';
 import { createClient } from '@/lib/supabase/server';
 import type { MixLine, MixState } from './mixes/mix-form';
 
@@ -37,22 +37,22 @@ export async function saveMaster(slug: string, id: string | null, _state: FormSt
 }
 
 /**
- * Testing only (ALLOW_DELETE=true): the owner deletes a Setup record for good. The API role has no delete
- * permission on purpose, so this uses the secret key. Records still in use (entries, work orders, accounts,
- * staff access) are refused by the database; the page says what uses them.
+ * The owner deletes a Setup record (a wrong or demo one): it goes to the recycle bin for 30 days, and the change log
+ * names who deleted it. Records still in use (entries, reports, accounts, staff access) are refused by the database;
+ * the page says what uses them. Firms are never deleted: everything hangs off them.
  */
-export async function deleteMaster(slug: string, id: string): Promise<void> {
+export async function deleteMaster(slug: string, id: string, data: FormData): Promise<void> {
   const def = getMaster(slug);
   await requireProfile('owner');
-  if (!def || !allowDelete()) redirect(`/masters/${slug}/${id}?error=not_allowed`);
-  const { error } = await createAdminClient().from(def.table).delete().eq('id', id);
-  if (error) {
-    // details: 'Key (id)=(…) is still referenced from table "work_orders".'
-    const usedBy = error.code === '23503' ? (error.details?.match(/from table "(\w+)"/)?.[1] ?? 'other') : '';
-    redirect(`/masters/${slug}/${id}?error=${usedBy ? 'in_use' : 'save_failed'}&used=${usedBy}`);
+  if (!def || slug === 'firms') redirect(`/masters/${slug}/${id}?error=not_allowed`);
+  if (TYPE_TO_DELETE.has(slug)) {
+    const { data: row } = await (await createClient()).from(def.table).select('*').eq('id', id).maybeSingle();
+    if (!row || !sameName(String(data.get('confirm') ?? ''), String(row.name ?? row.ref ?? row.code))) redirect(`/masters/${slug}/${id}?error=name`);
   }
+  const refused = await moveToBin(slug as BinKind, id);
+  if (refused) redirect(`/masters/${slug}/${id}?${refusalQuery(refused)}`);
   revalidatePath('/', 'layout');
-  redirect(`/masters/${slug}`);
+  redirect(`/masters/${slug}?binned=1`);
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -121,11 +121,10 @@ export async function saveMix(id: string | null, _state: MixState, data: FormDat
   redirect('/masters/mixes');
 }
 
-/** The owner deletes a combination work for good; saved daily reports keep its name on their own lines. */
+/** The owner deletes a combination work into the recycle bin; saved daily reports keep its name on their own lines. */
 export async function deleteMix(id: string): Promise<void> {
   await requireProfile('owner');
-  const { error } = await (await createClient()).from('mixes').delete().eq('id', id);
-  if (error) redirect('/masters/mixes?error=delete_failed');
+  if (await moveToBin('mixes', id)) redirect('/masters/mixes?error=delete_failed');
   revalidatePath('/masters/mixes');
   revalidatePath('/report');
   redirect('/masters/mixes');

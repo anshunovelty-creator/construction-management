@@ -5,6 +5,11 @@
   "nav": {
     "account": "Account menu for {name}",
     "home": "Home",
+    "groupMoney": "Money",
+    "groupSites": "Sites",
+    "groupOther": "Other business",
+    "groupAdmin": "Admin",
+    "bin": "Recycle bin",
     "masters": "Setup",
     "users": "People",
     "history": "Change log",
@@ -38,11 +43,21 @@
   "home": {
     "welcome": "Namaste, {name}",
     "greeting": "Overview",
-    "lede": "This is where every rupee sits right now. Add an entry whenever money moves.",
+    "lede": "This is where every rupee sits right now: each site’s profit, then what the firms hold, owe and are owed.",
     "ledeSupervisor": "What you spend at the site goes on the daily report. Stock that arrives goes under Stock.",
+    "fillReport": "Fill today’s report",
+    "todayTitle": "Today’s report, {date}",
+    "todayHint": "Each part of the report for each of your sites. Tap a site to fill what is missing.",
+    "partWork": "Work done",
+    "partMaterial": "Material used",
+    "partLabour": "Attendance",
+    "partOther": "Other costs",
+    "filled": "filled",
+    "notFilled": "not yet",
+    "noSites": "No site is given to you yet. Ask the owner to add one in People.",
     "addEntry": "Add an entry",
     "emptyTitle": "No entries yet",
-    "emptyHint": "Start in Setup: add your firms, sites, parties, clients and bank accounts. Then add your first entry.",
+    "emptyHint": "Start in Setup: add your firms, sites, parties, clients and bank accounts. Then add the first bill on a party’s or client’s page.",
     "emptySupervisor": "Nothing here yet. When the office gives you cash, it shows up here."
   },
   "masters": {
@@ -58,9 +73,13 @@
     "readOnly": "Only the owner can change these.",
     "lede": "The lists the forms pick from: firms, sites, parties and clients, contracts, bank or cash accounts, materials and GST rates.",
     "delete": {
-      "title": "Delete (testing only)",
-      "warning": "Only while the app is being built. Deleting is permanent. Anything that entries, work orders, bank accounts or staff logins still use cannot be deleted — switch it off instead.",
-      "confirm": "Yes, delete for good",
+      "title": "Delete",
+      "warning": "For something added by mistake. It goes to the recycle bin (Admin → Recycle bin) and can be put back for 30 days. Anything that entries, reports, bank accounts or staff logins still use cannot be deleted: switch it off instead, and it stops showing in the lists.",
+      "confirm": "Delete {name}",
+      "typeName": "To delete, type its name: {name}",
+      "wrongName": "The name typed does not match. Nothing was deleted.",
+      "binned": "Moved to the recycle bin. The owner can put it back from Admin → Recycle bin for 30 days.",
+      "noFirm": "A firm cannot be deleted: every entry, site and account belongs to one. It can only be renamed.",
       "inUse": "Can’t delete: it is still used by {what}. Switch it off instead.",
       "usedBy": {
         "entry_lines": "entries",
@@ -69,6 +88,19 @@
         "money_accounts": "bank or cash accounts",
         "user_firms": "staff logins (remove it from the person in People first)",
         "user_sites": "staff logins (remove it from the person in People first)",
+        "stock_in": "stock that arrived (remove those lines on Stock → Arrived first)",
+        "material_use": "material used on daily reports",
+        "work_done": "work done on daily reports",
+        "labour_day": "attendance on daily reports",
+        "other_cost": "other costs on daily reports",
+        "mix_items": "combination works (take it out of them in Setup → Combination works first)",
+        "mixes": "combination works",
+        "materials": "materials",
+        "parties": "workers or staff given this site",
+        "rentals": "rentals",
+        "has_months": "pay saved in Labour supply months",
+        "asset_moves": "asset moves between sites",
+        "bill_items": "old itemised bills",
         "other": "other records"
       }
     },
@@ -254,7 +286,7 @@
         "delete": "Took {person} off site {site}"
       }
     },
-    "testDelete": "Owner (testing delete)"
+    "testDelete": "Deleted with the secret key (before the recycle bin)"
   },
   "errors": {
     "required": "Required.",
@@ -399,9 +431,48 @@
     },
     "history": "History"
   },
+  "bin": {
+    "title": "Recycle bin",
+    "lede": "What was deleted in the last 30 days, and who deleted it. Put anything back as it was; after 30 days it is gone for good.",
+    "name": "Name",
+    "from": "From",
+    "deletedBy": "Deleted by",
+    "daysLeft": "Days left",
+    "actions": "Put back or delete for good",
+    "restore": "Put back",
+    "purge": "Delete for good",
+    "purgeConfirm": "Yes, delete {name} for good",
+    "restored": "{name} is back, as it was.",
+    "purged": "Deleted for good.",
+    "empty": "The bin is empty. Anything deleted shows here for 30 days.",
+    "errors": {
+      "duplicate": "It could not be put back: something with the same name has been added since. Rename that one first.",
+      "missing_link": "It could not be put back: the unit, site or other record it belonged to has been deleted since. Put that back first.",
+      "not_restored": "It could not be put back. Nothing was changed.",
+      "not_purged": "It could not be deleted. Nothing was changed."
+    },
+    "demo": {
+      "title": "Clear demo data",
+      "lede": "Before handing the app over: every record with test or demo in its name, ready to go to the recycle bin in one go. Untick anything to keep. Firms are never deleted, and neither are bills or payments: a demo account they use stays, and is listed after.",
+      "pick": "Pick",
+      "pickOne": "Clear {name}",
+      "typeConfirm": "To clear the ticked records, type CONFIRM",
+      "clear": "Clear the ticked demo data",
+      "clearing": "Clearing…",
+      "none": "Nothing named test or demo is left. To clear a record here, give it test or demo in its name.",
+      "moved": "{count, plural, one {# record} other {# records}} went to the recycle bin: {names}.",
+      "kept": "{count, plural, one {# record was} other {# records were}} kept because something real still uses them:",
+      "keptHint": "Switch these off instead, and they stop showing in the lists.",
+      "openBin": "Open the recycle bin",
+      "errors": {
+        "confirm": "Type CONFIRM to clear.",
+        "nothing": "Tick at least one record."
+      }
+    }
+  },
   "daybook": {
     "eyebrow": "Every entry",
-    "lede": "Everything typed into the app, newest first. Tap a serial number to see what it changed.",
+    "lede": "Every bill and payment, day by day, newest first. Tap a name to see the entry. The totals are on the Dashboard.",
     "onDate": "On date",
     "serial": "Serial",
     "date": "Date",
@@ -413,13 +484,14 @@
     "allSites": "All sites",
     "clear": "Clear",
     "at": "{firm} at {site}",
-    "firmLede": "What this firm’s books show right now, and every entry in them.",
     "siteLede": "What this site has billed and spent, and every entry for it.",
     "sitesHintFirm": "Only this firm’s share. Profit = billed − costs.",
     "costs": "Where the money went",
     "costsHint": "Costs at this site, by kind of work.",
     "count": "{count, plural, one {# entry} other {# entries}}",
-    "enteredBy": "Typed in by"
+    "enteredBy": "Typed in by",
+    "showCancelled": "Show cancelled mistakes ({count})",
+    "hideCancelled": "Hide cancelled mistakes ({count})"
   },
   "entryForms": {
     "vendor-bill": {
@@ -617,6 +689,16 @@
     "percentNote": "{percent}% of the total",
     "includesOpening": "Includes opening {amount}",
     "balanceNote": "Still to pay",
+    "receive": {
+      "button": "Pay",
+      "title": "Pay {name}",
+      "intoBooks": "Goes out of {firm}'s books",
+      "full": "Pay full {amount}",
+      "lastBill": "Last bill {amount}",
+      "save": "Save {amount} paid",
+      "savedAmount": "{amount} paid",
+      "savedLine": "From {account}. Serial number {serial}."
+    },
     "search": "Find a party",
     "searchHint": "Type a name to find a party…",
     "searchNone": "No party has that name.",
@@ -815,7 +897,7 @@
     "lines": "{n, plural, =0 {Nothing entered yet} one {# line} other {# lines}}",
     "use": {
       "addTitle": "Add material used",
-      "addHint": "Pick the material and type how much was used, or pick a combination work (PCC, RCC…) to add it as a group with all its materials inside. The rate fills in with the site’s average; change it if this lot cost different. Red means more than the stock shows: what arrived may not be added yet.",
+      "addHint": "Pick the material and type how much was used, or pick a combination work (PCC, RCC…) to add it as a group with all its materials inside, then type how much of the work was done today and its materials fill in (you can still change them). The rate fills in with the site’s average; change it if this lot cost different. Red means more than the stock shows: what arrived may not be added yet.",
       "material": "Material",
       "pickMaterial": "Pick a material…",
       "quantity": "Quantity used",
@@ -836,7 +918,9 @@
       "leftInList": "{left} left",
       "pickMix": "Add a work’s materials (PCC, RCC…)",
       "mixGuide": "{qty} for 1 {unit}",
-      "mixUnit": "unit"
+      "mixUnit": "unit",
+      "mixDone": "Work done today",
+      "mixDoneLabel": "How much {name} was done today"
     },
     "work": {
       "addTitle": "Add work done",
@@ -1287,8 +1371,8 @@
     "line": "Line {line}:",
     "delete": {
       "title": "Delete this work",
-      "warning": "Deleting is permanent. Daily reports already saved keep the work’s name and their materials. To stop offering it but keep it, switch it off instead.",
-      "confirm": "Yes, delete {name} for good",
+      "warning": "It goes to the recycle bin and can be put back for 30 days. Daily reports already saved keep the work’s name and their materials. To stop offering it but keep it, switch it off instead.",
+      "confirm": "Yes, delete {name}",
       "failed": "Could not delete this work. Nothing was changed."
     },
     "errors": {
@@ -1362,7 +1446,14 @@
       "days": "Present days must be a number from 0 to 100.",
       "ot": "OT hours must be a number from 0 to 999.",
       "amount": "Please type the amount in rupees.",
-      "not_saved": "That could not be saved. Please try again."
+      "not_saved": "That could not be saved. Please try again.",
+      "delete_name": "The name typed does not match. Nothing was deleted.",
+      "delete_has_months": "This worker has months saved, so they cannot be deleted. Untick Active instead, and they stop showing in the monthly sheet.",
+      "not_deleted": "That could not be deleted. Nothing was changed."
+    },
+    "delete": {
+      "title": "Delete this worker",
+      "warning": "For a worker added by mistake. Only a worker with nothing saved in any month can be deleted; the owner can put them back from the recycle bin for 30 days. For someone who has left, untick Active instead: their record stays."
     }
   },
   "machines": {
@@ -1410,7 +1501,13 @@
       "hours": "Please type the running hours as a number, like 1500 or 1500.5.",
       "cost": "Please type the cost in rupees. Type 0 if it cost nothing.",
       "not_saved": "That could not be saved. Please try again.",
-      "not_removed": "That line could not be removed. Please try again."
+      "not_removed": "That line could not be removed. Please try again.",
+      "delete_name": "The name typed does not match. Nothing was deleted.",
+      "not_deleted": "That could not be deleted. Nothing was changed."
+    },
+    "delete": {
+      "title": "Delete this machine",
+      "warning": "For a machine added by mistake. It goes to the recycle bin with its whole service record and can be put back for 30 days. For a machine that is sold or scrapped, untick Still in use instead: its record stays."
     }
   }
 }

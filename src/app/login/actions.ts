@@ -27,7 +27,7 @@ export async function signIn(_state: FormState, data: FormData): Promise<FormSta
     await supabase.auth.signOut();
     return { errors: { _form: 'inactive' }, values };
   }
-  redirect('/');
+  redirect('/overview');
 }
 
 export async function signOut() {
