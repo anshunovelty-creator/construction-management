@@ -124,7 +124,10 @@
 .shell { min-height: 100vh; }
 .main-col { min-width: 0; }
 @media (min-width: 961px) { .main-col { margin-left: var(--sidebar-w); } }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 28px max(20px, env(safe-area-inset-right)) 72px max(20px, env(safe-area-inset-left)); }
+/* Room for the scrollbar is always kept, so a long page and a short one start at the same place. */
+html { scrollbar-gutter: stable; }
+/* One width for every page, so moving between pages or tabs never shifts the layout. Forms and text keep their own narrower measure. */
+.wrap { max-width: 1600px; margin: 0 auto; padding: 28px max(20px, env(safe-area-inset-right)) 72px max(20px, env(safe-area-inset-left)); }
 .icon { flex: none; }
 
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 650; font-size: 15px; letter-spacing: -0.012em; text-decoration: none; color: var(--ink); margin: 0; }
@@ -260,8 +263,21 @@ summary.firm-pill:hover { border-color: color-mix(in srgb, var(--muted) 55%, var
 .block { display: block; }
 .nowrap { white-space: nowrap; }
 .serial { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
-.back { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; }
-.back:hover { color: var(--accent); }
+/* Back to the page before: a quiet link with its chevron in a soft circle that steps left on hover, apart from the tab pills. */
+.back {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 4px 10px 4px 4px; border-radius: 999px;
+  color: var(--muted); font-size: 13.5px; font-weight: 550; text-decoration: none;
+  transition: color 0.15s ease-out, background-color 0.15s ease-out;
+}
+.back .icon {
+  box-sizing: content-box; padding: 4px; border-radius: 50%; background: var(--sheet); border: 1px solid var(--rule);
+  box-shadow: var(--shadow-xs); transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease-out;
+}
+.back:hover { color: var(--accent); background: var(--accent-soft); }
+.back:hover .icon { transform: translateX(-2px); border-color: color-mix(in srgb, var(--accent) 35%, var(--rule)); }
+.back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.subnav + .back { margin-top: 18px; }
+@media (prefers-reduced-motion: reduce) { .back, .back .icon { transition: none; } }
 .empty { color: var(--muted); }
 .up { color: var(--plus); }
 .down { color: var(--minus); }
@@ -335,7 +351,7 @@ summary.firm-pill:hover { border-color: color-mix(in srgb, var(--muted) 55%, var
 .add-activity { justify-self: start; border-style: dashed !important; }
 .work-total-bar { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -22px -20px; padding: 14px 22px; background: var(--sheet); border-top: 1px solid var(--rule-strong); border-radius: 0 0 12px 12px; font-size: 15px; }
 .work-total-bar strong { font-size: 20px; letter-spacing: -0.02em; }
-.day-picker { display: flex; align-items: center; gap: 6px; }
+.day-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .day-picker .icon-btn { margin: 0; min-height: 44px; font-size: 20px; line-height: 1; }
 .report-section { display: grid; gap: 12px; margin: 30px 0 8px; }
 .report-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
@@ -377,18 +393,53 @@ table.saved-work tr.in-group td:first-child { padding-left: 28px; }
 .subnav + h1, .subnav + .page-head { margin-top: 16px; }
 .labour-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 18px; align-items: start; margin-bottom: 16px; }
 .labour-form-title, .labour-form-end { grid-column: 1 / -1; margin: 0; }
+/* The Save row stands a little apart from the boxes above it. */
+.labour-form-end { display: flex; gap: 10px; padding-top: 6px; }
+.labour-form .wide { grid-column: 1 / -1; max-width: 420px; }
 /* A month that ends with more paid than earned stands out, here and in the ledger. */
 tr.extra-month td, table.ledger tbody tr.extra-month td { background: var(--plus-soft); }
 .month-grid td:not(:has(input:not([type='hidden']))) { padding: 6px 10px; white-space: nowrap; }
 .month-grid td small { display: block; }
-.month-grid .sheet td.num input { width: 5.5rem; min-width: 0; }
-.month-grid .sheet td:not(.num) input:not([type='hidden']) { width: 8rem; min-width: 0; }
+/*
+ * Every box on the sheet fills its whole cell, so a click anywhere in it starts typing. Boxes rest on white and the
+ * figures that work themselves out on a faint grey, as in a spreadsheet; the box being typed in eases into an accent
+ * ring and its row lights up, so the worker in hand stays plain.
+ */
+.month-grid .sheet td { vertical-align: middle; height: 48px; }
+.month-grid .sheet td:has(> input:not([type='hidden'])) {
+  position: relative; width: 6.5rem; min-width: 6.5rem; background-color: var(--sheet); transition: background-color 0.15s ease-out;
+}
+.month-grid .sheet td:not(.num):has(> input:not([type='hidden'])) { width: 11rem; min-width: 11rem; }
+.month-grid .sheet td:not(:first-child):not(:has(> input:not([type='hidden']))) { background-color: color-mix(in srgb, var(--head) 60%, var(--sheet)); }
+/* Laid over the whole cell, so the cell's width is the column's and every part of it takes the click. */
+.month-grid .sheet td > input:not([type='hidden']) {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-width: 0; min-height: 0; padding: 0 12px; cursor: text;
+  transition: background-color 0.15s ease-out, box-shadow 0.18s ease-out;
+}
+.month-grid .sheet td > input:not([type='hidden']):hover { background-color: color-mix(in srgb, var(--accent) 5%, var(--sheet)); }
+.month-grid .sheet td > input:not([type='hidden']):focus {
+  outline: none; background-color: var(--sheet);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+  position: relative; z-index: 2;
+}
+.month-grid .sheet tr:focus-within td:has(> input:not([type='hidden'])),
+.month-grid .sheet tr:focus-within td:first-child { background-color: color-mix(in srgb, var(--accent) 4%, var(--sheet)); }
+.month-grid .sheet tr:focus-within td:first-child { box-shadow: inset 3px 0 0 var(--accent), 1px 0 0 var(--rule); }
+.month-grid .sheet input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+.month-grid .sheet input[type='number']::-webkit-inner-spin-button,
+.month-grid .sheet input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .month-grid .sheet td, .month-grid .sheet td > input { transition: none; } }
+.month-grid .sheet tr.extra-month td:not(:has(> input:not([type='hidden']))) { background-color: var(--plus-soft); }
 .month-grid th:first-child, .month-grid td:first-child { position: sticky; left: 0; z-index: 1; background: var(--sheet); box-shadow: 1px 0 0 var(--rule); }
 .month-grid thead th:first-child { background: var(--head); }
 .month-grid tr.extra-month td:first-child { background: var(--plus-soft); }
+/* A day salary changed on the sheet, not saved yet: it counts from this month on. */
+.month-grid .sheet td.changed-rate, .month-grid .sheet td.changed-rate > input:not(:focus) { background-color: var(--accent-soft); }
 .month-grid tr:target td { background: var(--head); }
 .month-grid tr { scroll-margin-top: 80px; }
 .month-save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+/* A sheet and its Save button stand apart from whatever follows. */
+.month-grid { margin-bottom: 28px; }
 .month-save p { margin: 0; }
 .check-line { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .check-line input { width: auto; }
@@ -564,8 +615,6 @@ table.sheet { border-collapse: collapse; width: max-content; min-width: 100%; }
 .sheet tr.saved td.status { background: var(--plus-soft); }
 .sheet td.status .error { font-size: 13px; }
 .sheet-notice { margin: 0; align-self: center; color: var(--muted); }
-/* A sheet needs room: use the full width on that page. */
-.wrap:has(.sheet-wrap) { max-width: 1600px; }
 
 /* ---------- Day book by firm / site ---------- */
 table.day-book tr.day-row td { background: var(--head); font-size: 14px; }
@@ -589,7 +638,6 @@ table.day-book .small { font-size: 12.5px; }
 /* ---------- Parties (laid out like the outstanding workbook) ---------- */
 .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; margin-bottom: 18px; }
 .page-head .lede { margin-bottom: 0; }
-.wrap:has(table.ledger) { max-width: 1400px; }
 table.ledger th, table.ledger td { padding: 12px 16px; white-space: nowrap; vertical-align: middle; }
 table.ledger thead th { font-size: 12.5px; font-weight: 500; }
 table.ledger tbody td { color: var(--ink-2); }
@@ -861,6 +909,34 @@ section > .bill-totals { margin-top: 10px; }
 .slip-head p { margin: 0; }
 .slip-period { text-align: right; display: grid; gap: 4px; justify-items: end; }
 .slip-totals { margin-top: 16px; }
+/* PF on/off on the Salary sheet and slip: a small switch next to the amount. */
+.subnav + .lede { margin-top: 12px; }
+/* The Salary sheet: fixed column widths, so changing numbers (a PF switch) never moves the columns. Scrolls on phones. */
+table.salary-sheet { table-layout: fixed; min-width: 1080px; }
+table.salary-sheet th:first-child { width: 17%; }
+table.salary-sheet td:first-child { overflow-wrap: anywhere; }
+/* A salary slip's attendance: cards with the totals; tapping them opens every day. */
+.attendance > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; padding: 4px 0; }
+.attendance > summary::-webkit-details-marker { display: none; }
+.att-card { display: grid; gap: 2px; min-width: 110px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  background: var(--sunken); transition: border-color .15s ease, background-color .15s ease; }
+.att-card strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.att-open { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--accent); font-size: 14px; font-weight: 500; }
+.att-open .icon { transition: transform .15s ease; }
+.attendance > summary:hover .att-card { border-color: var(--accent-line); background: var(--sheet); }
+.attendance[open] > summary { margin-bottom: 12px; }
+.attendance[open] .att-open .icon { transform: rotate(180deg); }
+.attendance:not([open]) .when-open, .attendance[open] .when-closed { display: none; }
+@media print { .attendance .att-open { display: none; } }
+.pf-cell { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 9.5em; } /* fixed width: ₹ amount ↔ – does not move the columns */
+.switch { position: relative; display: block; flex: none; inline-size: 34px; block-size: 20px; min-height: 0; padding: 0; box-shadow: none; border-radius: 999px; border: 1px solid var(--rule-strong);
+  background: var(--sunken); cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+.switch::after { content: ''; position: absolute; top: 2px; left: 2px; inline-size: 14px; block-size: 14px; border-radius: 50%;
+  background: var(--sheet); box-shadow: 0 1px 2px rgb(0 0 0 / .25); transition: transform .15s ease; }
+.switch[aria-checked='true'] { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked='true']::after { transform: translateX(14px); }
+.switch[aria-busy='true'] { opacity: .6; }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .slip-words { font-weight: 600; margin: 8px 0 0; }
 .slip-sign { display: flex; justify-content: space-between; gap: 24px; margin-top: 56px; color: var(--muted); font-size: 13.5px; }
 .slip-sign span { border-top: 1px solid var(--rule-strong); padding-top: 6px; min-width: 12rem; }

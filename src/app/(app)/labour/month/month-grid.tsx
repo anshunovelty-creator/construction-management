@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useActionState, useState } from 'react';
-import { toPaise } from '@/components/form';
+import { asRupees, toPaise } from '@/components/form';
 import { salaryFor } from '@/lib/labour';
 import { roundOffSmall, showPaise } from '@/lib/money';
 import type { MonthState } from '../actions';
@@ -36,10 +36,16 @@ function Money({ paise, tone }: { paise: number; tone?: 'plus' | 'minus' }) {
   return <td className={`num${paise === 0 ? ' muted' : tone ? ` strong ${tone}` : ''}`}>{paise === 0 ? '–' : showPaise(paise)}</td>;
 }
 
-/** One worker's month. Its figures work themselves out as they are typed; only a changed row is sent to be saved. */
-function Row({ row }: { row: GridRow }) {
+/**
+ * One worker's month. Its figures work themselves out as they are typed; only a changed row is sent to be saved.
+ * `daysOnly` is a family member's row: days and OT, as the money goes to the family's head.
+ */
+function Row({ row, daysOnly }: { row: GridRow; daysOnly?: boolean }) {
   const t = useTranslations('labour');
   const [typed, setTyped] = useState<Pick<GridRow, Field>>(row);
+  // The day's salary for this month: changed here, it counts from this month on. Left empty, it stays as it was.
+  const [perDay, setPerDay] = useState(asRupees(row.rate));
+  const rate = perDay.trim() ? toPaise(perDay) : row.rate;
   const input = (field: Field, label: string) => ({
     name: `${row.id}:${field}`,
     'aria-label': `${row.name}: ${label}`,
@@ -49,22 +55,29 @@ function Row({ row }: { row: GridRow }) {
   const rupees = (field: Field, label: string) => (
     <td className="num"><input {...input(field, label)} inputMode="decimal" pattern={RUPEES} title={t('errors.amount')} /></td>
   );
-  const salary = salaryFor(asNumber(typed.days), asNumber(typed.ot), row.rate);
+  const salary = salaryFor(asNumber(typed.days), asNumber(typed.ot), rate);
   const toPay = row.before + salary + toPaise(typed.addition) - toPaise(typed.deduction) - toPaise(typed.advance);
   const left = roundOffSmall(toPay - toPaise(typed.paid));
 
   return (
     <tr id={row.id} data-name={row.name} className={left < 0 ? 'extra-month' : undefined}>
       <td>
-        <Link href={`/labour/${row.id}`} className="party-link">{row.name}</Link>
+        <Link href={daysOnly ? `/labour/${row.id}/edit` : `/labour/${row.id}`} className="party-link">{row.name}</Link>
         {row.skill && <small className="muted">{row.skill}</small>}
         <input type="hidden" name={`${row.id}:name`} value={row.name} />
-        {figures(typed) !== figures(row) && <input type="hidden" name="changed" value={row.id} />}
+        <input type="hidden" name={`${row.id}:old_rate`} value={row.rate} />
+        {/* A family member's money from before they joined rides along unseen, so saving their days keeps it. */}
+        {daysOnly && (['advance', 'deduction', 'addition', 'paid', 'note'] as const).map((f) => <input key={f} type="hidden" name={`${row.id}:${f}`} value={typed[f]} />)}
+        {(figures(typed) !== figures(row) || rate !== row.rate) && <input type="hidden" name="changed" value={row.id} />}
       </td>
-      <Money paise={row.rate} />
+      <td className={`num per-day${rate !== row.rate ? ' changed-rate' : ''}`}>
+        <input name={`${row.id}:rate`} aria-label={`${row.name}: ${t('rateShort')}`} value={perDay} onChange={(e) => setPerDay(e.target.value)}
+          inputMode="decimal" pattern={RUPEES} title={t('errors.rate')} />
+      </td>
       <td className="num"><input {...input('days', t('days'))} type="number" inputMode="decimal" min="0" max="100" step="0.01" title={t('errors.days')} /></td>
       <td className="num"><input {...input('ot', t('otHours'))} type="number" inputMode="decimal" min="0" max="999" step="0.01" title={t('errors.ot')} /></td>
       <Money paise={salary} />
+      {!daysOnly && <>
       {rupees('advance', t('advance'))}
       {rupees('deduction', t('deduction'))}
       {rupees('addition', t('addition'))}
@@ -77,12 +90,17 @@ function Row({ row }: { row: GridRow }) {
       {rupees('paid', t('paid'))}
       <Money paise={Math.max(left, 0)} tone="minus" />
       <Money paise={Math.min(left, 0)} tone="plus" />
+      </>}
     </tr>
   );
 }
 
 /** The month's sheet, one row per worker. A save stays on the page, so a mistake loses nothing typed. */
-export function MonthGrid({ rows, action }: { rows: GridRow[]; action: (state: MonthState, data: FormData) => Promise<MonthState> }) {
+export function MonthGrid({ rows, action, daysOnly }: {
+  rows: GridRow[];
+  action: (state: MonthState, data: FormData) => Promise<MonthState>;
+  daysOnly?: boolean;
+}) {
   const t = useTranslations('labour');
   const [state, formAction, pending] = useActionState(action, {});
   return (
@@ -96,6 +114,7 @@ export function MonthGrid({ rows, action }: { rows: GridRow[]; action: (state: M
               <th className="num">{t('days')}</th>
               <th className="num">{t('otHours')}</th>
               <th className="num">{t('salary')}</th>
+              {!daysOnly && <>
               <th className="num">{t('advance')}</th>
               <th className="num">{t('deduction')}</th>
               <th className="num">{t('addition')}</th>
@@ -105,11 +124,12 @@ export function MonthGrid({ rows, action }: { rows: GridRow[]; action: (state: M
               <th className="num">{t('paid')}</th>
               <th className="num">{t('remaining')}</th>
               <th className="num">{t('extra')}</th>
+              </>}
             </tr>
           </thead>
           <tbody>
             {/* A row starts again from what the server holds once its saved figures change. */}
-            {rows.map((r) => <Row key={`${r.id}:${figures(r)}:${r.before}`} row={r} />)}
+            {rows.map((r) => <Row key={`${r.id}:${figures(r)}:${r.before}:${r.rate}`} row={r} daysOnly={daysOnly} />)}
           </tbody>
         </table>
       </div>

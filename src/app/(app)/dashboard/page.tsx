@@ -6,6 +6,7 @@ import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadFirmParties, MoneyCell, PercentBar, Stat } from '../party/shared';
 import { ListLink } from '@/components/list-link';
+import { Icon } from '@/components/icons';
 
 /** The workbook's Dashboard sheet for the working firm: big totals, counts by status, the top 5 and a bar per party. */
 export default async function DashboardPage() {
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
           <h1>{t('dashboard.title', { firm: firm.name })}</h1>
           <p className="lede">{t('dashboard.lede')}</p>
         </div>
-        <Link href="/" className="btn ghost">◄ {t('party.home')}</Link>
+        <Link href="/" className="btn ghost"><Icon name="chevronLeft" size={16} /> {t('party.home')}</Link>
       </div>
 
       <div className="stats big">

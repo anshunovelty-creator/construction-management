@@ -17,6 +17,7 @@ import { postPartyEntry, postPartyRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
 import { BalanceCell, MoneyCell, Stat, StatusPill } from './shared';
+import { Icon } from '@/components/icons';
 
 interface PartyRow {
   entry_id: string;
@@ -108,7 +109,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <Link href="/" className="back">◄ {t('party.home')}</Link>
+      <Link href="/" className="back"><Icon name="chevronLeft" size={16} /> {t('party.home')}</Link>
       <div className="party-head">
         <h1>{party.name}</h1>
         <p className="muted">{t('party.gst', { number: party.gst_number || t('party.noGst') })}</p>

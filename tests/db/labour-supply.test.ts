@@ -92,3 +92,34 @@ it('refuses a second line for the same month and figures that make no sense', as
     await refused(`insert into labour_months (worker_id, month, paid_paise) values ($1, '2026-11-01', -1)`, 'check constraint');
   });
 });
+
+it('keeps a family under one head and lets a Labour login give the head money with its date', async () => {
+  await asUser(db, labour, async (tx) => {
+    const head = (await tx.query<{ id: string }>(
+      `insert into labour_workers (id, head_id, name, kind, joined_on) values (gen_random_uuid(), null, 'Raju', 'worker', '2026-01-01') returning id`)).rows[0]!.id;
+    await tx.query(`update labour_workers set head_id = id where id = $1`, [head]);
+    const wife = (await tx.query<{ id: string }>(
+      `insert into labour_workers (head_id, name, kind, joined_on) values ($1, 'Sita', 'worker', '2026-01-01') returning id`, [head])).rows[0]!.id;
+    await tx.exec('savepoint a');
+    // A member cannot be the head of another member, and a head with members stays the head.
+    await expect(tx.query(`insert into labour_workers (head_id, name, kind, joined_on) values ($1, 'Mohan', 'worker', '2026-01-01')`, [wife]))
+      .rejects.toThrow('must belong to a head');
+    await tx.exec('rollback to savepoint a');
+    await expect(tx.query(`update labour_workers set head_id = null where id = $1`, [head])).rejects.toThrow('stays the head');
+    await tx.exec('rollback to savepoint a');
+
+    await tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-05', 'advance', 500000, 'cash')`, [head]);
+    await tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, note) values ($1, '2026-10-20', 'deduction', 100000, 'Broken tool')`, [head]);
+    await tx.exec('savepoint b');
+    await expect(tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise) values ($1, '2026-10-21', 'deduction', 100000)`, [head]))
+      .rejects.toThrow('check constraint');
+    await tx.exec('rollback to savepoint b');
+    // A head who has been given money stays the head even with no members left.
+    await tx.exec('savepoint c');
+    await tx.query(`update labour_workers set head_id = null where id = $1`, [wife]);
+    await expect(tx.query(`update labour_workers set head_id = null where id = $1`, [head])).rejects.toThrow('stays the head');
+    await tx.exec('rollback to savepoint c');
+    const { rows } = await tx.query<{ money_date: string }>(`select to_char(money_date, 'YYYY-MM-DD') as money_date from labour_money order by money_date`);
+    expect(rows.map((r) => r.money_date)).toEqual(['2026-10-05', '2026-10-20']);
+  });
+});

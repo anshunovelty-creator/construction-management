@@ -25,6 +25,7 @@ const PATHS = {
   chevron: <path d="m6 9 6 6 6-6" />,
   chevronRight: <path d="m9 6 6 6-6 6" />,
   chevronLeft: <path d="m15 6-6 6 6 6" />,
+  chevronDown: <path d="m6 9 6 6 6-6" />,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
   check: <path d="M20 6 9 17l-5-5" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { clearDemo } from '../actions';
 import { kindLabel } from '../labels';
 import { DemoClear } from './demo-clear';
+import { Icon } from '@/components/icons';
 
 /** A word "test" or "demo" anywhere in the name: "TEST Brick", "Test Raju", "Demo site 2". Not "Testing" or "Contest". */
 const DEMO = /\b(test|demo)\b/i;
@@ -32,7 +33,7 @@ export default async function DemoDataPage() {
 
   return (
     <>
-      <Link href="/bin" className="back">◄ {t('bin.title')}</Link>
+      <Link href="/bin" className="back"><Icon name="chevronLeft" size={16} /> {t('bin.title')}</Link>
       <h1>{t('bin.demo.title')}</h1>
       <p className="lede">{t('bin.demo.lede')}</p>
       <DemoClear items={found} action={clearDemo} />

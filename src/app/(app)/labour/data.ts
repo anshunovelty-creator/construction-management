@@ -1,4 +1,4 @@
-import { labourLedger, type LabourMonth, type LabourRate, type LedgerMonth } from '@/lib/labour';
+import { familyLedger, labourLedger, type LabourMoney, type LabourMonth, type LabourRate, type LedgerMonth } from '@/lib/labour';
 import type { createClient } from '@/lib/supabase/server';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
@@ -9,8 +9,10 @@ export interface LabourWorker {
   phone: string;
   skill: string;
   is_active: boolean;
+  /** A head of family's own id, a member's head, or null for someone paid on their own. */
+  head_id: string | null;
 }
-export type LabourLine = LabourWorker & { rates: LabourRate[]; ledger: LedgerMonth[]; balance: number };
+export type LabourLine = LabourWorker & { rates: LabourRate[]; months: LabourMonth[]; ledger: LedgerMonth[]; balance: number };
 
 /** Every row of a table: the database hands back at most 1000 at a time. */
 export async function allRows<T>(db: Db, table: string, order: string[], filter?: [string, string]): Promise<T[]> {
@@ -44,8 +46,34 @@ export async function loadLabour(db: Db, workerId?: string): Promise<LabourLine[
   const monthsOf = byWorker(months);
   return workers.map((w) => {
     const mine = ratesOf.get(w.id) ?? [];
-    const ledger = labourLedger(monthsOf.get(w.id) ?? [], mine);
-    return { ...w, rates: mine, ledger, balance: ledger.at(-1)?.balance ?? 0 };
+    const months = monthsOf.get(w.id) ?? [];
+    const ledger = labourLedger(months, mine);
+    return { ...w, rates: mine, months, ledger, balance: ledger.at(-1)?.balance ?? 0 };
+  });
+}
+
+export type MoneyLine = LabourMoney & { id: string; method: 'cash' | 'bank' | null; note: string; created_at: string };
+export interface Family {
+  head: LabourLine;
+  /** The head first, then the members A to Z. */
+  members: LabourLine[];
+  money: MoneyLine[];
+  ledger: LedgerMonth[];
+  balance: number;
+}
+
+/** Every family (or one, by its head), with the money given to the head and the family's ledger. Heads A to Z. */
+export async function loadFamilies(db: Db, headId?: string): Promise<Family[]> {
+  const [people, money] = await Promise.all([
+    loadLabour(db),
+    allRows<MoneyLine & { worker_id: string }>(db, 'labour_money', ['money_date', 'created_at'], headId ? ['worker_id', headId] : undefined),
+  ]);
+  const moneyOf = byWorker(money);
+  return people.filter((p) => p.head_id === p.id && (!headId || p.id === headId)).map((head) => {
+    const members = [head, ...people.filter((p) => p.head_id === head.id && p.id !== head.id)];
+    const mine = moneyOf.get(head.id) ?? [];
+    const ledger = familyLedger(members, mine);
+    return { head, members, money: mine, ledger, balance: ledger.at(-1)?.balance ?? 0 };
   });
 }
 

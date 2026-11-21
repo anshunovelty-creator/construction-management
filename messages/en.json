@@ -108,6 +108,7 @@
     "units": "Units",
     "gst-rates": "GST rates",
     "tds-rates": "TDS rates",
+    "pf-rates": "PF rates",
     "workers": "Workers and staff",
     "mixes": "Combination works"
   },
@@ -173,7 +174,8 @@
     "rented_on": "Rented on",
     "rented_from": "Rented from",
     "item_kind": "Type",
-    "gst_rate": "GST"
+    "gst_rate": "GST",
+    "from_date": "Counts from (the month of this date on)"
   },
   "options": {
     "party_kind": {
@@ -1079,7 +1081,7 @@
   },
   "salary": {
     "title": "Salary",
-    "lede": "What each worker and staff member has earned. Workers: from the attendance marked on the daily reports at every site, days present at their day’s pay plus OT hours. Staff: their fixed monthly salary, with no OT and nothing cut for leave. Open a name for their salary slip.",
+    "lede": "What each worker and staff member has earned, what is taken off and what is left to pay. Open a name for their salary slip and ledger.",
     "period": "Period",
     "thisMonth": "This month",
     "lastMonth": "Last month",
@@ -1090,7 +1092,7 @@
     "labour": "Labour",
     "staff": "Staff",
     "total": "Total",
-    "none": "No attendance marked in this period. Mark it on the Daily report.",
+    "none": "Nobody to pay in this period. Mark attendance on the Daily report.",
     "name": "Name",
     "present": "Present",
     "absent": "Absent",
@@ -1112,7 +1114,36 @@
     "signWorker": "Received by (worker)",
     "signOffice": "Paid by",
     "inWords": "In words:",
-    "mark": "P / A"
+    "mark": "P / A",
+    "ledeStaff": "A fixed monthly salary, with no OT and nothing cut for leave. PF is cut unless switched off. Open a name to give an advance or take something off.",
+    "ledeLabour": "Paid for the days marked on the daily reports, with OT. PF is cut only when switched on. Open a name to give an advance or take something off.",
+    "pf": "PF",
+    "pfLess": "Less PF ({rate}%)",
+    "pfOn": "Cut PF for {name} from {month} on",
+    "pfOff": "Stop cutting PF for {name} from {month} on",
+    "pfOnAll": "Cut PF for everyone on this list from {month} on",
+    "pfOffAll": "Stop cutting PF for everyone on this list from {month} on",
+    "advance": "Advance",
+    "deduction": "Deduction",
+    "advanceLess": "Less advance",
+    "deductionLess": "Less deduction",
+    "cuts": "Advances and deductions",
+    "net": "Net salary",
+    "before": "From before",
+    "beforeOwed": "Add: left to pay from before",
+    "beforeExtra": "Less: paid extra before",
+    "paid": "Paid",
+    "paidLess": "Less paid",
+    "left": "Remaining to pay",
+    "inactive": "Off the list",
+    "netInWords": "Net salary in words:",
+    "kindPaid": "Salary paid",
+    "moneyTitle": "Money given to {name}",
+    "moneyLede": "An advance or salary paid says cash or bank; a deduction says why. Each counts in the period of its date, and what a month leaves carries into the next.",
+    "noMoney": "No advance, deduction or payment yet.",
+    "noLedger": "Nothing on the ledger yet.",
+    "showDays": "See each day",
+    "hideDays": "Hide days"
   },
   "ledger": {
     "title": "Ledger",
@@ -1388,7 +1419,8 @@
   "labour": {
     "tabs": {
       "workers": "Workers",
-      "month": "Monthly entry"
+      "month": "Monthly entry",
+      "families": "Families"
     },
     "title": "Labour supply",
     "lede": "Red is what we still have to pay. Green is what we paid extra, and it comes off the next salary. This business is kept apart from the firms.",
@@ -1411,7 +1443,7 @@
     "change": "Change details",
     "changeOf": "Change {name}",
     "monthTitle": "Monthly entry",
-    "monthLede": "Type each worker's totals for the month. Salary, remaining and extra paid work themselves out. One double duty counts as two days, so days can pass the days in the month.",
+    "monthLede": "Type each worker's totals for the month. Salary, remaining and extra paid work themselves out. One double duty counts as two days, so days can pass the days in the month. A changed salary per day counts from this month on; earlier months keep theirs. Families are typed on their own page under Families.",
     "month": "Month",
     "days": "Present days",
     "otHours": "OT hours",
@@ -1449,12 +1481,62 @@
       "not_saved": "That could not be saved. Please try again.",
       "delete_name": "The name typed does not match. Nothing was deleted.",
       "delete_has_months": "This worker has months saved, so they cannot be deleted. Untick Active instead, and they stop showing in the monthly sheet.",
-      "not_deleted": "That could not be deleted. Nothing was changed."
+      "not_deleted": "That could not be deleted. Nothing was changed.",
+      "money_date": "Please choose today or an earlier date.",
+      "kind": "Please choose paid, advance or deduction.",
+      "method": "Please choose cash or bank.",
+      "reason": "Please type the reason for the deduction.",
+      "not_removed": "That line could not be removed. Only the office or owner can remove a line from an earlier day.",
+      "family_stays_head": "This person heads a family with members or money given, so they stay the head. Nothing was changed."
     },
     "delete": {
       "title": "Delete this worker",
       "warning": "For a worker added by mistake. Only a worker with nothing saved in any month can be deleted; the owner can put them back from the recycle bin for 30 days. For someone who has left, untick Active instead: their record stays."
-    }
+    },
+    "familiesTitle": "Families",
+    "familiesLede": "When a whole family works and only the head is paid. Each member's days count at their own salary, and the total is paid to the head.",
+    "newFamily": "Add a family",
+    "newFamilyLede": "Type the head of the family first. Add the other members from the family's page.",
+    "families": "{count, plural, one {# family} other {# families}}",
+    "noFamilies": "No families yet. Add one when a whole family works and the head takes the pay.",
+    "searchFamily": "Find a head of family",
+    "head": "Head of family",
+    "members": "People",
+    "familyOf": "{name}'s family",
+    "addMember": "Add a member to {name}'s family",
+    "addMemberShort": "Add a member",
+    "paidToHead": "Paid to head",
+    "payHead": "To pay the head",
+    "daysIn": "Days in {month}",
+    "familyMonthLede": "Type each member's present days and OT, the head too. Each member's salary works itself out; the money goes to the head below. A changed salary per day counts from this month on.",
+    "daysTotal": "{days} days in all",
+    "leftAfter": "Left after {month}",
+    "moneyTitle": "Money given to {name}",
+    "date": "Date",
+    "moneyKind": "What",
+    "kinds": {
+      "payment": "Paid",
+      "advance": "Advance",
+      "deduction": "Deduction"
+    },
+    "amount": "Amount (₹)",
+    "method": "Cash or bank",
+    "methods": {
+      "cash": "Cash",
+      "bank": "Bank"
+    },
+    "methodHint": "Not needed for a deduction.",
+    "reasonHint": "Needed for a deduction.",
+    "remove": "Remove",
+    "noMoney": "Nothing given to the head yet.",
+    "moneyTotals": "Paid {paid} · Advances {advance} · Deductions {deduction}",
+    "noFamilyLedger": "Nothing yet. It starts when a member's days are typed above or money is given to the head.",
+    "family": "Family",
+    "noFamily": "Not in a family: paid on their own",
+    "ownFamily": "Head of their own family",
+    "memberOf": "Member of {name}'s family: paid to {name}",
+    "familyHint": "Moving someone into a family takes their months so far with them: their salary is then paid to the head.",
+    "familyLockedHint": "This person heads a family with members or money given, so they stay the head."
   },
   "machines": {
     "title": "AJAX machines",

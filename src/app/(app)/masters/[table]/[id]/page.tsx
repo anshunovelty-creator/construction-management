@@ -46,7 +46,8 @@ export default async function MasterEditPage({
       <Form fields={def.fields} defaults={defaults} choices={choices} action={saveMaster.bind(null, slug, id)} submitLabel={t('masters.save')} />
 
       {/* A firm is never deleted: every entry, site and account hangs off it. It can only be renamed. */}
-      {profile.role === 'owner' && (slug === 'firms' ? <p className="hint mt-6">{t('masters.delete.noFirm')}</p> : (
+      {/* A PF rate is changed, not deleted: months already paid were worked out with it. */}
+      {profile.role === 'owner' && slug !== 'pf-rates' && (slug === 'firms' ? <p className="hint mt-6">{t('masters.delete.noFirm')}</p> : (
         <DeleteBox action={deleteMaster.bind(null, slug, id)} name={name}
           title={t('masters.delete.title')} warning={t('masters.delete.warning')}
           typeLabel={TYPE_TO_DELETE.has(slug) ? t('masters.delete.typeName', { name }) : undefined}

@@ -11,6 +11,7 @@ export default async function LabourLayout({ children }: { children: React.React
       <nav className="subnav no-print" aria-label={t('nav.labour')}>
         <NavLink href="/labour" exact>{t('labour.tabs.workers')}</NavLink>
         <NavLink href="/labour/month">{t('labour.tabs.month')}</NavLink>
+        <NavLink href="/labour/family">{t('labour.tabs.families')}</NavLink>
       </nav>
       {children}
     </>

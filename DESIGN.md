@@ -34,6 +34,7 @@ body 15px, labels 13–14px. Every number uses tabular figures (`.num`, `.amount
   white with red text. 40px tall (44 for `.big`), 8px radius.
 - **Inputs:** 44px, 8px radius, custom select chevron, blue focus ring.
 - **Cards:** white, 1px hairline, 12px radius, soft offset shadow (`--shadow-sm`).
+- **Page width:** one width for every page (1600px, `.wrap`), with room for the scrollbar always kept, so switching pages or tabs never shifts the layout. Forms and text keep their own narrower measure inside it.
 - **Tables:** grey header row in sentence case, hairline between rows only, blue-tinted row hover, bold footer.
 - **Tabs:** underline in blue with a count pill. **Chips / sub-nav:** pills; the chosen one is blue-tinted.
 - **Status pills:** soft fill with a dot.

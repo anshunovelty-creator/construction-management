@@ -11,6 +11,7 @@ import { showDate, todayInIndia } from '../../entries/data';
 import { MoneyCell, Stat } from '../../party/shared';
 import { addService, removeService } from '../actions';
 import { loadMachines } from '../data';
+import { Icon } from '@/components/icons';
 
 /** One machine: its last service, when the next falls due, and every service so far, newest first. */
 export default async function MachinePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
@@ -25,7 +26,7 @@ export default async function MachinePage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <Link href="/machines" className="back no-print">◄ {t('machines.title')}</Link>
+      <Link href="/machines" className="back no-print"><Icon name="chevronLeft" size={16} /> {t('machines.title')}</Link>
       <div className="ledger-head">
         <div>
           <h1>{machine.name}</h1>

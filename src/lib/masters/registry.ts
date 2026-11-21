@@ -142,6 +142,13 @@ export const MASTERS: Record<string, MasterDef> = {
     list: ['rate_bp', 'is_active'],
     fields: [{ name: 'rate_bp', kind: 'percent', required: true }, active],
   },
+  /** PF cut from salary, each rate counting from the month of its date on (see pfRate in src/lib/wages.ts). */
+  'pf-rates': {
+    table: 'pf_rates',
+    ownerOnly: false,
+    list: ['rate_bp', 'from_date'],
+    fields: [{ name: 'rate_bp', kind: 'percent', required: true }, { name: 'from_date', kind: 'date', required: true }],
+  },
   'tds-rates': {
     table: 'tds_rates',
     ownerOnly: true,

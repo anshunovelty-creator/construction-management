@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireProfile } from '@/lib/auth';
+import { ratesToSave, type RateRow } from '@/lib/labour';
 import { rupeesToPaise } from '@/lib/money';
 import { sameName } from '@/lib/delete';
 import { moveToBin } from '@/lib/bin';
@@ -10,6 +11,8 @@ import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const ID = /^[0-9a-f-]{36}$/i;
 const NUMBER = /^\d{1,3}(\.\d{1,2})?$/;
 const text = (data: FormData, name: string) => String(data.get(name) ?? '').trim();
 
@@ -22,11 +25,29 @@ function rupees(value: string): number | null {
   }
 }
 
-/** Adds a worker, or changes one. A changed day salary counts from the month chosen, so earlier months stay as they were. */
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+/** Saves changed day salaries, each counting from its month on, so that earlier months keep the salary they had. */
+async function saveRates(db: Db, changes: RateRow[]): Promise<boolean> {
+  const { data: have, error } = await db.from('labour_rates').select('worker_id, from_month, rate_paise')
+    .in('worker_id', changes.map((c) => c.worker_id));
+  if (error) return false;
+  const { error: notSaved } = await db.from('labour_rates').upsert(ratesToSave(have as RateRow[], changes), { onConflict: 'worker_id,from_month' });
+  return !notSaved;
+}
+
+/**
+ * Adds a worker, or changes one. A changed day salary counts from the month chosen, so earlier months stay as they were.
+ * A new worker can start a family as its head (`head` = "new") or join one (`head` = the head's id). A worker being
+ * changed can be moved with `family`: "" for none, "head" for their own family, or a head's id. A head with members or
+ * money given stays the head (the database checks), and their family box then comes disabled and is not sent.
+ */
 export async function saveWorker(id: string | null, data: FormData): Promise<void> {
   await requireProfile('owner', 'office', 'labour');
-  const form = id ? `/labour/${id}/edit` : '/labour/new';
-  const fail = (error: string): never => redirect(`${form}?error=${error}`);
+  const head = id ? '' : text(data, 'head');
+  if (head && head !== 'new' && !ID.test(head)) redirect('/labour');
+  const form = id ? `/labour/${id}/edit` : `/labour/new${head ? `?head=${head}&` : '?'}`;
+  const fail = (error: string): never => redirect(`${form}${id ? '?' : ''}error=${error}`);
   const name = text(data, 'name');
   if (!name) fail('name');
   const rate = rupees(text(data, 'rate'));
@@ -34,25 +55,29 @@ export async function saveWorker(id: string | null, data: FormData): Promise<voi
   const today = todayInIndia();
   const fromMonth = id ? text(data, 'rate_from') : today.slice(0, 7);
   if (!MONTH.test(fromMonth)) fail('rate_from');
+  const family = id && data.has('family') ? text(data, 'family') : null;
+  if (family && family !== 'head' && (!ID.test(family) || family === id)) fail('not_saved');
 
   const details = { name, phone: text(data, 'phone'), skill: text(data, 'skill'), is_active: id ? data.get('is_active') === 'on' : true };
   const db = await createClient();
   let workerId = id;
+  let headId: string | null = null;
   if (id) {
-    const { error } = await db.from('labour_workers').update(details).eq('id', id);
-    if (error) fail('not_saved');
+    const moved = family === null ? {} : { head_id: family === 'head' ? id : family || null };
+    const { data: row, error } = await db.from('labour_workers').update({ ...details, ...moved }).eq('id', id).select('head_id').single();
+    if (error) fail(error.message.includes('stays the head') ? 'family_stays_head' : 'not_saved');
+    headId = row!.head_id as string | null;
   } else {
-    const { data: row, error } = await db.from('labour_workers').insert({ ...details, kind: 'worker', joined_on: today }).select('id').single();
-    if (error || !row) fail('not_saved');
-    workerId = row!.id as string;
+    workerId = crypto.randomUUID();
+    headId = head === 'new' ? workerId : head || null;
+    const { error } = await db.from('labour_workers').insert({ ...details, id: workerId, head_id: headId, kind: 'worker', joined_on: today });
+    if (error) fail('not_saved');
   }
   if (!id || String(rate) !== text(data, 'old_rate')) {
-    const { error } = await db.from('labour_rates')
-      .upsert({ worker_id: workerId, from_month: `${fromMonth}-01`, rate_paise: rate }, { onConflict: 'worker_id,from_month' });
-    if (error) fail('not_saved');
+    if (!await saveRates(db, [{ worker_id: workerId!, from_month: `${fromMonth}-01`, rate_paise: rate! }])) fail('not_saved');
   }
   revalidatePath('/labour', 'layout');
-  redirect(`/labour/${workerId}`);
+  redirect(headId ? `/labour/family/${headId}` : `/labour/${workerId}`);
 }
 
 /**
@@ -62,12 +87,13 @@ export async function saveWorker(id: string | null, data: FormData): Promise<voi
 export async function deleteWorker(id: string, data: FormData): Promise<void> {
   await requireProfile('owner', 'office', 'labour');
   const fail = (error: string): never => redirect(`/labour/${id}/edit?error=${error}`);
-  const { data: worker } = await (await createClient()).from('labour_workers').select('name').eq('id', id).maybeSingle();
+  const { data: worker } = await (await createClient()).from('labour_workers').select('name, head_id').eq('id', id).maybeSingle();
   if (!worker || !sameName(String(data.get('confirm') ?? ''), worker.name as string)) fail('delete_name');
   const refused = await moveToBin('labour-workers', id);
   if (refused) fail(refused.error === 'has_months' ? 'delete_has_months' : 'not_deleted');
   revalidatePath('/labour', 'layout');
-  redirect('/labour');
+  const head = worker!.head_id as string | null;
+  redirect(head && head !== id ? `/labour/family/${head}` : '/labour');
 }
 
 export type MonthState = { error?: string; name?: string; saved?: number };
@@ -91,6 +117,7 @@ export async function saveMonth(month: string, _: MonthState, data: FormData): P
   await requireProfile('owner', 'office', 'labour');
   if (!MONTH.test(month) || month > todayInIndia().slice(0, 7)) return { error: 'date' };
   const rows: MonthRow[] = [];
+  const rates: RateRow[] = [];
   for (const id of data.getAll('changed').map(String)) {
     const field = (name: string) => text(data, `${id}:${name}`);
     const fail = (error: string) => ({ error, name: field('name') });
@@ -100,6 +127,12 @@ export async function saveMonth(month: string, _: MonthState, data: FormData): P
     if (!NUMBER.test(ot)) return fail('ot');
     const [advance, deduction, addition, paid] = ['advance', 'deduction', 'addition', 'paid'].map((n) => rupees(field(n) || '0'));
     if (advance == null || deduction == null || addition == null || paid == null) return fail('amount');
+    // A changed day salary counts from this month on, until it is changed again; earlier months keep theirs.
+    if (field('rate')) {
+      const rate = rupees(field('rate'));
+      if (!rate) return fail('rate');
+      if (String(rate) !== field('old_rate')) rates.push({ worker_id: id, from_month: `${month}-01`, rate_paise: rate });
+    }
     rows.push({
       worker_id: id, month: `${month}-01`, present_days: Number(days), ot_hours: Number(ot),
       advance_paise: advance, deduction_paise: deduction, addition_paise: addition, paid_paise: paid, note: field('note'),
@@ -117,6 +150,42 @@ export async function saveMonth(month: string, _: MonthState, data: FormData): P
     const { error } = await db.from('labour_months').delete().eq('month', `${month}-01`).in('worker_id', emptied);
     if (error) return { error: 'not_saved' };
   }
+  if (rates.length > 0 && !await saveRates(db, rates)) return { error: 'not_saved' };
   revalidatePath('/labour', 'layout');
   return { saved: rows.length };
+}
+
+const KINDS = ['advance', 'payment', 'deduction'] as const;
+
+/**
+ * Keeps money given to a family's head, or taken off, with its date: an advance or a payment says cash or bank, and a
+ * deduction says why. It counts in the month of its date.
+ */
+export async function addFamilyMoney(headId: string, data: FormData): Promise<void> {
+  await requireProfile('owner', 'office', 'labour');
+  const date = text(data, 'date');
+  const page = `/labour/family/${headId}?month=${date.slice(0, 7)}`;
+  const fail = (error: string): never => redirect(`${page}&error=${error}#money`);
+  if (!DATE.test(date) || date > todayInIndia()) fail('money_date');
+  const kind = text(data, 'kind') as (typeof KINDS)[number];
+  if (!KINDS.includes(kind)) fail('kind');
+  const amount = rupees(text(data, 'amount'));
+  if (!amount) fail('amount');
+  const method = kind === 'deduction' ? null : text(data, 'method');
+  if (method !== null && method !== 'cash' && method !== 'bank') fail('method');
+  const note = text(data, 'note');
+  if (kind === 'deduction' && !note) fail('reason');
+  const { error } = await (await createClient()).from('labour_money')
+    .insert({ worker_id: headId, money_date: date, kind, amount_paise: amount, method, note });
+  if (error) fail('not_saved');
+  revalidatePath('/labour', 'layout');
+  redirect(`${page}#money`);
+}
+
+/** Takes off a money line typed by mistake: the office and owner any time, the labour login its own lines on the same day. */
+export async function removeFamilyMoney(headId: string, lineId: string, month: string): Promise<void> {
+  await requireProfile('owner', 'office', 'labour');
+  const { data } = await (await createClient()).from('labour_money').delete().eq('id', lineId).eq('worker_id', headId).select('id');
+  revalidatePath('/labour', 'layout');
+  redirect(`/labour/family/${headId}?month=${month}${data?.length ? '' : '&error=not_removed'}#money`);
 }

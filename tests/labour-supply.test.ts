@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { labourLedger, rateFor, salaryFor, type LabourMonth } from '@/lib/labour';
+import { familyLedger, labourLedger, rateFor, ratesToSave, salaryFor, type LabourMonth } from '@/lib/labour';
 
 const day1000 = [{ from_month: '2026-01-01', rate_paise: 100_000 }];
 const month = (m: string, fields: Partial<LabourMonth>): LabourMonth => ({
@@ -43,4 +43,33 @@ it('drops a remainder under ₹1 and carries nothing of it to the next month', (
   ], day1000);
   expect(oct!.balance).toBe(0);
   expect(nov).toMatchObject({ before: 0, balance: 0 });
+});
+
+it('adds up a family at each member\'s own salary, takes the head\'s dated money off in its month, and carries it on', () => {
+  const day800 = [{ from_month: '2026-01-01', rate_paise: 80_000 }];
+  // Head: 25 days at ₹1,000 = ₹25,000. Wife: 20 days and 8 OT hours at ₹800 = ₹16,000 + ₹800. Oct comes to ₹41,800.
+  const [oct, nov] = familyLedger([
+    { months: [month('2026-10', { present_days: 25 }), month('2026-11', { present_days: 10 })], rates: day1000 },
+    { months: [month('2026-10', { present_days: 20, ot_hours: 8 })], rates: day800 },
+  ], [
+    { money_date: '2026-10-05', kind: 'advance', amount_paise: 500_000 },
+    { money_date: '2026-10-20', kind: 'deduction', amount_paise: 100_000 },
+    { money_date: '2026-10-31', kind: 'payment', amount_paise: 4_000_000 },
+    { money_date: '2026-11-30', kind: 'payment', amount_paise: 500_000 },
+  ]);
+  // ₹41,800 − ₹5,000 advance − ₹1,000 deduction − ₹40,000 paid leaves ₹4,200 extra paid; Nov ₹10,000 less that less ₹5,000 paid is ₹800.
+  expect(oct).toMatchObject({ month: '2026-10', days: 45, otHours: 8, salary: 4_180_000, advance: 500_000, deduction: 100_000, paid: 4_000_000, balance: -420_000 });
+  expect(nov).toMatchObject({ month: '2026-11', days: 10, salary: 1_000_000, before: -420_000, paid: 500_000, balance: 80_000 });
+});
+
+it('keeps earlier months at their salary when the first salary is changed from its own month', () => {
+  const have = [{ worker_id: 'w', from_month: '2026-11-01', rate_paise: 100_000 }];
+  const change = { worker_id: 'w', from_month: '2026-11-01', rate_paise: 110_000 };
+  const saved = ratesToSave(have, [change]);
+  expect(saved).toEqual([{ worker_id: 'w', from_month: '2026-10-01', rate_paise: 100_000 }, change]);
+  // October (borrowed the earliest) stays ₹1,000; November on is ₹1,100. A January change keeps December too.
+  expect([rateFor(saved, '2026-09'), rateFor(saved, '2026-10'), rateFor(saved, '2026-11'), rateFor(saved, '2026-12')]).toEqual([100_000, 100_000, 110_000, 110_000]);
+  expect(ratesToSave([{ worker_id: 'w', from_month: '2027-01-01', rate_paise: 1 }], [{ worker_id: 'w', from_month: '2027-01-01', rate_paise: 2 }])[0]!.from_month).toBe('2026-12-01');
+  // With a salary already counting from before, nothing more is needed.
+  expect(ratesToSave(saved, [{ worker_id: 'w', from_month: '2026-12-01', rate_paise: 120_000 }])).toHaveLength(1);
 });

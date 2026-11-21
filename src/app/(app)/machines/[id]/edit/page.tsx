@@ -7,6 +7,7 @@ import { DeleteBox } from '@/components/delete-box';
 import { deleteMachine, saveMachine } from '../../actions';
 import { loadMachines } from '../../data';
 import { MachineForm } from '../../machine-form';
+import { Icon } from '@/components/icons';
 
 export default async function EditMachinePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   const profile = await requireProfile('owner', 'office');
@@ -17,7 +18,7 @@ export default async function EditMachinePage({ params, searchParams }: { params
   if (!machine) notFound();
   return (
     <>
-      <Link href={`/machines/${id}`} className="back">◄ {machine.name}</Link>
+      <Link href={`/machines/${id}`} className="back"><Icon name="chevronLeft" size={16} /> {machine.name}</Link>
       <h1>{t('machines.changeOf', { name: machine.name })}</h1>
       {error && <p className="banner bad">{t(`machines.errors.${error}`)}</p>}
       <MachineForm action={saveMachine.bind(null, id)} machine={machine} t={t} />

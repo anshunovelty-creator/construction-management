@@ -22,7 +22,8 @@ export default async function LabourMonthPage({ searchParams }: { searchParams: 
   const month = pickMonth((await searchParams).month, thisMonth);
   const people = await loadLabour(await createClient());
 
-  const lines = people.map((p) => {
+  // Families are typed on their own page, where the money goes to the head.
+  const lines = people.filter((p) => !p.head_id).map((p) => {
     const m = p.ledger.find((l) => l.month === month);
     // What the months before this one left, whether or not this month is typed yet.
     const before = p.ledger.filter((l) => l.month < month).at(-1)?.balance ?? 0;

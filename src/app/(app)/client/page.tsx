@@ -16,6 +16,7 @@ import { postClientBill, postClientRows } from '../entries/actions';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
 import { sheetColumns } from '../entries/sheet/columns';
 import { BalanceCell, MoneyCell, Stat, StatusPill } from '../party/shared';
+import { Icon } from '@/components/icons';
 
 interface ClientRow {
   entry_id: string;
@@ -110,7 +111,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <Link href="/clients" className="back">◄ {t('client.home')}</Link>
+      <Link href="/clients" className="back"><Icon name="chevronLeft" size={16} /> {t('client.home')}</Link>
       <div className="party-head">
         <h1>{client.name}</h1>
         <p className="muted">{t('party.gst', { number: client.gst_number || t('party.noGst') })}</p>

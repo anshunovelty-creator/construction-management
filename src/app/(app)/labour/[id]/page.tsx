@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { PrintButton } from '@/components/print-button';
 import { requireProfile } from '@/lib/auth';
@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../../entries/data';
 import { BalanceCell, MoneyCell, Stat } from '../../party/shared';
 import { loadLabour, showMonth } from '../data';
+import { Icon } from '@/components/icons';
 
 /** One worker's ledger, month by month: what the month came to, what was paid, and what it leaves for the next. */
 export default async function LabourWorkerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,13 +18,15 @@ export default async function LabourWorkerPage({ params }: { params: Promise<{ i
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const [person] = await loadLabour(await createClient(), id);
   if (!person) notFound();
+  // Someone in a family is paid through its head: their days and the money are on the family's page.
+  if (person.head_id) redirect(`/labour/family/${person.head_id}`);
   const { ledger, balance } = person;
   const sum = (key: 'salary' | 'addition' | 'deduction' | 'advance' | 'paid') => ledger.reduce((s, m) => s + m[key], 0);
   const entry = (month: string) => `/labour/month?month=${month}#${person.id}`;
 
   return (
     <>
-      <Link href="/labour" className="back no-print">◄ {t('labour.tabs.workers')}</Link>
+      <Link href="/labour" className="back no-print"><Icon name="chevronLeft" size={16} /> {t('labour.tabs.workers')}</Link>
       <div className="ledger-head">
         <div>
           <h1>{person.name}</h1>

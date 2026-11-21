@@ -16,7 +16,8 @@ export default async function LabourPage() {
   const t = await getTranslations();
   const month = todayInIndia().slice(0, 7);
   const people = await loadLabour(await createClient());
-  const rows = people.filter((p) => p.is_active || p.balance !== 0);
+  // Families are paid through their head, on the Families tab.
+  const rows = people.filter((p) => !p.head_id && (p.is_active || p.balance !== 0));
   const toPay = rows.reduce((s, r) => s + Math.max(r.balance, 0), 0);
   const extra = rows.reduce((s, r) => s + Math.max(-r.balance, 0), 0);
 
