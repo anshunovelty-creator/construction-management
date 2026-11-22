@@ -16,6 +16,15 @@ export function pickWorkingFirm(allowed: Firm[], savedId: string | null | undefi
 }
 
 /**
+ * The firms a save is checked against (`allowed` in `firmErrors`): null only for supervisors, who post without a firm.
+ * Anyone else with no working firm (office staff with no firm assigned) gets none, so nothing they save gets through.
+ */
+export function firmsForSave(role: AppRole, working: { firms: Firm[] } | null): string[] | null {
+  if (role === 'supervisor') return null;
+  return working ? working.firms.map((f) => f.id) : [];
+}
+
+/**
  * Which money accounts a list offers in a working firm. `own` is the firm's banks and common cash (owner money,
  * day close, site spending). `firm` is only the firm's own banks and cash: where money is paid or received,
  * firms never share an account.

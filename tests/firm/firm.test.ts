@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  accountChoices, accountScope, allowedFirms, firmErrors, inScope, isCommonEntry, pickWorkingFirm, type AccountRow,
+  accountChoices, accountScope, allowedFirms, firmErrors, firmsForSave, inScope, isCommonEntry, pickWorkingFirm,
+  type AccountRow,
 } from '@/lib/firm';
 import { cashTransfer, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { vendorPayment } from '@/lib/ledger/posting/vendor';
@@ -66,6 +67,24 @@ describe('money account lists', () => {
   });
 });
 
+describe('firmsForSave', () => {
+  const working = { firms: [ab, ji], firm: ab };
+
+  it('lets supervisors post without a firm', () => {
+    expect(firmsForSave('supervisor', null)).toBeNull();
+  });
+
+  it('gives the owner and office staff the firms they may use', () => {
+    expect(firmsForSave('owner', working)).toEqual([AB, JI]);
+    expect(firmsForSave('office', { firms: [ji] })).toEqual([JI]);
+  });
+
+  it('gives office staff with no firm assigned none, so nothing they save gets through', () => {
+    expect(firmsForSave('office', null)).toEqual([]);
+    expect(firmsForSave('labour', null)).toEqual([]);
+  });
+});
+
 describe('firmErrors (checked on save)', () => {
   const fields = (slug: string) => getEntryForm(slug)!.fields;
 
@@ -83,6 +102,11 @@ describe('firmErrors (checked on save)', () => {
     expect(firmErrors('site-spend', fields('site-spend'), null, null, {})).toBeNull();
     expect(firmErrors('vendor-bill', fields('vendor-bill'), null, null, {})).toEqual({ _form: 'not_allowed' });
     expect(firmErrors('site-spend', fields('site-spend'), AB, null, {})).toEqual({ _form: 'not_allowed' });
+  });
+
+  it('refuses office staff with no firm, even on a form supervisors may post without one', () => {
+    expect(firmErrors('site-spend', fields('site-spend'), null, [], {})).toEqual({ _form: 'not_allowed' });
+    expect(firmErrors('vendor-bill', fields('vendor-bill'), null, [], {})).toEqual({ _form: 'not_allowed' });
   });
 
   it('refuses a client receipt into the other firm’s account', () => {

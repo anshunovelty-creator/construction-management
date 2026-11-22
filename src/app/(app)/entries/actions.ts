@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect, RedirectType } from 'next/navigation';
 import type { FormState } from '@/components/form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
-import { accountScope, firmErrors } from '@/lib/firm';
+import { accountScope, firmErrors, firmsForSave } from '@/lib/firm';
 import { cashCloseDifference, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
@@ -175,9 +175,9 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   const values = submittedValues(data);
   const parsed = parseFields(form.fields, data);
   if (!parsed.ok) return { errors: parsed.errors, values };
-  const working = await getWorkingFirm();
-  const picked = working ? await firmsPicked(form.fields, parsed.values, db) : {};
-  const wrong = firmErrors(slug, form.fields, firmId, working ? working.firms.map((f) => f.id) : null, picked);
+  const allowed = firmsForSave(profile.role, await getWorkingFirm());
+  const picked = allowed?.length ? await firmsPicked(form.fields, parsed.values, db) : {};
+  const wrong = firmErrors(slug, form.fields, firmId, allowed, picked);
   if (wrong) return { errors: wrong, values };
 
   if (slug === 'day-close') {
