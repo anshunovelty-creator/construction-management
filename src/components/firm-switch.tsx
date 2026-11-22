@@ -19,19 +19,24 @@ export function FirmSwitch({ firms, firm }: { firms: Firm[]; firm: Firm }) {
       </summary>
       <form action={action} className="more-menu card">
         <p className="menu-label">{t('menuTitle')}</p>
-        {firms.map((f) => (
-          <button
-            key={f.id}
-            type="submit"
-            name="firm"
-            value={f.id}
-            className="nav-link"
-            aria-current={f.id === firm.id ? 'true' : undefined}
-            disabled={pending}
-          >
-            {f.name}
-          </button>
-        ))}
+        {firms.map((f) =>
+          f.id === firm.id ? (
+            // Already working here: tapping it just closes the menu, with no trip to the server.
+            <button
+              key={f.id}
+              type="button"
+              className="nav-link"
+              aria-current="true"
+              onClick={(e) => e.currentTarget.closest('details')?.removeAttribute('open')}
+            >
+              {f.name}
+            </button>
+          ) : (
+            <button key={f.id} type="submit" name="firm" value={f.id} className="nav-link" disabled={pending}>
+              {f.name}
+            </button>
+          ),
+        )}
         {state.failed && <p role="alert" className="error">{t('switchFailed')}</p>}
       </form>
     </details>
