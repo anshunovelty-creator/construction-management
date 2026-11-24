@@ -57,8 +57,8 @@ export interface CashTransferInput {
 }
 
 /**
- * Moving money between our own accounts within one firm (bank to owner cash, owner to supervisor).
- * Not an expense. Money never moves between firms.
+ * Moving money between our own accounts within one firm (bank to petty cash, cash to a person).
+ * Not an expense. Between firms comes with the firms' running accounts (stage 2).
  */
 export function cashTransfer(input: CashTransferInput): EntryDraft {
   assertDate(input.transferDate, 'transfer date');
@@ -115,7 +115,7 @@ export function cashCloseDifference(input: CashCloseDifferenceInput): EntryDraft
     narration: input.narration ?? (difference < 0 ? 'Cash short at day close' : 'Cash excess at day close'),
     lines: [
       { account: 'money', amountPaise: difference, firmId: input.account.firmId, moneyAccountId: input.account.id },
-      { account: 'cash_short_excess', amountPaise: -difference },
+      { account: 'cash_short_excess', amountPaise: -difference, firmId: input.account.firmId },
     ],
   };
   assertBalanced(draft);
@@ -130,6 +130,36 @@ export interface OwnerMoneyInput {
   narration?: string;
 }
 
+export interface NotYetKnownInput extends OwnerMoneyInput {
+  direction: 'in' | 'out';
+  reference?: string;
+}
+
+/** Money in or out that nobody can explain yet: counted at once, sorted out later by replacing this entry. */
+export function notYetKnown(input: NotYetKnownInput): EntryDraft {
+  assertDate(input.date, 'date');
+  assertPositive(input.amountPaise, 'amount');
+  const narration = (input.narration ?? '').trim();
+  if (narration === '') {
+    throw new Error('write what the bank or cash book says about it');
+  }
+  const amountPaise = input.direction === 'in' ? input.amountPaise : -input.amountPaise;
+  const draft: EntryDraft = {
+    id: input.id ?? crypto.randomUUID(),
+    entryType: 'not_yet_known',
+    entryDate: input.date,
+    firmId: input.account.firmId,
+    reference: (input.reference ?? '').trim(),
+    narration,
+    lines: [
+      { account: 'money', amountPaise, firmId: input.account.firmId, moneyAccountId: input.account.id },
+      { account: 'not_yet_known', amountPaise: -amountPaise, firmId: input.account.firmId },
+    ],
+  };
+  assertBalanced(draft);
+  return draft;
+}
+
 /** Owner puts personal money into the business. */
 export function ownerCapital(input: OwnerMoneyInput): EntryDraft {
   assertDate(input.date, 'date');
@@ -142,7 +172,7 @@ export function ownerCapital(input: OwnerMoneyInput): EntryDraft {
     narration: input.narration ?? '',
     lines: [
       { account: 'money', amountPaise: input.amountPaise, firmId: input.account.firmId, moneyAccountId: input.account.id },
-      { account: 'owner_capital', amountPaise: -input.amountPaise },
+      { account: 'owner_capital', amountPaise: -input.amountPaise, firmId: input.account.firmId },
     ],
   };
   assertBalanced(draft);
@@ -160,7 +190,7 @@ export function ownerDrawing(input: OwnerMoneyInput): EntryDraft {
     firmId: input.account.firmId,
     narration: input.narration ?? '',
     lines: [
-      { account: 'owner_capital', amountPaise: input.amountPaise },
+      { account: 'owner_capital', amountPaise: input.amountPaise, firmId: input.account.firmId },
       { account: 'money', amountPaise: -input.amountPaise, firmId: input.account.firmId, moneyAccountId: input.account.id },
     ],
   };

@@ -97,9 +97,13 @@ export default async function DayBookPage({ searchParams }: { searchParams: Prom
     return q ? `/entries?${q}` : '/entries';
   };
 
-  // The size of an entry: its plus lines, leaving out the automatic between-firm pair.
-  const amountOf = (r: Row) =>
-    r.lines.filter((l) => l.account !== 'inter_firm' && l.amount_paise > 0).reduce((s, l) => s + Number(l.amount_paise), 0);
+  // The size of an entry in the working firm's books: the bigger of its plus and its minus lines, leaving out what it
+  // changes between the firms (money given to another firm is only a minus line in this one).
+  const amountOf = (r: Row) => {
+    const lines = r.lines.filter((l) => l.account !== 'inter_firm' && (!firm || l.firm_id === null || l.firm_id === firm));
+    const side = (sign: 1 | -1) => lines.reduce((s, l) => s + Math.max(sign * Number(l.amount_paise), 0), 0);
+    return Math.max(side(1), side(-1));
+  };
   const firmName = working?.firm.name;
   const siteName = site && names.sites.get(site);
   const title = firmName && siteName ? t('daybook.at', { firm: firmName, site: siteName }) : (firmName || siteName || t('nav.daybook'));

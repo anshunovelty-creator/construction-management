@@ -20,7 +20,7 @@ export interface Names {
 }
 
 /** Where a balance sits on the home board. */
-export type Group = 'money' | 'weOwe' | 'owedToUs' | 'betweenFirms' | 'heldByClients' | 'assets' | 'gst' | 'tds' | 'sites' | 'owner';
+export type Group = 'money' | 'weOwe' | 'owedToUs' | 'betweenFirms' | 'heldByClients' | 'assets' | 'gst' | 'tds' | 'sites' | 'owner' | 'unknown' | 'firm';
 
 export type Translate = (key: string, values?: Record<string, string>) => string;
 
@@ -43,21 +43,30 @@ function keyOf(r: LineRow): string {
     case 'money': return `money:${r.money_account_id}`;
     case 'vendor_payable': return `owe:${r.firm_id}:${r.party_id}`;
     case 'client_receivable': return `owed:${r.firm_id}:${r.party_id}`;
-    case 'tds_claimable': return `tds:${r.party_id}`;
+    case 'tds_claimable': return `tds:${r.party_id ?? r.counter_firm_id}`;
     case 'retention_held': return `retention:${r.party_id}`;
     case 'security_deposit_held': return `deposit:${r.party_id}`;
     case 'inter_firm': return `firms:${r.firm_id}:${r.counter_firm_id}`;
     case 'site_cost': return `cost:${r.site_id}:${r.cost_head}`;
     case 'company_assets': return `assets:${r.firm_id}`;
     case 'contract_income': return `billed:${r.site_id}`;
+    case 'wages_paid': case 'loan': case 'deposit_given': case 'gst_paid': case 'tds_paid': case 'pf_paid': case 'tds_claimed':
+      return `${r.account}:${r.firm_id}`;
+    case 'firm_cost': case 'other_income': return `${r.account}:${r.firm_id}:${r.cost_head}`;
+    case 'firm_income': return `firmIncome:${r.firm_id}:${r.counter_firm_id}`;
     case 'owner_capital': return 'capital';
     case 'opening_balance': return 'opening';
     case 'cash_short_excess': return 'short';
+    case 'round_off': return `round:${r.firm_id}`;
+    case 'not_yet_known': return `unknown:${r.firm_id}`;
     case 'gst_input': return `gstIn:${r.firm_id}`;
     case 'gst_output': return `gstOut:${r.firm_id}`;
     case 'tds_payable': return `tdsPay:${r.firm_id}`;
   }
 }
+
+/** Who kept TDS: a client, or another of our firms. */
+const tdsKeeper = (row: LineRow, names: Names, party: string) => (row.counter_firm_id ? names.firms.get(row.counter_firm_id) ?? '?' : party);
 
 /** Adds rows up by the key people think in (e.g. one number per firm and vendor). */
 export function sumByKey(rows: LineRow[]): Map<string, { row: LineRow; amount: number }> {
@@ -89,7 +98,7 @@ export function describe(row: LineRow, amount: number, names: Names, t: Translat
     case 'client_receivable':
       return make('owedToUs', t('plain.clientReceivable', { firm, client: party }), 1);
     case 'tds_claimable':
-      return make('heldByClients', t('plain.tds', { client: party }), 1);
+      return make('heldByClients', t('plain.tds', { client: tdsKeeper(row, names, party) }), 1);
     case 'retention_held':
       return make('heldByClients', t('plain.retention', { client: party }), 1);
     case 'security_deposit_held':
@@ -105,6 +114,27 @@ export function describe(row: LineRow, amount: number, names: Names, t: Translat
       return make('sites', t('plain.siteCost', { site, head: t(`options.cost_head.${row.cost_head}`) }), 1);
     case 'contract_income':
       return make('sites', t('plain.billed', { site }), -1);
+    case 'wages_paid':
+      return make('firm', t('plain.wagesPaid', { firm }), 1);
+    case 'firm_cost':
+      return make('firm', t('plain.firmCost', { firm, head: t(`options.cost_head.${row.cost_head}`) }), 1);
+    case 'other_income':
+      return make('firm', t(row.cost_head === 'machine_hire' ? 'plain.machineRent' : 'plain.otherIncome', { firm }), -1);
+    case 'pf_paid':
+      return make('firm', t('plain.pfPaid', { firm }), 1);
+    case 'loan':
+      return make('weOwe', t('plain.loan', { firm }), -1);
+    case 'deposit_given':
+      return make('owedToUs', t('plain.depositGiven', { firm }), 1);
+    case 'gst_paid':
+      return make('gst', t('plain.gstPaid', { firm }), 1);
+    case 'tds_paid':
+      return make('tds', t('plain.tdsPaid', { firm }), -1);
+    case 'tds_claimed':
+      return make('heldByClients', t('plain.tdsClaimed', { firm }), 1);
+    // Not on the board: the sites table shows what clients are billed, and the other firm's cost is in its own sites.
+    case 'firm_income':
+      return make('sites', t('plain.firmIncome', { firm, other: names.firms.get(row.counter_firm_id ?? '') ?? '?' }), -1);
     // Tools and the like bought to reuse: the company's, kept apart from every site's cost.
     case 'company_assets':
       return make('assets', t('plain.companyAssets', { firm }), 1);
@@ -114,6 +144,11 @@ export function describe(row: LineRow, amount: number, names: Names, t: Translat
       return make('owner', t('plain.opening'), -1);
     case 'cash_short_excess':
       return make('owner', t('plain.short'), 1);
+    case 'round_off':
+      return make('firm', t('plain.roundOff', { firm }), 1);
+    // Came in and not explained is a minus here, so it is shown the other way: plus came in, minus went out.
+    case 'not_yet_known':
+      return make('unknown', t('plain.notYetKnown', { firm }), -1);
     // GST paid on vendor bills is claimed back; GST charged on client bills is owed to the government.
     case 'gst_input':
       return make('gst', t('plain.gstInput', { firm }), 1);

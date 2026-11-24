@@ -7,7 +7,7 @@ describe('opening balances', () => {
     const draft = openingVendorBalance({ firmId: JI, vendorId: VENDOR, amountPaise: 133_019_300, asOf: '2026-10-21' });
     expect(draft).toMatchObject({ entryType: 'opening', entryDate: '2026-10-21', firmId: JI, partyId: VENDOR });
     expect(draft.lines).toEqual([
-      { account: 'opening_balance', amountPaise: 133_019_300 },
+      { account: 'opening_balance', amountPaise: 133_019_300, firmId: JI },
       { account: 'vendor_payable', amountPaise: -133_019_300, firmId: JI, partyId: VENDOR },
     ]);
   });
@@ -15,11 +15,11 @@ describe('opening balances', () => {
   it('records opening bank/cash and client balances', () => {
     expect(openingMoneyBalance({ account: JI_BANK, amountPaise: 62_000_000, asOf: '2026-10-21' }).lines).toEqual([
       { account: 'money', amountPaise: 62_000_000, firmId: JI, moneyAccountId: JI_BANK.id },
-      { account: 'opening_balance', amountPaise: -62_000_000 },
+      { account: 'opening_balance', amountPaise: -62_000_000, firmId: JI },
     ]);
     expect(openingClientBalance({ client: SVG_CLIENT, amountPaise: -1_000, asOf: '2026-10-21' }).lines).toEqual([
       { account: 'client_receivable', amountPaise: -1_000, firmId: JI, partyId: CLIENT, siteId: SVG },
-      { account: 'opening_balance', amountPaise: 1_000 },
+      { account: 'opening_balance', amountPaise: 1_000, firmId: JI },
     ]);
   });
 

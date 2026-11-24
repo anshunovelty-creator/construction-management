@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  accountChoices, accountScope, allowedFirms, firmErrors, firmsForSave, inScope, isCommonEntry, pickWorkingFirm,
+  accountChoices, allowedFirms, firmErrors, firmsForSave, isCommonEntry, pickWorkingFirm,
   type AccountRow,
 } from '@/lib/firm';
-import { cashTransfer, siteCashExpense } from '@/lib/ledger/posting/cash';
+import { cashTransfer } from '@/lib/ledger/posting/cash';
 import { vendorPayment } from '@/lib/ledger/posting/vendor';
 import type { EntryDraft } from '@/lib/ledger/types';
 import { getEntryForm } from '@/lib/masters/registry';
-import { AB, AB_BANK, JI, JI_BANK, OWNER_CASH, RAMESH, SVG, VENDOR } from '../ledger/fixtures';
+import { AB, AB_BANK, JI, JI_BANK, OWNER_CASH, RAMESH, VENDOR } from '../ledger/fixtures';
 
 const ab = { id: AB, name: 'AB Infra' };
 const ji = { id: JI, name: 'Jayraj Infra' };
@@ -40,30 +40,8 @@ describe('money account lists', () => {
     { id: OWNER_CASH.id, name: 'Owner cash', firm_id: null, kind: 'owner_cash' },
   ];
 
-  it('reads the scope from the field source', () => {
-    expect(accountScope('moneyAccounts')).toBe('own');
-    expect(accountScope('firmAccounts')).toBe('firm');
-    expect(accountScope('vendors')).toBeUndefined();
-  });
-
-  it('lists the firm’s own banks and common cash for owner money and site spending', () => {
-    expect(accountChoices(rows, 'own', AB)).toEqual([
-      { value: AB_BANK.id, label: 'AB Infra - Bank', kind: 'bank' },
-      { value: OWNER_CASH.id, label: 'Owner cash', kind: 'owner_cash' },
-    ]);
-  });
-
-  it('lists only the firm’s own banks for payments and receipts: never common cash or another firm’s', () => {
-    expect(accountChoices(rows, 'firm', AB)).toEqual([{ value: AB_BANK.id, label: 'AB Infra - Bank', kind: 'bank' }]);
-  });
-
-  it('checks a chosen account the same way on save', () => {
-    expect(inScope('own', null, AB)).toBe(true);
-    expect(inScope('own', AB, AB)).toBe(true);
-    expect(inScope('own', JI, AB)).toBe(false);
-    expect(inScope('firm', null, AB)).toBe(false);
-    expect(inScope('firm', AB, AB)).toBe(true);
-    expect(inScope('firm', JI, AB)).toBe(false);
+  it('lists only the firm’s own accounts: never another firm’s, nor cash left from when it was shared', () => {
+    expect(accountChoices(rows, AB)).toEqual([{ value: AB_BANK.id, label: 'AB Infra - Bank', kind: 'bank' }]);
   });
 });
 
@@ -124,13 +102,9 @@ describe('firmErrors (checked on save)', () => {
 describe('isCommonEntry', () => {
   const rowsOf = (draft: EntryDraft) => draft.lines.map((l) => ({ firm_id: l.firmId ?? null }));
 
-  it('is true when no line names a firm, like cash handed to a supervisor or a supervisor’s spend', () => {
-    const handOver = cashTransfer({ from: OWNER_CASH, to: RAMESH, amountPaise: 500_000, transferDate: '2026-10-22' });
-    const spend = siteCashExpense({
-      from: RAMESH, siteId: SVG, costHead: 'labour', amountPaise: 50_000, expenseDate: '2026-10-22', narration: 'helpers',
-    });
-    expect(isCommonEntry(rowsOf(handOver))).toBe(true);
-    expect(isCommonEntry(rowsOf(spend))).toBe(true);
+  it('is true only for an old entry with no firm on any line', () => {
+    expect(isCommonEntry([{ firm_id: null }, { firm_id: null }])).toBe(true);
+    expect(isCommonEntry(rowsOf(cashTransfer({ from: OWNER_CASH, to: RAMESH, amountPaise: 500_000, transferDate: '2026-10-22' })))).toBe(false);
   });
 
   it('is false for a firm’s bill paid from the firm’s own cash', () => {

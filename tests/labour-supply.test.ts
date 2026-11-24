@@ -62,6 +62,17 @@ it('adds up a family at each member\'s own salary, takes the head\'s dated money
   expect(nov).toMatchObject({ month: '2026-11', days: 10, salary: 1_000_000, before: -420_000, paid: 500_000, balance: 80_000 });
 });
 
+it('counts a family\'s opening balance in its month\'s "from last month" and carries it on', () => {
+  const head = { months: [month('2026-11', { present_days: 10, paid_paise: 500_000 })], rates: day1000 };
+  // ₹2,000 still owed from before the app: Nov ₹10,000 + ₹2,000 − ₹5,000 paid leaves ₹7,000.
+  const [nov] = familyLedger([head], [], { month: '2026-11-01', amount_paise: 200_000 });
+  expect(nov).toMatchObject({ opening: 200_000, before: 200_000, balance: 700_000 });
+  // ₹3,000 paid extra, counted from October with nothing typed then: October leaves it, and November takes it off.
+  const [oct, nov2] = familyLedger([head], [], { month: '2026-10-01', amount_paise: -300_000 });
+  expect(oct).toMatchObject({ month: '2026-10', opening: -300_000, before: -300_000, balance: -300_000 });
+  expect(nov2).toMatchObject({ opening: 0, before: -300_000, balance: 200_000 });
+});
+
 it('keeps earlier months at their salary when the first salary is changed from its own month', () => {
   const have = [{ worker_id: 'w', from_month: '2026-11-01', rate_paise: 100_000 }];
   const change = { worker_id: 'w', from_month: '2026-11-01', rate_paise: 110_000 };

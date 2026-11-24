@@ -23,7 +23,6 @@ export function roundOffAmount(before: Paise, after: Paise): Paise {
  * The entry that clears a remainder: a payment line for a vendor, a receipt line for a client, with no money moving.
  * Either way round: a line the other way shows as a small negative payment, so every total and statement counts it.
  */
-// ponytail: books against cash_short_excess rather than an account of its own; add one if the accountant wants round offs apart.
 export function roundOffDraft(line: LineDraft, remainder: Paise, entryDate: string): EntryDraft {
   return {
     id: randomUUID(),
@@ -35,7 +34,7 @@ export function roundOffDraft(line: LineDraft, remainder: Paise, entryDate: stri
     narration: 'Round off',
     lines: [
       { account: line.account, amountPaise: -remainder, firmId: line.firmId, partyId: line.partyId },
-      { account: 'cash_short_excess', amountPaise: remainder, firmId: line.firmId },
+      { account: 'round_off', amountPaise: remainder, firmId: line.firmId },
     ],
   };
 }

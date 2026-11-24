@@ -2,6 +2,7 @@ import type { PGlite, PGliteInterface, Transaction } from '@electric-sql/pglite'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cashTransfer, ownerCapital, siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill } from '@/lib/ledger/posting/client';
+import { openingMoneyBalance } from '@/lib/ledger/posting/opening';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import type { EntryDraft } from '@/lib/ledger/types';
 import { asUser, createMigratedDb, createUser, seedBasics, type Seed } from './harness';
@@ -41,6 +42,10 @@ const rameshSpend = (siteId = seed.svgSite) =>
   siteCashExpense({
     from: seed.rameshCash, siteId, costHead: 'labour', amountPaise: 50_000, expenseDate: '2026-10-22', narration: 'helpers',
   });
+
+/** Cash with a person cannot go below zero, so there is some before it is spent. */
+const fundRamesh = () => asUser(db, owner, (tx) =>
+  post(tx, openingMoneyBalance({ account: seed.rameshCash, amountPaise: 2_000_000, asOf: '2026-10-01' })));
 
 beforeAll(async () => {
   template = await createMigratedDb();
@@ -92,6 +97,7 @@ describe('API access', () => {
   });
 
   it('refuses an entry id already used by someone else', async () => {
+    await fundRamesh();
     const draft = rameshSpend();
     await asUser(db, supervisor, (tx) => post(tx, draft));
     expect((await asUser(db, supervisor, (tx) => post(tx, draft))).duplicate).toBe(true);
@@ -109,8 +115,9 @@ describe('supervisor', () => {
   });
 
   it('posts site spends only from their own cash, at their own sites', async () => {
+    await fundRamesh();
     const posted = await asUser(db, supervisor, (tx) => post(tx, rameshSpend()));
-    expect(posted.serial).toBe('CM/26-27/000001');
+    expect(posted.serial).toBe('JI/26-27/000002');
     await expect(asUser(db, supervisor, (tx) => post(tx, rameshSpend(otherSite)))).rejects.toThrow(
       'not assigned to this site',
     );
@@ -121,6 +128,7 @@ describe('supervisor', () => {
   });
 
   it('sees their own entries and cash given to them, never client income', async () => {
+    await asUser(db, owner, (tx) => post(tx, openingMoneyBalance({ account: seed.ownerCash, amountPaise: 3_000_000, asOf: '2026-10-01' })));
     const given = await asUser(db, owner, (tx) =>
       post(tx, cashTransfer({ from: seed.ownerCash, to: seed.rameshCash, amountPaise: 2_000_000, transferDate: '2026-10-22' })),
     );
@@ -158,7 +166,7 @@ describe('office staff', () => {
     await asUser(db, office, async (tx) => {
       expect(await ids(tx, 'select id from work_orders')).toEqual([]); // the work order is Jayraj's
       expect(await ids(tx, 'select id from money_accounts')).toEqual(
-        [seed.abBank.id, seed.ownerCash.id, seed.rameshCash.id].sort(),
+        [seed.abBank.id],
       );
     });
   });
@@ -174,8 +182,10 @@ describe('office staff', () => {
     await expect(asUser(db, office, (tx) => tx.query('select app_verify_entry($1)', [bill.id]))).rejects.toThrow(
       'cannot verify your own entry',
     );
+    await fundRamesh();
     const spend = await asUser(db, supervisor, (tx) => post(tx, rameshSpend()));
-    await asUser(db, office, (tx) => tx.query('select app_verify_entry($1)', [spend.id]));
+    // Ramesh's cash is Jayraj's, so A B Infra's office cannot check what is spent from it.
+    await expect(asUser(db, office, (tx) => tx.query('select app_verify_entry($1)', [spend.id]))).rejects.toThrow('not found');
     await expect(asUser(db, supervisor, (tx) => tx.query('select app_verify_entry($1)', [bill.id]))).rejects.toThrow(
       'supervisors cannot verify',
     );

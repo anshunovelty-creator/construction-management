@@ -38,46 +38,60 @@ async function saveRates(db: Db, changes: RateRow[]): Promise<boolean> {
 
 /**
  * Adds a worker, or changes one. A changed day salary counts from the month chosen, so earlier months stay as they were.
- * A new worker can start a family as its head (`head` = "new") or join one (`head` = the head's id). A worker being
- * changed can be moved with `family`: "" for none, "head" for their own family, or a head's id. A head with members or
+ * A new worker heads a family of their own, or joins one (`head` = the head's id). A worker being changed can be moved
+ * with `family`: "head" for their own family, or a head's id. A head with members or
  * money given stays the head (the database checks), and their family box then comes disabled and is not sent.
  */
 export async function saveWorker(id: string | null, data: FormData): Promise<void> {
-  await requireProfile('owner', 'office', 'labour');
+  const profile = await requireProfile('owner', 'office', 'labour');
   const head = id ? '' : text(data, 'head');
   if (head && head !== 'new' && !ID.test(head)) redirect('/labour');
   const form = id ? `/labour/${id}/edit` : `/labour/new${head ? `?head=${head}&` : '?'}`;
   const fail = (error: string): never => redirect(`${form}${id ? '?' : ''}error=${error}`);
   const name = text(data, 'name');
   if (!name) fail('name');
-  const rate = rupees(text(data, 'rate'));
+  // Said by the hour, the day's salary is 8 times it. A salary left as it was shown is not changed by the rounding.
+  const unit = text(data, 'rate_unit') === 'hour' ? 'hour' : 'day';
+  const daily = (paise: number | null) => (paise === null ? null : unit === 'hour' ? paise * 8 : paise);
+  const untouched = id !== null && `${text(data, 'rate')}/${unit}` === text(data, 'old_said');
+  const rate = untouched ? Number(text(data, 'old_rate')) : daily(rupees(text(data, 'rate')));
   if (rate === null || rate <= 0) fail('rate');
+  const chargeText = text(data, 'charge');
+  const charge = chargeText === '' ? null : daily(rupees(chargeText));
+  if (chargeText !== '' && !charge) fail('charge');
   const today = todayInIndia();
   const fromMonth = id ? text(data, 'rate_from') : today.slice(0, 7);
   if (!MONTH.test(fromMonth)) fail('rate_from');
   const family = id && data.has('family') ? text(data, 'family') : null;
   if (family && family !== 'head' && (!ID.test(family) || family === id)) fail('not_saved');
 
-  const details = { name, phone: text(data, 'phone'), skill: text(data, 'skill'), is_active: id ? data.get('is_active') === 'on' : true };
+  const details = { name, phone: text(data, 'phone'), skill: text(data, 'skill'), rate_unit: unit, is_active: id ? data.get('is_active') === 'on' : true };
   const db = await createClient();
   let workerId = id;
-  let headId: string | null = null;
+  let headId: string;
   if (id) {
     const moved = family === null ? {} : { head_id: family === 'head' ? id : family || null };
     const { data: row, error } = await db.from('labour_workers').update({ ...details, ...moved }).eq('id', id).select('head_id').single();
     if (error) fail(error.message.includes('stays the head') ? 'family_stays_head' : 'not_saved');
-    headId = row!.head_id as string | null;
+    headId = row!.head_id as string;
   } else {
     workerId = crypto.randomUUID();
-    headId = head === 'new' ? workerId : head || null;
+    // A new worker heads a family of their own, unless added to a family.
+    headId = head && head !== 'new' ? head : workerId;
     const { error } = await db.from('labour_workers').insert({ ...details, id: workerId, head_id: headId, kind: 'worker', joined_on: today });
     if (error) fail('not_saved');
   }
   if (!id || String(rate) !== text(data, 'old_rate')) {
     if (!await saveRates(db, [{ worker_id: workerId!, from_month: `${fromMonth}-01`, rate_paise: rate! }])) fail('not_saved');
   }
+  // What a day is charged at, kept like the salary from a month on; emptied, the salary again. Never from a Labour login.
+  if (profile.role !== 'labour' && data.has('charge') && String(charge ?? '') !== text(data, 'old_charge')) {
+    const { error } = await db.from('labour_charge_rates')
+      .upsert({ worker_id: workerId!, from_month: `${fromMonth}-01`, rate_paise: charge }, { onConflict: 'worker_id,from_month' });
+    if (error) fail('not_saved');
+  }
   revalidatePath('/labour', 'layout');
-  redirect(headId ? `/labour/family/${headId}` : `/labour/${workerId}`);
+  redirect(`/labour/family/${headId}`);
 }
 
 /**
@@ -92,8 +106,8 @@ export async function deleteWorker(id: string, data: FormData): Promise<void> {
   const refused = await moveToBin('labour-workers', id);
   if (refused) fail(refused.error === 'has_months' ? 'delete_has_months' : 'not_deleted');
   revalidatePath('/labour', 'layout');
-  const head = worker!.head_id as string | null;
-  redirect(head && head !== id ? `/labour/family/${head}` : '/labour');
+  const head = worker!.head_id as string;
+  redirect(head !== id ? `/labour/family/${head}` : '/labour');
 }
 
 export type MonthState = { error?: string; name?: string; saved?: number };
@@ -125,8 +139,8 @@ export async function saveMonth(month: string, _: MonthState, data: FormData): P
     const ot = field('ot') || '0';
     if (!NUMBER.test(days) || Number(days) > 100) return fail('days');
     if (!NUMBER.test(ot)) return fail('ot');
-    const [advance, deduction, addition, paid] = ['advance', 'deduction', 'addition', 'paid'].map((n) => rupees(field(n) || '0'));
-    if (advance == null || deduction == null || addition == null || paid == null) return fail('amount');
+    const advance = rupees(field('advance') || '0');
+    if (advance === null) return fail('amount');
     // A changed day salary counts from this month on, until it is changed again; earlier months keep theirs.
     if (field('rate')) {
       const rate = rupees(field('rate'));
@@ -135,11 +149,20 @@ export async function saveMonth(month: string, _: MonthState, data: FormData): P
     }
     rows.push({
       worker_id: id, month: `${month}-01`, present_days: Number(days), ot_hours: Number(ot),
-      advance_paise: advance, deduction_paise: deduction, addition_paise: addition, paid_paise: paid, note: field('note'),
+      advance_paise: advance, deduction_paise: 0, addition_paise: 0, paid_paise: 0, note: field('note'),
     });
   }
   const isEmpty = (r: MonthRow) => !r.present_days && !r.ot_hours && !r.advance_paise && !r.deduction_paise && !r.addition_paise && !r.paid_paise && !r.note;
   const db = await createClient();
+  // Paid is on the Pay tab, from an account, and additions and deductions are not typed any more: what an old month has stays.
+  const { data: kept, error: notRead } = await db.from('labour_months').select('worker_id, deduction_paise, addition_paise, paid_paise').eq('month', `${month}-01`).in('worker_id', rows.map((r) => r.worker_id));
+  if (notRead) return { error: 'not_saved' };
+  const had = new Map((kept ?? []).map((k) => [k.worker_id as string, k]));
+  for (const r of rows) {
+    r.deduction_paise = Number(had.get(r.worker_id)?.deduction_paise ?? 0);
+    r.addition_paise = Number(had.get(r.worker_id)?.addition_paise ?? 0);
+    r.paid_paise = Number(had.get(r.worker_id)?.paid_paise ?? 0);
+  }
   const filled = rows.filter((r) => !isEmpty(r));
   const emptied = rows.filter(isEmpty).map((r) => r.worker_id);
   if (filled.length > 0) {
@@ -155,37 +178,44 @@ export async function saveMonth(month: string, _: MonthState, data: FormData): P
   return { saved: rows.length };
 }
 
-const KINDS = ['advance', 'payment', 'deduction'] as const;
-
-/**
- * Keeps money given to a family's head, or taken off, with its date: an advance or a payment says cash or bank, and a
- * deduction says why. It counts in the month of its date.
- */
-export async function addFamilyMoney(headId: string, data: FormData): Promise<void> {
-  await requireProfile('owner', 'office', 'labour');
-  const date = text(data, 'date');
-  const page = `/labour/family/${headId}?month=${date.slice(0, 7)}`;
-  const fail = (error: string): never => redirect(`${page}&error=${error}#money`);
-  if (!DATE.test(date) || date > todayInIndia()) fail('money_date');
-  const kind = text(data, 'kind') as (typeof KINDS)[number];
-  if (!KINDS.includes(kind)) fail('kind');
-  const amount = rupees(text(data, 'amount'));
-  if (!amount) fail('amount');
-  const method = kind === 'deduction' ? null : text(data, 'method');
-  if (method !== null && method !== 'cash' && method !== 'bank') fail('method');
-  const note = text(data, 'note');
-  if (kind === 'deduction' && !note) fail('reason');
-  const { error } = await (await createClient()).from('labour_money')
-    .insert({ worker_id: headId, money_date: date, kind, amount_paise: amount, method, note });
-  if (error) fail('not_saved');
-  revalidatePath('/labour', 'layout');
-  redirect(`${page}#money`);
-}
-
 /** Takes off a money line typed by mistake: the office and owner any time, the labour login its own lines on the same day. */
 export async function removeFamilyMoney(headId: string, lineId: string, month: string): Promise<void> {
   await requireProfile('owner', 'office', 'labour');
-  const { data } = await (await createClient()).from('labour_money').delete().eq('id', lineId).eq('worker_id', headId).select('id');
+  const { data, error } = await (await createClient()).from('labour_money').delete().eq('id', lineId).eq('worker_id', headId).select('id');
   revalidatePath('/labour', 'layout');
-  redirect(`/labour/family/${headId}?month=${month}${data?.length ? '' : '&error=not_removed'}#money`);
+  redirect(`/labour/family/${headId}?month=${month}${data?.length ? '' : `&error=${error?.message.includes('paid together') ? 'paid_together' : 'not_removed'}`}#money`);
+}
+
+/**
+ * Keeps a family's opening balance, from before the app: what we still had to pay them, or what they were paid extra,
+ * counting from a month. One per family, against its head; saving again changes it, and an amount of 0 takes it off.
+ */
+export async function saveOpening(headId: string, data: FormData): Promise<void> {
+  await requireProfile('owner', 'office', 'labour');
+  const fail = (error: string): never => redirect(`/labour/family/${headId}/opening?error=${error}`);
+  const month = text(data, 'month');
+  if (!MONTH.test(month) || month > todayInIndia().slice(0, 7)) fail('date');
+  const side = text(data, 'side');
+  if (side !== 'pay' && side !== 'extra') fail('opening_side');
+  const amount = rupees(text(data, 'amount'));
+  if (amount === null) fail('amount');
+  const db = await createClient();
+  const { error } = amount === 0
+    ? await db.from('labour_openings').delete().eq('worker_id', headId)
+    : await db.from('labour_openings').upsert(
+      { worker_id: headId, month: `${month}-01`, amount_paise: side === 'pay' ? amount : -amount!, note: text(data, 'note') },
+      { onConflict: 'worker_id' },
+    );
+  if (error) fail('not_saved');
+  revalidatePath('/labour', 'layout');
+  redirect(`/labour/family/${headId}?month=${month}`);
+}
+
+/** Takes a family's opening balance off. */
+export async function removeOpening(headId: string): Promise<void> {
+  await requireProfile('owner', 'office', 'labour');
+  const { error } = await (await createClient()).from('labour_openings').delete().eq('worker_id', headId);
+  if (error) redirect(`/labour/family/${headId}/opening?error=not_saved`);
+  revalidatePath('/labour', 'layout');
+  redirect(`/labour/family/${headId}`);
 }

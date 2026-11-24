@@ -102,9 +102,9 @@ const bankA = await account('bank', 'Firm A bank', firmA);
 await account('bank', 'Firm A UPI', firmA);
 const bankB = await account('bank', 'Firm B bank', firmB);
 await account('bank', 'Firm B old bank (closed)', firmB, undefined, false);
-const ownerCash = await account('owner_cash', 'Owner cash', null);
-const cash1 = await account('supervisor_cash', 'Supervisor 1 cash', null, sup1);
-const cash2 = await account('supervisor_cash', 'Supervisor 2 cash', null, sup2);
+const ownerCash = await account('owner_cash', 'Firm A cash', firmA);
+const cash1 = await account('supervisor_cash', 'Supervisor 1 cash', firmA, sup1);
+const cash2 = await account('supervisor_cash', 'Supervisor 2 cash', firmB, sup2);
 
 // ---------- Entries ----------
 const post = async (actor: string, draft: EntryDraft) =>

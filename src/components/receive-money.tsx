@@ -2,19 +2,19 @@
 
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { Fragment, startTransition, useRef, useState, useTransition } from 'react';
+import { Fragment, startTransition, useEffect, useRef, useState, useTransition } from 'react';
+import { AccountOptions } from '@/components/account-options';
 import { asRupees, toPaise, type FormState } from '@/components/form';
 import { Icon } from '@/components/icons';
+import { AmountBox, DateBox } from '@/components/money-boxes';
 import type { Choice } from '@/lib/masters/registry';
 import { groupRupees, roundOffSmall, showPaise } from '@/lib/money';
-import { rupeesInWords } from '@/lib/words';
 
 type Saved = { id: string; serial: string };
 /** Whose page it is on: a client's (money received) or a party's (money paid). */
 type Side = 'client' | 'party';
-
-/** The day before an ISO date, for the Yesterday chip. */
-const dayBefore = (iso: string) => new Date(Date.parse(`${iso}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+/** A bank or cash account to pay from or receive in; with its balance, the pop-up shows what it holds before and after. */
+export type PayAccount = Choice & { balance?: number };
 
 /**
  * The bar under the amount: what came in before (solid green), this payment (light green, grows as it is typed),
@@ -38,15 +38,16 @@ function Meter({ total, received, now }: { total: number; received: number; now:
  * Says what is left in words and colour. A client: green still to come, red extra received. A party: red still to
  * pay, green extra paid (with its minus sign).
  */
-function Left({ paise, label, side }: { paise: number; label?: string; side: Side }) {
+function Left({ paise, label, side, firm }: { paise: number; label?: string; side: Side; firm?: boolean }) {
   const t = useTranslations(side);
+  const list = useTranslations('payList');
   if (paise === 0) return <p className="rcv-left done"><span>{t('nothingLeft')}</span></p>;
   const green = side === 'client' ? paise > 0 : paise < 0;
   return (
     <p className={`rcv-left ${green ? 'plus' : 'minus'}`}>
-      <span>{paise > 0 ? (label ?? t('balance')) : t('statuses.extra')}</span>
-      <b>{showPaise(side === 'client' ? Math.abs(paise) : paise)}</b>
-      {paise < 0 && <small>{t('extraNote')}</small>}
+      <span>{paise > 0 ? (label ?? t('balance')) : firm ? list(`${side}.firmExtra`) : t('statuses.extra')}</span>
+      <b>{showPaise(side === 'client' || firm ? Math.abs(paise) : paise)}</b>
+      {paise < 0 && !firm && <small>{t('extraNote')}</small>}
     </p>
   );
 }
@@ -55,7 +56,7 @@ function Left({ paise, label, side }: { paise: number; label?: string; side: Sid
  * "Money received" on a client's page, or "Pay" on a party's: one receipt or payment in a pop-up, with the effect on
  * what is left shown as it is typed.
  */
-export function ReceiveMoney({ side = 'client', name, firm, total, received, balance, lastBill, accounts, lastAccount, today, save }: {
+export function ReceiveMoney({ side = 'client', name, firm, total, received, balance, lastBill, accounts, lastAccount, today, save, onClose, other }: {
   side?: Side;
   name: string;
   firm: string;
@@ -64,10 +65,14 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
   balance: number;
   /** What the newest bill came to after the client's cuts, offered as a one-tap amount. */
   lastBill?: number;
-  accounts: Choice[];
+  accounts: PayAccount[];
   lastAccount?: string | null;
   today: string;
   save: (rows: { id: string; cells: Record<string, string> }[]) => Promise<Record<string, Saved | FormState>>;
+  /** Opened from a list (the Bankbook's): no button of its own, open from the start, and closing it goes back to the list. */
+  onClose?: () => void;
+  /** Another of our firms: its own bank or cash is asked too, as the money lands in both books. */
+  other?: { name: string; accounts: { id: string; name: string; kind: string; balance: number }[] };
 }) {
   const t = useTranslations();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -78,15 +83,33 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
 
   const [text, setText] = useState('');
   const [account, setAccount] = useState(usual);
+  // Bank or cash is asked first, then which one (picked by itself when there is only one).
+  const isBank = (a: PayAccount) => a.kind === 'bank';
+  const [way, setWay] = useState(usual ? (isBank(accounts.find((a) => a.value === usual)!) ? 'bank' : 'cash') : '');
+  const ofWay = (w: string) => accounts.filter((a) => isBank(a) === (w === 'bank'));
+  const ways = ['bank', 'cash'].filter((w) => ofWay(w).length > 0);
+  const shown = ways.length === 1 ? accounts : way ? ofWay(way) : [];
+  const pickWay = (w: string) => {
+    setWay(w);
+    if (!ofWay(w).some((a) => a.value === account)) setAccount(ofWay(w).length === 1 ? ofWay(w)[0]!.value : '');
+  };
+  const [otherAccount, setOtherAccount] = useState(other?.accounts.length === 1 ? other.accounts[0]!.id : '');
   const [date, setDate] = useState(today);
   const [reference, setReference] = useState('');
   const [narration, setNarration] = useState('');
   const [failed, setFailed] = useState<string | null>(null);
+  const [repeat, setRepeat] = useState(false);
   const [savedSerial, setSavedSerial] = useState<string | null>(null);
   const [pending, startSaving] = useTransition();
 
   const paise = toPaise(text);
-  const yesterday = dayBefore(today);
+  const ready = paise > 0 && Boolean(account) && (!other || Boolean(otherAccount));
+  const listed = onClose !== undefined;
+  useEffect(() => {
+    if (!listed || dialog.current?.open) return;
+    dialog.current?.showModal();
+    amountBox.current?.focus();
+  }, [listed]);
 
   const startNext = () => {
     rowId.current = '';
@@ -101,30 +124,21 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     dialog.current?.showModal();
     amountBox.current?.focus();
   };
-  // Reformats as it is typed, and puts the cursor back after the same digit so a fix in the middle stays in place.
-  const type = (box: HTMLInputElement) => {
-    const digitsBefore = box.value.slice(0, box.selectionStart ?? 0).replace(/[^\d.]/g, '').length;
-    const next = groupRupees(box.value);
-    setText(next);
-    requestAnimationFrame(() => {
-      let at = 0;
-      for (let seen = 0; seen < digitsBefore && at < next.length; at++) if (/[\d.]/.test(next[at]!)) seen++;
-      box.setSelectionRange(at, at);
-    });
-  };
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: React.SyntheticEvent, anyway = false) => {
     e.preventDefault();
-    if (pending || paise <= 0 || !account) return;
+    if (!ready || pending) return;
     setFailed(null);
+    setRepeat(false);
     rowId.current ||= crypto.randomUUID();
     const id = rowId.current;
     startSaving(async () => {
       try {
-        const result = (await save([{ id, cells: { entry_date: date, amount: text, [side === 'client' ? 'to_account_id' : 'from_account_id']: account, reference, narration } }]))[id]!;
+        const result = (await save([{ id, cells: { entry_date: date, amount: text, [side === 'client' ? 'to_account_id' : 'from_account_id']: account, reference, narration, ...(other && { other_account_id: otherAccount }), ...(anyway ? {} : { check: '1' }) } }]))[id]!;
         startTransition(() => {
           if ('id' in result) setSavedSerial(result.serial);
           else {
             const key = Object.values(result.errors ?? {})[0] ?? 'save_failed';
+            setRepeat(key === 'maybe_repeat');
             setFailed(`${t(`errors.${key}`)}${result.detail ? ` (${result.detail})` : ''}`);
           }
         });
@@ -140,35 +154,31 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
       {t(`${side}.receive.${key}`, { amount: showPaise(value) })}
     </button>
   );
-  const dateChip = (label: string, value: string) => (
-    <button type="button" className={`chip${date === value ? ' on' : ''}`} aria-pressed={date === value} onClick={() => setDate(value)}>
-      {label}
-    </button>
-  );
   const chosen = accounts.find((a) => a.value === account);
+  const after = chosen?.balance === undefined ? 0 : chosen.balance + (side === 'client' ? paise : -paise);
 
-  const button = (
+  const button = !listed && (
     <button type="button" className="btn big" aria-haspopup="dialog" onClick={open}>
       <Icon name={side === 'client' ? 'receive' : 'payOut'} /> {t(`${side}.receive.button`)}
     </button>
   );
   // A party's Pay button sits beside "+ Add bill", inside that row; a client's has a row of its own.
-  const Wrap = side === 'client' ? 'div' : Fragment;
+  const Wrap = side === 'client' && !listed ? 'div' : Fragment;
   return (
-    <Wrap {...(side === 'client' && { className: 'quick-add' })}>
-      {side === 'client' ? <div className="quick-buttons">{button}</div> : button}
+    <Wrap {...(Wrap === 'div' && { className: 'quick-add' })}>
+      {Wrap === 'div' ? <div className="quick-buttons">{button}</div> : button}
       {/* Esc closes it, and so does a click on the dimmed page; what was typed stays for when it opens again. */}
-      <dialog ref={dialog} className="card quick-dialog rcv" aria-label={t(`${side}.receive.title`, { name })}
+      <dialog ref={dialog} className="card quick-dialog rcv" aria-label={t(`${side}.receive.title`, { name })} onClose={onClose}
         onClick={(e) => e.target === dialog.current && dialog.current.close()}>
         <div className="quick-card-head">
           <div>
             <h2>{t(`${side}.receive.title`, { name })}</h2>
-            <p className="rcv-firm">{t(`${side}.receive.intoBooks`, { firm })}</p>
+            <p className="rcv-firm">{other ? t('between.bothBooks') : t(`${side}.receive.intoBooks`, { firm })}</p>
           </div>
           <button type="button" className="btn ghost small" onClick={() => dialog.current?.close()}>{t('quick.close')}</button>
         </div>
 
-        <form onSubmit={submit} className="rcv-form">
+        <form onSubmit={(e) => submit(e)} className="rcv-form">
           {savedSerial ? (
             <div className="rcv-done" role="status">
               <span className="rcv-tick"><Icon name="check" size={30} /></span>
@@ -179,15 +189,8 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
             </div>
           ) : (
             <>
-              <Left paise={balance} side={side} />
-              <label className="rcv-amount">
-                <span className="sr-only">{t('party.amount')}</span>
-                <span className="rcv-rupee" aria-hidden="true">₹</span>
-                <input ref={amountBox} autoFocus type="text" inputMode="decimal" autoComplete="off" placeholder="0" required
-                  style={{ width: `${Math.max(text.length, 1) + 0.5}ch` }}
-                  value={text} onChange={(e) => type(e.target)} />
-              </label>
-              <p className="rcv-words">{paise > 0 ? rupeesInWords(paise) : t('client.receive.typeAmount')}</p>
+              <Left paise={balance} side={side} firm={Boolean(other)} />
+              <AmountBox ref={amountBox} text={text} setText={setText} label={t('party.amount')} />
               {balance > 0 && (
                 <div className="rcv-chips">
                   {amountChip('full', balance)}
@@ -200,13 +203,13 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
 
           {total > 0 && <Meter total={total} received={received} now={savedSerial ? 0 : paise} />}
           {savedSerial
-            ? <Left paise={balance} side={side} />
-            : paise > 0 && <Left paise={roundOffSmall(balance - paise)} label={t('client.receive.after')} side={side} />}
+            ? <Left paise={balance} side={side} firm={Boolean(other)} />
+            : paise > 0 && <Left paise={roundOffSmall(balance - paise)} label={t('client.receive.after')} side={side} firm={Boolean(other)} />}
 
           {savedSerial ? (
             <div className="rcv-actions">
               <button type="button" className="btn ghost big" onClick={startNext}>{t('client.receive.another')}</button>
-              <button type="button" className="btn big" onClick={() => dialog.current?.close()}>{t('client.receive.done')}</button>
+              <button type="button" className="btn big" onClick={() => dialog.current?.close()}>{t(listed ? 'payList.back' : 'client.receive.done')}</button>
             </div>
           ) : (
             <>
@@ -217,8 +220,20 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
                     {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
                   </p>
                 ) : (
+                  <>
+                  {ways.length > 1 && (
+                    <div className="rcv-tiles rcv-ways">
+                      {ways.map((w) => (
+                        <label key={w} className={`rcv-tile${way === w ? ' on' : ''}`}>
+                          <input type="radio" name="way" value={w} required checked={way === w} onChange={() => pickWay(w)} />
+                          <Icon name={w === 'bank' ? 'bank' : 'receive'} />
+                          <span>{t(`cash.${w}`)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                   <div className="rcv-tiles">
-                    {accounts.map((a) => (
+                    {shown.map((a) => (
                       <label key={a.value} className={`rcv-tile${account === a.value ? ' on' : ''}`}>
                         <input type="radio" name="to_account_id" value={a.value} required checked={account === a.value}
                           onChange={() => setAccount(a.value)} />
@@ -227,17 +242,24 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
                       </label>
                     ))}
                   </div>
+                  </>
+                )}
+                {chosen?.balance !== undefined && (
+                  <p className="hint">{chosen.label}: {showPaise(chosen.balance)}{paise > 0 && <> → <b className={after < 0 ? 'minus' : undefined}>{showPaise(after)}</b></>}</p>
                 )}
               </fieldset>
 
-              <fieldset className="rcv-group">
-                <legend>{t(side === 'client' ? 'client.receiptDate' : 'party.payDate')}</legend>
-                <div className="rcv-dates">
-                  {dateChip(t('client.receive.today'), today)}
-                  {dateChip(t('client.receive.yesterday'), yesterday)}
-                  <input type="date" required aria-label={t(side === 'client' ? 'client.receiptDate' : 'party.payDate')} value={date} onChange={(e) => setDate(e.target.value)} />
+              {other && (
+                <div className="field">
+                  <label>{t(side === 'client' ? 'between.outOf' : 'between.into', { firm: other.name })}
+                    <select required value={otherAccount} onChange={(e) => setOtherAccount(e.target.value)}>
+                      <option value="">{t('bankbook.popup.pick')}</option>
+                      <AccountOptions accounts={other.accounts} />
+                    </select>
+                  </label>
                 </div>
-              </fieldset>
+              )}
+              <DateBox date={date} setDate={setDate} today={today} label={t(side === 'client' ? 'client.receiptDate' : 'party.payDate')} />
 
               <div className="rcv-notes">
                 <label>
@@ -251,7 +273,8 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
               </div>
 
               {failed && <p role="alert" className="error form-error">{failed}</p>}
-              <button type="submit" className="btn big rcv-save" disabled={pending || paise <= 0 || !account}>
+              {repeat && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, true)}>{t('repeat.anyway')}</button>}
+              <button type="submit" className="btn big rcv-save" disabled={pending || !ready}>
                 {pending ? '…' : paise > 0 ? t(`${side}.receive.save`, { amount: showPaise(paise) }) : t('client.receive.typeAmount')}
               </button>
             </>

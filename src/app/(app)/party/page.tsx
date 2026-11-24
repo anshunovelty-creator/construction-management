@@ -100,7 +100,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
     </>
   );
   // Without a site or a bank/cash account the sheet cannot save, so say where to add one.
-  const missing = (source: 'sites' | 'firmAccounts', slug: string, key: string) =>
+  const missing = (source: 'sites' | 'moneyAccounts', slug: string, key: string) =>
     (choices[source] ?? []).length === 0 && (
       <p className="banner bad">
         {t(`party.${key}`)} <Link href={`/masters/${slug}`} className="underline">{t('party.goSetup')}</Link>
@@ -146,7 +146,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
         }
         pay={
           <ReceiveMoney side="party" name={party.name} firm={firm.name} total={f.total} received={f.paid} balance={f.balance}
-            lastBill={lastBill?.amount} accounts={choices.firmAccounts ?? []} lastAccount={lastFrom} today={todayInIndia()}
+            lastBill={lastBill?.amount} accounts={choices.moneyAccounts ?? []} lastAccount={lastFrom} today={todayInIndia()}
             save={postPartyRows.bind(null, 'pay-vendor', firm.id, party.id)} />
         }
       />
@@ -249,7 +249,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
             )}
             <details className="add-rows">
               <summary className="btn ghost">▦ {t('party.addPayments')}</summary>
-              {missing('firmAccounts', 'money-accounts', 'needAccount')}
+              {missing('moneyAccounts', 'money-accounts', 'needAccount')}
               <p className="hint">{t('party.addHint')}</p>
               <EntrySheet
                 columns={columns('pay-vendor', payFields, 'payDate')}

@@ -5,7 +5,7 @@ import { showPaise } from '@/lib/money';
 
 type T = Awaited<ReturnType<typeof getTranslations>>;
 
-export const GROUPS: Exclude<Group, 'sites'>[] = ['money', 'weOwe', 'owedToUs', 'betweenFirms', 'heldByClients', 'assets', 'gst', 'tds', 'owner'];
+export const GROUPS: Exclude<Group, 'sites'>[] = ['unknown', 'money', 'weOwe', 'owedToUs', 'betweenFirms', 'heldByClients', 'assets', 'gst', 'tds', 'firm', 'owner'];
 /** Long groups show this many rows, the rest behind "show more". */
 const SHOWN = 6;
 
@@ -19,7 +19,7 @@ export function GroupCards({ plain, groups, t, supervisor = false }: { plain: Pl
         const sum = items.reduce((s, p) => s + p.shown, 0);
         const row = (p: Plain) => (
           <div key={p.key} className="row">
-            <span className="name">{p.label}</span>
+            <span className="name">{p.key.startsWith('money:') ? <Link href={`/bankbook/${p.key.slice(6)}`} className="underline">{p.label}</Link> : p.label}</span>
             <span className="val">{showPaise(p.shown)}</span>
           </div>
         );
@@ -28,7 +28,7 @@ export function GroupCards({ plain, groups, t, supervisor = false }: { plain: Pl
             <h2 className="section-title">{t(supervisor && group === 'money' ? 'board.yourCash' : `board.${group}.title`)}</h2>
             {/* The owner card mixes unrelated things (own money, cash short), and the GST card GST to claim with
                 GST to pay, so their sums mean nothing. */}
-            {group !== 'owner' && group !== 'gst' && <p className="group-total">{showPaise(sum)}</p>}
+            {group !== 'owner' && group !== 'gst' && group !== 'firm' && <p className="group-total">{showPaise(sum)}</p>}
             <p className="hint">{t(`board.${group}.hint`)}</p>
             {items.slice(0, SHOWN).map(row)}
             {items.length > SHOWN && (

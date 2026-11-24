@@ -1,4 +1,5 @@
 import type { AppRole } from '@/lib/auth';
+import { IN_REASONS, OUT_REASONS } from '@/lib/ledger/posting/other';
 import { COST_HEADS } from '@/lib/ledger/types';
 import type { IconName } from '@/components/icons';
 
@@ -6,11 +7,16 @@ import type { IconName } from '@/components/icons';
 export const ENUMS = {
   party_kind: ['vendor', 'client', 'worker', 'staff', 'other'],
   contract_type: ['item_rate', 'fixed'],
-  money_account_kind: ['bank', 'owner_cash', 'supervisor_cash'],
+  /** Cash with a person (supervisor_cash) is no longer offered (owner decision 2026-11-24): only Bank and Cash. */
+  money_account_kind: ['bank', 'owner_cash'],
   role: ['owner', 'office', 'supervisor', 'labour'],
   cost_head: COST_HEADS,
   /** Not a database enum: whether the owner puts money in or takes it out. */
   owner_money: ['in', 'out'],
+  /** Not a database enum: whether money not yet known came in or went out. */
+  in_out: ['in', 'out'],
+  /** Not a database enum: what other money in or out was for (see REASONS). */
+  money_reason: [...IN_REASONS, ...OUT_REASONS],
   /** Not a database enum: how a payment or receipt was made. Online and cheque use a bank; cash uses a cash account. */
   payment_method: ['online', 'cash', 'cheque'],
   /** How a unit is measured on the daily report: see src/lib/work.ts. */
@@ -27,12 +33,11 @@ export const ENUMS = {
 export type EnumName = keyof typeof ENUMS;
 
 /**
- * Where a reference field's choices come from. In a working firm, `moneyAccounts` lists that firm's banks
- * and common cash; `firmAccounts` lists only that firm's own banks and cash, for payments and receipts: firms never share money.
+ * Where a reference field's choices come from. In a working firm, `moneyAccounts` lists that firm's own banks and cash.
  */
 export type RefSource =
   | 'firms' | 'sites' | 'clients' | 'supervisors' | 'vendors' | 'parties' | 'materials' | 'units' | 'gstRates' | 'tdsRates'
-  | 'moneyAccounts' | 'firmAccounts';
+  | 'moneyAccounts';
 
 /** One choice in a dropdown. Choices with a `group` come last, under that heading. */
 /** `kind`: a money account's kind (bank, owner_cash, ...), so a payment form can list only accounts that fit how it was paid. */
@@ -40,9 +45,17 @@ export type Choice = { value: string; label: string; group?: string; kind?: stri
 
 export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
+  /** A whole number, from `min` to `max`. */
+  | { name: string; kind: 'whole'; min: number; max: number; required?: boolean }
   | { name: string; kind: 'rupees'; required?: boolean; allowZero?: boolean }
   | { name: string; kind: 'enum'; enum: EnumName; required?: boolean }
   | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean };
+
+/** Asked only when a bank or cash account is added: what it holds already. Posted as its opening balance, not a column. */
+export const OPENING_FIELDS: Field[] = [
+  { name: 'opening_balance', kind: 'rupees', allowZero: true },
+  { name: 'opening_date', kind: 'date' },
+];
 
 export interface MasterDef {
   table: string;
@@ -64,10 +77,13 @@ export const MASTERS: Record<string, MasterDef> = {
   firms: {
     table: 'firms',
     ownerOnly: true,
-    list: ['code', 'name'],
+    list: ['code', 'name', 'salary_day', 'runs_labour'],
     fields: [
       { name: 'code', kind: 'text', required: true },
       { name: 'name', kind: 'text', required: true },
+      // One firm (the database checks): Ansari Enterprise.
+      { name: 'runs_labour', kind: 'checkbox' },
+      { name: 'salary_day', kind: 'whole', min: 1, max: 28, required: true },
     ],
   },
   sites: {
@@ -81,12 +97,13 @@ export const MASTERS: Record<string, MasterDef> = {
     ownerOnly: false,
     // Old "other" parties stay listed so they can still be found and changed to a party or client.
     kinds: ['vendor', 'client', 'other'],
-    list: ['name', 'kind', 'phone', 'gst_number', 'is_active'],
+    list: ['name', 'kind', 'phone', 'gst_number', 'credit_days', 'is_active'],
     fields: [
       { name: 'kind', kind: 'enum', enum: 'party_main', required: true },
       { name: 'name', kind: 'text', required: true },
       { name: 'phone', kind: 'text' },
       { name: 'gst_number', kind: 'text' },
+      { name: 'credit_days', kind: 'whole', min: 0, max: 365 },
       active,
     ],
   },
@@ -110,12 +127,11 @@ export const MASTERS: Record<string, MasterDef> = {
   'money-accounts': {
     table: 'money_accounts',
     ownerOnly: true,
-    list: ['name', 'kind', 'firm_id', 'holder_user_id', 'is_active'],
+    list: ['name', 'kind', 'firm_id', 'is_active'],
     fields: [
       { name: 'kind', kind: 'enum', enum: 'money_account_kind', required: true },
       { name: 'name', kind: 'text', required: true },
       { name: 'firm_id', kind: 'ref', ref: 'firms' },
-      { name: 'holder_user_id', kind: 'ref', ref: 'supervisors' },
       active,
     ],
   },
@@ -191,8 +207,8 @@ const amount: Field = { name: 'amount', kind: 'rupees', required: true };
 const date: Field = { name: 'entry_date', kind: 'date', required: true };
 const note: Field = { name: 'narration', kind: 'text' };
 const reference: Field = { name: 'reference', kind: 'text' };
-/** A bank or cash account field; `ref` says whether the other firm's banks are offered too (see RefSource). */
-const account = (name: string, ref: RefSource = 'moneyAccounts'): Field => ({ name, kind: 'ref', ref, required: true });
+/** A bank or cash account of the working firm. */
+const account = (name: string): Field => ({ name, kind: 'ref', ref: 'moneyAccounts', required: true });
 const from = account('from_account_id');
 const costHead: Field = { name: 'cost_head', kind: 'enum', enum: 'cost_head', required: true };
 const client: Field = { name: 'client_id', kind: 'ref', ref: 'clients', required: true };
@@ -204,7 +220,7 @@ const billAmount: Field[] = [{ name: 'amount', kind: 'rupees', required: true },
 /**
  * The money forms, keyed by URL slug (/entries/new/<slug>), in the order the "Add an entry" page shows them.
  * `roles` is who is offered each form. Supervisors are offered none: what they spend goes on the daily report (owner
- * decision 2026-11-03), though the database (app_assert_can_post) would still take their site spend and cash count.
+ * decision 2026-11-03), though the database (app_assert_can_post) would still take their site spend.
  * None asks for the firm: forms are filled in the working firm, the one chosen at the top right.
  */
 export const ENTRY_FORMS = {
@@ -228,8 +244,7 @@ export const ENTRY_FORMS = {
     roles: ['owner', 'office'],
     fields: [
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
-      // Another firm's bank may pay this firm's bill: this firm then owes that one.
-      payMethod, account('from_account_id', 'firmAccounts'), amount, date, reference, note,
+      payMethod, from, amount, date, reference, note,
     ],
   },
   'client-bill': {
@@ -253,7 +268,7 @@ export const ENTRY_FORMS = {
     icon: 'receive' as IconName,
     roles: ['owner', 'office'],
     // The client's money lands in this firm's own bank or cash.
-    fields: [client, payMethod, account('to_account_id', 'firmAccounts'), amount, date, reference, note],
+    fields: [client, payMethod, account('to_account_id'), amount, date, reference, note],
   },
   'site-spend': {
     icon: 'tool' as IconName,
@@ -268,13 +283,29 @@ export const ENTRY_FORMS = {
       date,
     ],
   },
-  'day-close': {
+  'move-money': {
+    icon: 'arrowRight' as IconName,
+    roles: ['owner', 'office'],
+    fields: [from, account('to_account_id'), amount, date, reference, note],
+  },
+  'not-yet-known': {
     icon: 'calc' as IconName,
-    roles: ['owner'],
+    roles: ['owner', 'office'],
     fields: [
-      { name: 'account_id', kind: 'ref', ref: 'moneyAccounts', required: true },
-      { name: 'counted', kind: 'rupees', required: true, allowZero: true },
-      date,
+      { name: 'direction', kind: 'enum', enum: 'in_out', required: true },
+      account('account_id'), amount, date, reference,
+      { name: 'narration', kind: 'text', required: true },
+    ],
+  },
+  'other-money': {
+    icon: 'bank' as IconName,
+    roles: ['owner', 'office'],
+    fields: [
+      { name: 'reason', kind: 'enum', enum: 'money_reason', required: true },
+      account('account_id'), amount, date,
+      { name: 'person_id', kind: 'ref', ref: 'parties' },
+      { name: 'month', kind: 'text' },
+      reference, note,
     ],
   },
   'owner-money': {
@@ -282,7 +313,7 @@ export const ENTRY_FORMS = {
     roles: ['owner'],
     fields: [
       { name: 'direction', kind: 'enum', enum: 'owner_money', required: true },
-      { name: 'account_id', kind: 'ref', ref: 'moneyAccounts', required: true },
+      account('account_id'),
       amount, date, note,
     ],
   },
@@ -290,8 +321,7 @@ export const ENTRY_FORMS = {
 export type EntryFormSlug = keyof typeof ENTRY_FORMS;
 
 /**
- * Forms made for the working firm's own vendor or client. The others take their firm from the bank picked
- * (cash makes them common), as the posting rules always have.
+ * Forms made for the working firm's own vendor or client. The others take their firm from the bank or cash account picked.
  */
 export const FIRM_FORMS: ReadonlySet<string> = new Set<EntryFormSlug>(['vendor-bill', 'pay-vendor', 'client-bill', 'client-receipt']);
 

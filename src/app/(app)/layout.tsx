@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <>
       <NavLink href="/labour" exact className="tab-item"><Icon name="people" size={22} /><span>{t('labour.tabs.workers')}</span></NavLink>
       <NavLink href="/labour/month" className="tab-item"><Icon name="report" size={22} /><span>{t('labour.tabs.month')}</span></NavLink>
+      <NavLink href="/labour/supplied" className="tab-item"><Icon name="clients" size={22} /><span>{t('labour.tabs.supplied')}</span></NavLink>
     </>
   ) : office ? (
     <>
@@ -47,6 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <nav aria-label={t('nav.label')} className="nav">
             <NavLink href="/labour" exact><Icon name="people" /><span>{t('labour.tabs.workers')}</span></NavLink>
             <NavLink href="/labour/month"><Icon name="report" /><span>{t('labour.tabs.month')}</span></NavLink>
+            <NavLink href="/labour/supplied"><Icon name="clients" /><span>{t('labour.tabs.supplied')}</span></NavLink>
           </nav>
         ) : office ? (
           <>
@@ -60,9 +62,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <p className="nav-heading">{t('nav.groupMoney')}</p>
               <NavLink href="/" section="/party"><Icon name="parties" /><span>{t('nav.parties')}</span></NavLink>
               <NavLink href="/clients" section="/client"><Icon name="clients" /><span>{t('nav.clients')}</span></NavLink>
+              <NavLink href="/bankbook" section="/bankbook"><Icon name="bank" /><span>{t('nav.bankbook')}</span></NavLink>
+              <NavLink href="/forecast"><Icon name="overview" /><span>{t('nav.forecast')}</span></NavLink>
               <NavLink href="/entries" exact><Icon name="daybook" /><span>{t('nav.daybook')}</span></NavLink>
               <NavLink href="/ledger" section="/ledger"><Icon name="invoice" /><span>{t('nav.ledger')}</span></NavLink>
               <NavLink href="/tds" section="/tds"><Icon name="tds" /><span>{t('nav.tds')}</span></NavLink>
+              <NavLink href="/gst" section="/gst"><Icon name="bill" /><span>{t('nav.gst')}</span></NavLink>
             </nav>
             <nav aria-label={t('nav.groupSites')} className="nav nav-group">
               <p className="nav-heading">{t('nav.groupSites')}</p>
@@ -80,6 +85,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {owner && (
               <nav aria-label={t('nav.groupAdmin')} className="nav nav-group">
                 <p className="nav-heading">{t('nav.groupAdmin')}</p>
+                <NavLink href="/close"><Icon name="check" /><span>{t('nav.close')}</span></NavLink>
                 <NavLink href="/users"><Icon name="people" /><span>{t('nav.users')}</span></NavLink>
                 <NavLink href="/history"><Icon name="history" /><span>{t('nav.history')}</span></NavLink>
                 <NavLink href="/bin" section="/bin"><Icon name="trash" /><span>{t('nav.bin')}</span></NavLink>

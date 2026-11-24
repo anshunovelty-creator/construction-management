@@ -115,7 +115,7 @@ describe('opening entries', () => {
     });
     expect(draft).toMatchObject({ entryType: 'opening', entryDate: '2026-10-21', reference: 'Briks SVG Site' });
     expect(draft.lines).toEqual([
-      { account: 'opening_balance', amountPaise: 500 },
+      { account: 'opening_balance', amountPaise: 500, firmId: 'firm-ji' },
       { account: 'vendor_payable', amountPaise: -500, firmId: 'firm-ji', partyId: 'party-1' },
     ]);
   });

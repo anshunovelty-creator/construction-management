@@ -45,6 +45,10 @@ export default async function MasterEditPage({
       </h2>
       <Form fields={def.fields} defaults={defaults} choices={choices} action={saveMaster.bind(null, slug, id)} submitLabel={t('masters.save')} />
 
+      {slug === 'money-accounts' && row.firm_id && profile.role === 'owner' && (
+        <p className="mt-6"><Link href={`/bankbook/${id}/opening`} className="btn ghost"><Icon name="bank" /> {t('bankbook.buttons.opening')}</Link></p>
+      )}
+
       {/* A firm is never deleted: every entry, site and account hangs off it. It can only be renamed. */}
       {/* A PF rate is changed, not deleted: months already paid were worked out with it. */}
       {profile.role === 'owner' && slug !== 'pf-rates' && (slug === 'firms' ? <p className="hint mt-6">{t('masters.delete.noFirm')}</p> : (

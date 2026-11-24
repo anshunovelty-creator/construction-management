@@ -2,7 +2,7 @@ import type { PGlite, PGliteInterface } from '@electric-sql/pglite';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { postEntry } from '@/lib/ledger/repo';
 import type { EntryDraft } from '@/lib/ledger/types';
-import { createMigratedDb, OFFICE, ownerToRamesh, seedBasics, type Seed } from './harness';
+import { createMigratedDb, OFFICE, bankToRamesh, seedBasics, type Seed } from './harness';
 
 let template: PGlite;
 let db: PGliteInterface;
@@ -27,9 +27,9 @@ describe('database guards on the ledger', () => {
           ['11111111-1111-4111-8111-111111111111', OFFICE],
         );
         await tx.query(
-          `insert into entry_lines (entry_id, line_no, account, amount_paise, money_account_id)
-           values ($1, 1, 'money', 500, $2), ($1, 2, 'money', -400, $3)`,
-          ['11111111-1111-4111-8111-111111111111', seed.rameshCash.id, seed.ownerCash.id],
+          `insert into entry_lines (entry_id, line_no, account, amount_paise, money_account_id, firm_id)
+           values ($1, 1, 'money', 500, $2, $4), ($1, 2, 'money', -400, $3, $4)`,
+          ['11111111-1111-4111-8111-111111111111', seed.rameshCash.id, seed.ownerCash.id, seed.jayraj],
         );
       }),
     ).rejects.toThrow('does not balance');
@@ -48,7 +48,7 @@ describe('database guards on the ledger', () => {
   });
 
   it('never allows ledger rows to be updated, deleted or truncated', async () => {
-    await postEntry(db, ownerToRamesh(seed, 100_000), OFFICE);
+    await postEntry(db, bankToRamesh(seed, 100_000), OFFICE);
     await expect(db.query(`update entry_lines set amount_paise = 1`)).rejects.toThrow('append-only');
     await expect(db.query(`delete from entry_lines`)).rejects.toThrow('append-only');
     await expect(db.query(`update entries set narration = 'changed'`)).rejects.toThrow('append-only');
@@ -57,21 +57,21 @@ describe('database guards on the ledger', () => {
   });
 
   it('refuses extra lines added to an existing entry later', async () => {
-    const { id } = await postEntry(db, ownerToRamesh(seed, 100_000), OFFICE);
+    const { id } = await postEntry(db, bankToRamesh(seed, 100_000), OFFICE);
     await expect(
       db.query(
-        `insert into entry_lines (entry_id, line_no, account, amount_paise, money_account_id)
-         values ($1, 3, 'money', 100, $2), ($1, 4, 'money', -100, $3)`,
-        [id, seed.rameshCash.id, seed.ownerCash.id],
+        `insert into entry_lines (entry_id, line_no, account, amount_paise, money_account_id, firm_id)
+         values ($1, 3, 'money', 100, $2, $4), ($1, 4, 'money', -100, $3, $4)`,
+        [id, seed.rameshCash.id, seed.ownerCash.id, seed.jayraj],
       ),
     ).rejects.toThrow('lines can only be added in the transaction that creates entry');
   });
 
   it('requires a money line to carry the firm of its bank account', async () => {
-    const draft = ownerToRamesh(seed, 100_000);
+    const draft = bankToRamesh(seed, 100_000);
     draft.lines = [
       { account: 'money', amountPaise: 100_000, firmId: seed.ab, moneyAccountId: seed.jayrajBank.id },
-      { account: 'money', amountPaise: -100_000, moneyAccountId: seed.ownerCash.id },
+      { account: 'money', amountPaise: -100_000, firmId: seed.jayraj, moneyAccountId: seed.ownerCash.id },
     ];
     await expect(postEntry(db, draft, OFFICE)).rejects.toThrow('money line firm must match');
   });

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { dayAmount, dayPay, lastMonth, otCenti, salaryPeriod, salaryTotals, staffSalary } from '@/lib/wages';
+import { dayAmount, dayPay, lastMonth, otCenti, salaryPeriod, staffSalary } from '@/lib/wages';
 
 it('pays a worker 8 hours a day with OT at a day ÷ 8; staff cost a site a day\'s share of their month', () => {
   expect(dayPay('worker', 6_500, '2026-11-02')).toBe(52_000);
@@ -12,17 +12,12 @@ it('pays a worker 8 hours a day with OT at a day ÷ 8; staff cost a site a day\'
   expect(() => otCenti('abc')).toThrow();
 });
 
-it('finds the salary period, and adds up days, OT and pay', () => {
+it('finds the salary period', () => {
   expect(salaryPeriod({ month: '2026-02' }, '2026-10-31')).toEqual({ from: '2026-02-01', to: '2026-02-28', month: '2026-02' });
   expect(salaryPeriod({ from: '2026-10-01', to: '2026-10-07' }, '2026-10-31')).toEqual({ from: '2026-10-01', to: '2026-10-07' });
   expect(salaryPeriod({ from: '2026-10-07', to: '2026-10-01' }, '2026-10-31')).toEqual({ from: '2026-10-01', to: '2026-10-07' });
   expect(salaryPeriod({}, '2026-10-18')).toEqual({ from: '2026-10-01', to: '2026-10-18', month: '2026-10' });
   expect(lastMonth('2026-01')).toBe('2025-12');
-  expect(salaryTotals([
-    { present: true, ot_hours: '2', day_pay_paise: 52_000, amount_paise: 65_000 },
-    { present: false, ot_hours: '0', day_pay_paise: 52_000, amount_paise: 0 },
-    { present: true, ot_hours: '0', day_pay_paise: 52_000, amount_paise: 52_000 },
-  ])).toEqual({ present: 2, absent: 1, otHours: 2, dayPaise: 104_000, otPaise: 13_000, totalPaise: 117_000 });
 });
 
 it('keeps staff salary fixed: the whole month whatever the attendance, by calendar days for part of a month', () => {
@@ -42,7 +37,7 @@ it('cuts PF from staff (not labour unless switched on), takes off advances and d
   expect(pfCut('worker', switches, '2026-12')).toBe(true);
 
   const staff = {
-    kind: 'staff' as const, ratePaise: 2_000_000, from: '2026-10-01', to: '2026-11-30', days: [], pf: [], pfRates: [],
+    kind: 'staff' as const, ratePaise: 2_000_000, from: '2026-10-01', to: '2026-11-30', months: [], pf: [], pfRates: [],
     money: [
       { money_date: '2026-10-05', kind: 'advance' as const, amount_paise: 500_000 },
       { money_date: '2026-10-31', kind: 'payment' as const, amount_paise: 1_500_000 },
@@ -59,11 +54,28 @@ it('cuts PF from staff (not labour unless switched on), takes off advances and d
 
   const worker = {
     kind: 'worker' as const, ratePaise: 0, from: '2026-11-01', to: '2026-11-30', pf: [], pfRates: [],
-    days: [{ work_date: '2026-11-02', present: true, amount_paise: 52_000 }, { work_date: '2026-11-03', present: false, amount_paise: 0 }],
+    months: [{ month: '2026-11-01', days: '1', ot_hours: '2.5', salary_paise: '52000' }],
     money: [],
   };
-  expect(salaryRow(worker, '2026-11-01', '2026-11-30')).toMatchObject({ days: 1, salary: 52_000, pf: 0, balance: 52_000 });
+  expect(salaryRow(worker, '2026-11-01', '2026-11-30')).toMatchObject({ days: 1, otHours: 2.5, salary: 52_000, pf: 0, balance: 52_000 });
   expect(salaryRow({ ...worker, pf: switches }, '2026-11-01', '2026-11-30')).toMatchObject({ pf: 6_240, balance: 45_760 });
+});
+
+it('counts an opening balance from before the app in its month, even before the first month typed, and carries it', async () => {
+  const { salaryLedger, salaryRow } = await import('@/lib/wages');
+  const worker = {
+    kind: 'worker' as const, ratePaise: 0, from: '2026-11-01', to: '2026-11-30', pf: [], pfRates: [], money: [],
+    months: [{ month: '2026-11-01', days: 1, ot_hours: 0, salary_paise: 52_000 }],
+    opening: { month: '2026-10-01', amount_paise: 300_000 },
+  };
+  const [oct, nov] = salaryLedger(worker);
+  expect(oct).toMatchObject({ month: '2026-10', opening: 300_000, before: 300_000, salary: 0, balance: 300_000 });
+  expect(nov).toMatchObject({ opening: 0, before: 300_000, balance: 352_000 });
+  expect(salaryRow(worker, '2026-10-01', '2026-10-31')).toMatchObject({ before: 300_000, balance: 300_000 });
+  expect(salaryRow(worker, '2026-11-15', '2026-11-30')).toMatchObject({ before: 352_000, balance: 352_000 });
+  // Paid extra before the app comes off the first salary.
+  expect(salaryRow({ ...worker, opening: { month: '2026-11-01', amount_paise: -20_000 } }, '2026-11-01', '2026-11-30'))
+    .toMatchObject({ before: -20_000, balance: 32_000 });
 });
 
 it('takes the PF rate from Setup, each counting from the month of its date, else 12%', async () => {
@@ -73,4 +85,14 @@ it('takes the PF rate from Setup, each counting from the month of its date, else
   expect(pfRate(rates, '2026-11')).toBe(1200); // earlier months keep theirs
   expect(pfRate(rates, '2026-12')).toBe(1000);
   expect(pfRate(rates, '2025-06')).toBe(1200);
+});
+
+it('offers a worker\'s pay per day from the last month typed, else the first one', async () => {
+  const { payPerDay } = await import('@/lib/wages');
+  const m = (month: string, day_pay_paise: string) => ({ month, days: 0, ot_hours: 0, salary_paise: 0, day_pay_paise });
+  const months = [m('2026-12-01', '60000'), m('2026-10-01', '50000'), m('2026-11-01', '0')];
+  expect(payPerDay(months, '2026-11')).toBe(50_000); // not typed: carries on
+  expect(payPerDay(months, '2027-02')).toBe(60_000);
+  expect(payPerDay(months, '2026-08')).toBe(50_000);
+  expect(payPerDay([], '2026-11')).toBe(0);
 });

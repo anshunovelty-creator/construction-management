@@ -389,7 +389,7 @@ table.saved-work tr.in-group td:first-child { padding-left: 28px; }
 .quick-time .chip.mark-P.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); }
 .quick-time .chip.mark-A.on { background: var(--minus-soft); border-color: var(--minus); color: var(--minus); }
 .labour-table .qty-with-unit input { width: 4.5rem; }
-/* The labour supply section: forms, and the month's sheet. */
+/* The labour payment section: forms, and the month's sheet. */
 .subnav + h1, .subnav + .page-head { margin-top: 16px; }
 .labour-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 18px; align-items: start; margin-bottom: 16px; }
 .labour-form-title, .labour-form-end { grid-column: 1 / -1; margin: 0; }
@@ -437,6 +437,29 @@ tr.extra-month td, table.ledger tbody tr.extra-month td { background: var(--plus
 .month-grid .sheet td.changed-rate, .month-grid .sheet td.changed-rate > input:not(:focus) { background-color: var(--accent-soft); }
 .month-grid tr:target td { background: var(--head); }
 .month-grid tr { scroll-margin-top: 80px; }
+/* A family: the head's line carries the family's totals and money, and each member sits indented beneath it. */
+.month-grid tr.family-row td { border-top: 2px solid var(--rule); }
+.month-grid tr.family-row td:first-child .party-link { font-weight: 600; }
+.month-grid tr.member-row td:first-child { padding-left: 28px; }
+/* On a laptop or desktop the whole month fits the page, with no sideways scrolling; phones scroll the sheet. */
+@media (min-width: 961px) {
+  .month-grid table.sheet { width: 100%; min-width: 0; table-layout: fixed; font-size: 13px; }
+  .month-grid .sheet thead th { white-space: normal; line-height: 1.25; padding: 8px 5px; font-size: 12px; vertical-align: bottom; }
+  .month-grid .sheet th:first-child { width: 9rem; }
+  .month-grid .sheet th.reason { width: 9rem; }
+  .month-grid .sheet td:has(> input:not([type='hidden'])),
+  .month-grid .sheet td:not(.num):has(> input:not([type='hidden'])) { width: auto; min-width: 0; }
+  .month-grid td:not(:has(input:not([type='hidden']))) { padding: 6px 5px; }
+  .month-grid .sheet td:first-child { white-space: normal; overflow-wrap: anywhere; }
+  .month-grid .sheet td > input:not([type='hidden']) { padding: 0 6px; }
+}
+/* A laptop: a little smaller, so a family's lakh still fits its column. */
+@media (min-width: 961px) and (max-width: 1439px) {
+  .month-grid table.sheet { font-size: 12px; }
+  .month-grid .sheet th:first-child { width: 8.5rem; }
+  .month-grid td:not(:has(input:not([type='hidden']))) { padding: 6px 4px; }
+  .month-grid .sheet td > input:not([type='hidden']) { padding: 0 4px; }
+}
 .month-save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 /* A sheet and its Save button stand apart from whatever follows. */
 .month-grid { margin-bottom: 28px; }
@@ -534,6 +557,10 @@ tr.extra-month td, table.ledger tbody tr.extra-month td { background: var(--plus
 .field { display: grid; gap: 6px; }
 .field label { font-weight: 500; font-size: 14px; color: var(--ink-2); }
 .field .hint { margin: 0; font-size: 12.5px; }
+/* A choice of one, laid out like a field: its question reads as the field's label. */
+fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.field legend { padding: 0; margin-bottom: 6px; font-weight: 500; font-size: 14px; color: var(--ink-2); }
+fieldset.field .check-line { font-weight: 400; color: var(--ink); }
 .optional { font-weight: 400; color: var(--faint); font-size: 13px; }
 .error { margin: 0; font-size: 13.5px; color: var(--minus); }
 .form-error { padding: 10px 14px; border-radius: var(--radius-sm); background: var(--minus-soft); border: 1px solid color-mix(in srgb, var(--minus) 22%, transparent); }
@@ -809,6 +836,7 @@ tr:hover .party-link { color: var(--accent); }
 .rcv-tile.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .rcv-tile.on .icon { color: inherit; }
 .rcv-tile:has(input:focus-visible) { box-shadow: var(--ring); }
+.rcv-ways { grid-template-columns: 1fr 1fr; }
 .rcv-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rcv-dates input { flex: 1 1 150px; width: auto; }
 .rcv-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -918,19 +946,20 @@ section > .bill-totals { margin-top: 10px; }
 table.salary-sheet { table-layout: fixed; min-width: 1080px; }
 table.salary-sheet th:first-child { width: 17%; }
 table.salary-sheet td:first-child { overflow-wrap: anywhere; }
-/* A salary slip's attendance: cards with the totals; tapping them opens every day. */
-.attendance > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; padding: 4px 0; }
-.attendance > summary::-webkit-details-marker { display: none; }
-.att-card { display: grid; gap: 2px; min-width: 110px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
-  background: var(--sunken); transition: border-color .15s ease, background-color .15s ease; }
-.att-card strong { font-size: 18px; font-variant-numeric: tabular-nums; }
-.att-open { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--accent); font-size: 14px; font-weight: 500; }
-.att-open .icon { transition: transform .15s ease; }
-.attendance > summary:hover .att-card { border-color: var(--accent-line); background: var(--sheet); }
-.attendance[open] > summary { margin-bottom: 12px; }
-.attendance[open] .att-open .icon { transform: rotate(180deg); }
-.attendance:not([open]) .when-open, .attendance[open] .when-closed { display: none; }
-@media print { .attendance .att-open { display: none; } }
+/* The Skill sheet's boxes, typed straight into the table. */
+table.salary-sheet td.typed { padding: 4px 6px; }
+table.salary-sheet td.typed input { width: 100%; min-width: 0; min-height: 36px; padding: 4px 8px; text-align: right; -moz-appearance: textfield; appearance: textfield; }
+table.salary-sheet td.typed input::-webkit-inner-spin-button, table.salary-sheet td.typed input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+table.salary-sheet td small { display: block; white-space: normal; }
+table.skill-sheet th, table.skill-sheet td { padding-left: 8px; padding-right: 8px; }
+table.skill-sheet th:first-child { width: 12%; }
+table.skill-sheet { min-width: 1120px; }
+table.skill-sheet th:nth-child(2) { width: 7.5%; }
+table.skill-sheet th:nth-child(3), table.skill-sheet th:nth-child(4) { width: 6%; }
+table.skill-sheet th:nth-child(6) { width: 14%; }
+table.skill-sheet th, table.skill-sheet td .balance-word { white-space: normal; }
+table.skill-sheet tr { scroll-margin-top: 80px; }
+.card + .month-save { margin-top: 12px; }
 .pf-cell { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 9.5em; } /* fixed width: ₹ amount ↔ – does not move the columns */
 .switch { position: relative; display: block; flex: none; inline-size: 34px; block-size: 20px; min-height: 0; padding: 0; box-shadow: none; border-radius: 999px; border: 1px solid var(--rule-strong);
   background: var(--sunken); cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
@@ -1164,3 +1193,50 @@ table.statement .pill { margin-left: 6px; }
 .asset-move > .btn { justify-self: start; }
 @media (max-width: 760px) { .asset-move-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .asset-move-grid { grid-template-columns: minmax(0, 1fr); } .asset-move-grid > .field.wide { grid-column: auto; } }
+
+/* Bankbooks: one table per firm, and the Sort it out button on an entry. */
+.bankbook-group + .bankbook-group { margin-top: 16px; }
+.bankbook-group table { table-layout: fixed; min-width: 0; }
+.bankbook-group th:first-child { width: 32%; }
+@media (max-width: 640px) {
+  /* A phone shows the name and what it holds. */
+  .bankbook-group th:first-child { width: 60%; }
+  .bankbook-group tr > :nth-child(2):not(:last-child), .bankbook-group tr > :nth-child(3):not(:last-child), .bankbook-group tr > :nth-child(4):not(:last-child) { display: none; }
+}
+.our-firms { margin-top: 20px; }
+.pay-cost form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.pay-cost select, .pay-cost input { width: auto; max-width: 220px; min-height: 36px; padding-block: 4px; }
+.pay-cell { width: 1%; white-space: nowrap; }
+.pay-list .balance-word { white-space: nowrap; }
+@media (max-width: 640px) {
+  /* A phone shows the name, what is left and the button. */
+  .pay-list tr > :is(:nth-child(1), :nth-child(3), :nth-child(4), :nth-child(5)):not(:last-child):not([colspan]) { display: none; }
+}
+#add { scroll-margin-top: 80px; }
+.btn.get { background: var(--plus); border-color: var(--plus); }
+.btn.get:hover { background: color-mix(in srgb, var(--plus) 88%, black); }
+.btn.pay { background: var(--minus); border-color: var(--minus); }
+.btn.pay:hover { background: color-mix(in srgb, var(--minus) 88%, black); }
+.sort-out { margin: 16px 0; }
+.rcv-done-amount.minus { color: var(--minus); }
+
+/* Labour supplied: a worker's places, one line each. */
+.place-line { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.place-line select { flex: 1 1 180px; min-width: 0; }
+.place-line select.bad { border-color: var(--minus); }
+.place-line input { width: 72px; }
+.link-button { padding: 4px 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; cursor: pointer; }
+
+/* Paying people, and tax: what is given to each beside what is left. */
+.pay-people { display: grid; gap: 14px; margin-bottom: 16px; }
+.pay-head { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.pay-box { width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
+.pay-people .minus .link-button { color: inherit; text-decoration: underline; }
+.pay-people .rcv-words { margin: 0; text-align: left; }
+.tax-paid { margin: 12px 0; }
+.tax-paid > summary { display: inline-flex; list-style: none; cursor: pointer; }
+.tax-paid > form { margin-top: 12px; }
+
+.tick { width: 20px; height: 20px; accent-color: var(--accent); }
+
+.forecast td, .forecast th { white-space: nowrap; }

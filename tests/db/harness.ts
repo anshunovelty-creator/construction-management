@@ -68,36 +68,35 @@ export async function seedBasics(db: PGliteInterface): Promise<Seed> {
     client: { firmId: jayraj, clientId: svgClient, siteId: svgSite },
     jayrajBank: await account('bank', 'Jayraj Infra - Bank', jayraj),
     abBank: await account('bank', 'A B Infra - Bank', ab),
-    ownerCash: await account('owner_cash', 'Owner cash', null),
-    rameshCash: await account('supervisor_cash', 'Ramesh cash', null),
+    ownerCash: await account('owner_cash', 'Owner cash', jayraj),
+    rameshCash: await account('supervisor_cash', 'Ramesh cash', jayraj),
   };
 }
 
-/** Owner gives Ramesh cash: the simplest valid entry (common CM series). */
-export function ownerToRamesh(seed: Seed, amountPaise: number, entryDate = '2026-10-22'): EntryDraft {
+/** Cash drawn from Jayraj's bank and given to Ramesh: the simplest valid entry (a bank may go below zero). */
+export function bankToRamesh(seed: Seed, amountPaise: number, entryDate = '2026-10-22'): EntryDraft {
   return {
     id: crypto.randomUUID(),
     entryType: 'cash_transfer',
     entryDate,
-    firmId: null,
+    firmId: seed.jayraj,
     lines: [
-      { account: 'money', amountPaise, moneyAccountId: seed.rameshCash.id },
-      { account: 'money', amountPaise: -amountPaise, moneyAccountId: seed.ownerCash.id },
+      { account: 'money', amountPaise, firmId: seed.jayraj, moneyAccountId: seed.rameshCash.id },
+      { account: 'money', amountPaise: -amountPaise, firmId: seed.jayraj, moneyAccountId: seed.jayrajBank.id },
     ],
   };
 }
 
-/** Cash drawn from Jayraj's bank to the owner (JI series). */
-export function jayrajBankToOwner(seed: Seed, amountPaise: number): EntryDraft {
+/** The owner's own money put into A B Infra's bank (AB series). */
+export function ownerToAbBank(seed: Seed, amountPaise: number): EntryDraft {
   return {
     id: crypto.randomUUID(),
-    entryType: 'cash_transfer',
+    entryType: 'owner_capital',
     entryDate: '2026-10-22',
-    firmId: seed.jayraj,
-    reference: 'CHQ-1',
+    firmId: seed.ab,
     lines: [
-      { account: 'money', amountPaise, moneyAccountId: seed.ownerCash.id },
-      { account: 'money', amountPaise: -amountPaise, firmId: seed.jayraj, moneyAccountId: seed.jayrajBank.id },
+      { account: 'money', amountPaise, firmId: seed.ab, moneyAccountId: seed.abBank.id },
+      { account: 'owner_capital', amountPaise: -amountPaise, firmId: seed.ab },
     ],
   };
 }

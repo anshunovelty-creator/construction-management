@@ -8,6 +8,7 @@ import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
+import { OurFirms } from './between/our-firms';
 import { showDate } from './entries/data';
 import { loadFirmParties, MoneyCell, PercentBar, Stat, StatusPill } from './party/shared';
 import { Icon } from '@/components/icons';
@@ -110,6 +111,8 @@ export default async function PartyIndexPage() {
           </div>
         </>
       )}
+
+      <OurFirms db={db} firm={firm} />
 
       <form action="/party" className="open-other card">
         <label htmlFor="open-id">{t('party.openOther')}</label>

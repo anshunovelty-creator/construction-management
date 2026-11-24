@@ -32,7 +32,7 @@ export function openingVendorBalance(input: OpeningVendorInput): EntryDraft {
     reference: input.reference ?? '',
     narration: 'Opening vendor balance',
     lines: [
-      { account: 'opening_balance', amountPaise: input.amountPaise },
+      { account: 'opening_balance', amountPaise: input.amountPaise, firmId: input.firmId },
       { account: 'vendor_payable', amountPaise: -input.amountPaise, firmId: input.firmId, partyId: input.vendorId },
     ],
   };
@@ -59,7 +59,7 @@ export function openingMoneyBalance(input: OpeningMoneyInput): EntryDraft {
     narration: 'Opening money balance',
     lines: [
       { account: 'money', amountPaise: input.amountPaise, firmId: input.account.firmId, moneyAccountId: input.account.id },
-      { account: 'opening_balance', amountPaise: -input.amountPaise },
+      { account: 'opening_balance', amountPaise: -input.amountPaise, firmId: input.account.firmId },
     ],
   };
   assertBalanced(draft);
@@ -88,7 +88,7 @@ export function openingClientBalance(input: OpeningClientInput): EntryDraft {
     narration: 'Opening client balance',
     lines: [
       { account: 'client_receivable', amountPaise: input.amountPaise, firmId: c.firmId, partyId: c.clientId, siteId: c.siteId },
-      { account: 'opening_balance', amountPaise: -input.amountPaise },
+      { account: 'opening_balance', amountPaise: -input.amountPaise, firmId: c.firmId },
     ],
   };
   assertBalanced(draft);

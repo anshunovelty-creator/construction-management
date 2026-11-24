@@ -7,6 +7,7 @@ import { COST_HEADS } from '@/lib/ledger/types';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { dayAmount, otCenti, type PersonKind } from '@/lib/wages';
 import { amountPaise } from '@/lib/work';
+import { AccountOptions } from '@/components/account-options';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
 
@@ -31,6 +32,8 @@ export interface OtherLine {
   costHead: string;
   quantity: string;
   rate: string;
+  /** The account it was paid from; empty while not paid (a bill will come). */
+  paidFrom: string;
 }
 
 /**
@@ -178,10 +181,10 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
   );
 }
 
-const emptyOther = (): OtherLine => ({ description: '', costHead: 'site_overhead', quantity: '', rate: '' });
+const emptyOther = (): OtherLine => ({ description: '', costHead: 'site_overhead', quantity: '', rate: '', paidFrom: '' });
 
 /** Anything else the site cost today: tractor, labour colony, room, light and petrol. What it is, what for, how many × rate. */
-export function OtherCostForm({ action }: { action: Action }) {
+export function OtherCostForm({ action, accounts }: { action: Action; accounts: { id: string; name: string; kind: string }[] }) {
   const t = useTranslations('report');
   const tAll = useTranslations();
   const [state, formAction, pending] = useActionState(action, {});
@@ -215,6 +218,7 @@ export function OtherCostForm({ action }: { action: Action }) {
                 <th className="box">{t('other.quantity')}</th>
                 <th className="box">{t('other.rate')}</th>
                 <th className="num">{t('use.amount')}</th>
+                {accounts.length > 0 && <th>{t('other.paidFrom')}</th>}
                 <th aria-label={t('use.removeLine')} />
               </tr>
             </thead>
@@ -259,6 +263,12 @@ export function OtherCostForm({ action }: { action: Action }) {
                     />
                   </td>
                   <td className="num result" data-label={t('use.amount')}>{amounts[l] == null ? '—' : showPaise(amounts[l])}</td>
+                  {accounts.length > 0 && <td className="box" data-label={t('other.paidFrom')}>
+                    <select value={line.paidFrom} onChange={(e) => change(l, { paidFrom: e.target.value })} aria-label={`${t('other.paidFrom')}, ${t('work.lineNo', { n: l + 1 })}`}>
+                      <option value="">{t('other.notPaid')}</option>
+                      <AccountOptions accounts={accounts.map(({ id, name, kind }) => ({ id, name, kind }))} />
+                    </select>
+                  </td>}
                   <td className="line-remove">
                     {lines.length > 1 && (
                       <button

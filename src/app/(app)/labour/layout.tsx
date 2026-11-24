@@ -2,16 +2,18 @@ import { getTranslations } from 'next-intl/server';
 import { NavLink } from '@/components/nav-link';
 import { requireProfile } from '@/lib/auth';
 
-/** The labour supply business, apart from the firms: its workers and each month's entry. */
+/** The labour payment business, one of our firms: its workers (a family to a line), each month's entry, and the labour supplied. */
 export default async function LabourLayout({ children }: { children: React.ReactNode }) {
-  await requireProfile('owner', 'office', 'labour');
+  const profile = await requireProfile('owner', 'office', 'labour');
   const t = await getTranslations();
   return (
     <>
       <nav className="subnav no-print" aria-label={t('nav.labour')}>
         <NavLink href="/labour" exact>{t('labour.tabs.workers')}</NavLink>
         <NavLink href="/labour/month">{t('labour.tabs.month')}</NavLink>
-        <NavLink href="/labour/family">{t('labour.tabs.families')}</NavLink>
+        {/* Workers are paid from the firm's bank or cash, which a Labour login does not see. */}
+        {profile.role !== 'labour' && <NavLink href="/labour/pay">{t('labour.tabs.pay')}</NavLink>}
+        <NavLink href="/labour/supplied">{t('labour.tabs.supplied')}</NavLink>
       </nav>
       {children}
     </>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { AccountOptions } from '@/components/account-options';
 import { RupeesInput } from '@/components/form';
 import { PrintButton } from '@/components/print-button';
 import { requireProfile } from '@/lib/auth';
@@ -9,18 +10,22 @@ import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { showDate, todayInIndia } from '../../entries/data';
 import { MoneyCell, Stat } from '../../party/shared';
+import { labourFirm, payAccounts } from '../../pay/data';
 import { addService, removeService } from '../actions';
 import { loadMachines } from '../data';
 import { Icon } from '@/components/icons';
 
 /** One machine: its last service, when the next falls due, and every service so far, newest first. */
 export default async function MachinePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
-  await requireProfile('owner', 'office');
+  const profile = await requireProfile('owner', 'office');
   const t = await getTranslations();
   const [{ id }, { error }] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const [machine] = await loadMachines(await createClient(), id);
+  const db = await createClient();
+  const [machine] = await loadMachines(db, id);
   if (!machine) notFound();
+  const firm = await labourFirm(db);
+  const accounts = firm ? await payAccounts(db, profile.role, firm.id) : [];
   const last = lastService(machine.services);
   const today = todayInIndia();
 
@@ -59,6 +64,11 @@ export default async function MachinePage({ params, searchParams }: { params: Pr
         <div className="field">
           <label htmlFor="s-cost">{t('machines.cost')}</label>
           <RupeesInput input={{ id: 's-cost', name: 'cost', required: true }} />
+        </div>
+        <div className="field">
+          <label htmlFor="s-account">{t('pay.from')}</label>
+          <select id="s-account" name="account" defaultValue=""><option value="">{t('report.other.notPaid')}</option>
+            <AccountOptions accounts={accounts} /></select>
         </div>
         <div className="field">
           <label htmlFor="s-note">{t('machines.note')}</label>

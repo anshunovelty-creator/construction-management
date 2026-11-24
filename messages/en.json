@@ -28,12 +28,16 @@
     "stock": "Stock",
     "report": "Daily report",
     "tds": "TDS record",
+    "gst": "GST record",
     "salary": "Salary",
     "ledger": "Ledger",
     "rentals": "Rentals",
     "assets": "Assets",
-    "labour": "Labour supply",
-    "machines": "AJAX machines"
+    "labour": "Labour payment",
+    "machines": "AJAX machines",
+    "bankbook": "Bankbook",
+    "close": "Close a month",
+    "forecast": "Free money"
   },
   "login": {
     "title": "Sign in",
@@ -98,10 +102,11 @@
         "materials": "materials",
         "parties": "workers or staff given this site",
         "rentals": "rentals",
-        "has_months": "pay saved in Labour supply months",
+        "has_months": "pay saved in Labour payment months",
         "asset_moves": "asset moves between sites",
         "bill_items": "old itemised bills",
-        "other": "other records"
+        "other": "other records",
+        "salary_months": "days and salary typed on Salary → Skill"
       }
     },
     "materials": "Materials",
@@ -129,7 +134,6 @@
     "retention_bp": "Retention %",
     "security_deposit_bp": "Security deposit %",
     "start_date": "Start date",
-    "holder_user_id": "Supervisor (for supervisor cash)",
     "email": "Email",
     "password": "Password (at least 8 characters)",
     "full_name": "Full name",
@@ -165,7 +169,7 @@
     "use_date": "Date",
     "quantity": "Quantity used",
     "remark": "Remark",
-    "rate_paise": "Rate (₹) — per hour for a worker, salary per month for staff",
+    "rate_paise": "Rate (₹) — daily report price per hour for a worker, salary per month for staff",
     "skill_level": "Skilled or unskilled",
     "skill": "Skill (e.g. Mason, Carpenter)",
     "rent_item": "Item",
@@ -175,7 +179,15 @@
     "rented_from": "Rented from",
     "item_kind": "Type",
     "gst_rate": "GST",
-    "from_date": "Counts from (the month of this date on)"
+    "from_date": "Counts from (the month of this date on)",
+    "runs_labour": "Runs Labour payment and owns the AJAX machines (one firm)",
+    "reason": "What for",
+    "person_id": "Who with",
+    "month": "For the month",
+    "salary_day": "Salary day of the month (1 to 28)",
+    "credit_days": "Days of credit",
+    "opening_balance": "Opening balance (money already in it)",
+    "opening_date": "Opening balance as on"
   },
   "options": {
     "party_kind": {
@@ -202,14 +214,14 @@
     },
     "money_account_kind": {
       "bank": "Bank",
-      "owner_cash": "Owner cash",
-      "supervisor_cash": "Supervisor cash"
+      "owner_cash": "Cash",
+      "supervisor_cash": "Cash with a person"
     },
     "role": {
       "owner": "Owner",
       "office": "Office staff",
       "supervisor": "Supervisor",
-      "labour": "Labour supply"
+      "labour": "Labour payment"
     },
     "cost_head": {
       "material": "Material",
@@ -219,7 +231,11 @@
       "subcontract": "Subcontract",
       "site_overhead": "Site running costs",
       "transport": "Transport",
-      "other": "Other"
+      "other": "Other",
+      "office": "Office",
+      "bank_charges": "Bank charges",
+      "interest": "Interest",
+      "machine_service": "Machine service"
     },
     "owner_money": {
       "in": "Owner puts money in",
@@ -242,6 +258,31 @@
       "consumable": "Stock",
       "asset": "Asset",
       "rented": "Rented"
+    },
+    "in_out": {
+      "in": "Came in",
+      "out": "Went out"
+    },
+    "money_reason": {
+      "machine_rent": "Machine rent",
+      "retention_back": "Retention released by a client",
+      "deposit_back_client": "Security deposit released by a client",
+      "party_back": "Cheque returned / money back from a party",
+      "loan_in": "Loan taken",
+      "deposit_back": "Deposit we gave, returned",
+      "gst_refund": "GST refund",
+      "tds_refund": "TDS refund",
+      "other_income": "Other income (scrap, interest…)",
+      "office": "Office cost (rent, phone, accountant…)",
+      "bank_charges": "Bank charges",
+      "gst_paid": "GST paid",
+      "tds_paid": "TDS paid",
+      "pf_paid": "PF paid",
+      "interest": "Interest paid",
+      "loan_out": "Loan paid back",
+      "deposit_given": "Deposit given (tender, rent…)",
+      "other_cost": "Other cost",
+      "client_back": "Cheque returned / money back to a client"
     }
   },
   "users": {
@@ -303,17 +344,18 @@
     "save_failed": "Could not save.",
     "invalid_login": "Wrong email or password.",
     "inactive": "This account is switched off. Ask the owner.",
-    "cash_matches": "The cash matches the books exactly. Nothing to record — well done!",
     "reason_required": "Write what is wrong first.",
     "other_firm": "This belongs to the other firm. Switch firm at the top right first.",
     "duplicate_bill": "This bill number is already in the books for this party. Cancel that entry first if it was wrong",
-    "bank_needs_firm": "A bank account belongs to one firm. Choose it.",
-    "cash_no_firm": "Supervisor cash belongs to a supervisor, not a firm. Leave the firm empty.",
-    "needs_supervisor": "Choose the supervisor who holds this cash.",
-    "only_supervisor_cash": "Only supervisor cash is held by a supervisor. Leave this empty.",
+    "account_needs_firm": "Every bank and cash account belongs to one firm. Choose it.",
+    "future_date": "This date is in the future. Money is written down on the day it moves.",
+    "same_account": "Choose two different accounts.",
     "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
     "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
-    "cash_needs_firm": "Each firm keeps its own cash. Choose the firm."
+    "maybe_repeat": "This looks like one already saved",
+    "invalid_whole": "Enter a whole number in the range allowed.",
+    "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks.",
+    "is_firm": "This is one of our own firms. It is already on the Pay and Receive lists."
   },
   "common": {
     "yes": "Yes",
@@ -343,7 +385,20 @@
     "gstInput": "{firm} · GST to claim back",
     "gstOutput": "{firm} · GST to pay the government",
     "tdsPayable": "{firm} · TDS to pay the government",
-    "companyAssets": "{firm} · tools and other assets"
+    "companyAssets": "{firm} · tools and other assets",
+    "notYetKnown": "{firm} · not yet known",
+    "firmIncome": "{firm} · earned from {other}",
+    "wagesPaid": "{firm} · salary and wages paid",
+    "firmCost": "{firm} · {head}",
+    "machineRent": "{firm} · machine rent earned",
+    "otherIncome": "{firm} · other income",
+    "pfPaid": "{firm} · PF paid",
+    "loan": "{firm} · loans to pay back",
+    "depositGiven": "{firm} · deposits given",
+    "gstPaid": "{firm} · GST paid",
+    "tdsPaid": "{firm} · TDS paid",
+    "tdsClaimed": "{firm} · TDS got back",
+    "roundOff": "{firm} · rounding"
   },
   "board": {
     "title": "Where the money is now",
@@ -365,7 +420,7 @@
     },
     "betweenFirms": {
       "title": "Between our firms",
-      "hint": "When one firm’s money paid for another firm."
+      "hint": "What our own firms owe each other. Open Between firms for each account."
     },
     "heldByClients": {
       "title": "Held by clients",
@@ -394,6 +449,14 @@
     "assets": {
       "title": "Company assets",
       "hint": "Tools and other things bought to reuse at any site; not a site’s cost."
+    },
+    "unknown": {
+      "title": "Not yet known",
+      "hint": "Money that came in or went out and is still to be sorted out. Open the Bankbook."
+    },
+    "firm": {
+      "title": "Firm costs and income",
+      "hint": "Salary and wages paid, office costs, bank charges, and other income. Not part of any site’s profit."
     }
   },
   "entries": {
@@ -556,15 +619,6 @@
         "material_id": "If you bought a material (cement, sand…), pick it here. The type then fills in by itself."
       }
     },
-    "day-close": {
-      "title": "Count the cash",
-      "when": "At the end of the day, count the cash in hand.",
-      "what": "The app knows how much cash there should be. If what you count is different, the difference is recorded as cash short (or extra) and shows on the owner’s screen. It is never hidden inside another cost.",
-      "hints": {
-        "account_id": "Whose cash you are counting.",
-        "counted": "Exactly what is in hand now. Can be 0."
-      }
-    },
     "owner-money": {
       "title": "Owner’s money",
       "when": "The owner put personal money into the business, or took some out.",
@@ -572,6 +626,26 @@
       "hints": {
         "account_id": "Which bank or cash."
       }
+    },
+    "move-money": {
+      "title": "Move money",
+      "when": "Money moved between our own accounts: bank to petty cash, cash to the bank, cash to a person.",
+      "what": "One account goes down and the other goes up by the same amount. It is not spending, so no cost changes.",
+      "hints": {}
+    },
+    "not-yet-known": {
+      "title": "Money not yet known",
+      "when": "Money came in or went out and nobody knows why yet.",
+      "what": "It is counted in the account at once and shows in red until it is sorted out.",
+      "hints": {
+        "narration": "What the bank statement or cash book says about it."
+      }
+    },
+    "other-money": {
+      "title": "Other money in or out",
+      "when": "Office costs, bank charges, tax, loans, deposits, retention released, machine rent.",
+      "what": "The account goes up or down, and the reason says where it counts. It is typed from a bankbook.",
+      "hints": {}
     }
   },
   "entryTypes": {
@@ -618,6 +692,34 @@
     "reversal": {
       "title": "Cancelling entry",
       "why": "The exact opposite of an earlier entry, so the two add up to nothing. Nothing is ever deleted: the history stays."
+    },
+    "not_yet_known": {
+      "title": "Not yet known",
+      "why": "The money really moved, so it is counted now. Who and why are still to be found, and it stays red until they are."
+    },
+    "firm_transfer": {
+      "title": "Money between our firms",
+      "why": "It is still our money, in another firm’s account. The firm that got it owes it, or has now been paid what it was owed."
+    },
+    "labour_supplied": {
+      "title": "Labour supplied",
+      "why": "One of our firms gave labour to another’s site. It is that site’s cost and the supplier’s income, and no money moves until it is taken or paid."
+    },
+    "machine_rent": {
+      "title": "Machine rent",
+      "why": "One of our firms’ machines worked at another’s site. It is that site’s cost and the owner firm’s income."
+    },
+    "wages_paid": {
+      "title": "Salary and wages",
+      "why": "Money given to our people. What each one is owed is on their own account."
+    },
+    "other_in": {
+      "title": "Other money in",
+      "why": "Money that came in other than from a client’s bill. The reason says where it counts."
+    },
+    "other_out": {
+      "title": "Other money out",
+      "why": "Money that went out other than for a party’s bill. The reason says where it counts."
     }
   },
   "sheet": {
@@ -989,7 +1091,9 @@
       "bad_ot": "Type OT hours as a number from 0 to 16, like 2 or 1.5.",
       "ot_absent": "OT can only be given on a day the person was present.",
       "staff_no_ot": "Staff have a fixed monthly salary, so no OT.",
-      "no_rate": "This person has no rate in Setup → Workers and staff. Add it there first."
+      "no_rate": "This person has no rate in Setup → Workers and staff. Add it there first.",
+      "bad_account": "Choose an account you can pay from.",
+      "future_paid": "Money cannot be paid on a day that has not come."
     },
     "costTotal": "Day’s costs",
     "costNote": "Material, labour, staff and other costs",
@@ -1043,7 +1147,11 @@
       "rate": "Rate (₹)",
       "addLine": "Add a cost",
       "dayTotal": "Total other costs",
-      "save": "Save other costs"
+      "save": "Save other costs",
+      "paidFrom": "Paid from",
+      "notPaid": "Not paid yet (bill will come)",
+      "paid": "Paid",
+      "payNow": "Pay"
     }
   },
   "tds": {
@@ -1063,6 +1171,22 @@
     "deducted": "We deducted",
     "clientDeducted": "Client deducted",
     "total": "Total"
+  },
+  "gst": {
+    "title": "GST record",
+    "lede": "Every bill with GST. GST on bills from parties we can claim back. GST on our bills to clients is owed to the government. What is left to pay is the one less the other.",
+    "owed": "GST on our bills, owed to the government",
+    "toClaim": "GST on party bills, to claim back",
+    "toPay": "GST left to pay",
+    "credit": "GST credit left over",
+    "none": "No bills with GST yet.",
+    "noneInMonth": "No bills with GST in this month.",
+    "all": "All months",
+    "kind": "Type",
+    "input": "From a party (claim back)",
+    "output": "To a client (owed)",
+    "amount": "GST",
+    "billTotal": "Bill total"
   },
   "newMaterial": {
     "addAs": "＋ Add “{name}” as a new material",
@@ -1089,34 +1213,22 @@
     "from": "From",
     "to": "to",
     "showing": "{from} to {to}",
-    "labour": "Labour",
+    "labour": "Skill",
     "staff": "Staff",
     "total": "Total",
-    "none": "Nobody to pay in this period. Mark attendance on the Daily report.",
+    "none": "Nobody on this list yet. Add them in Setup → Workers and staff.",
     "name": "Name",
-    "present": "Present",
-    "absent": "Absent",
     "otHours": "OT hrs",
-    "dayPay": "Day’s pay",
-    "otPay": "OT pay",
     "salary": "Salary",
     "slip": "Salary slip",
     "periodLabel": "Period",
     "print": "Print or save as PDF",
-    "noDays": "No days marked for this person in this period.",
-    "date": "Date",
-    "site": "Site",
-    "amount": "Amount",
-    "daysSummary": "{p} P · {a} A",
-    "forDays": "{n, plural, one {# day present} other {# days present}}",
-    "forOt": "{n} OT hrs",
     "fixed": "Fixed salary ({rate} a month)",
     "signWorker": "Received by (worker)",
     "signOffice": "Paid by",
     "inWords": "In words:",
-    "mark": "P / A",
     "ledeStaff": "A fixed monthly salary, with no OT and nothing cut for leave. PF is cut unless switched off. Open a name to give an advance or take something off.",
-    "ledeLabour": "Paid for the days marked on the daily reports, with OT. PF is cut only when switched on. Open a name to give an advance or take something off.",
+    "ledeLabour": "Type what you pay each worker a day, then their days and OT. The salary fills in (an OT hour is a day ÷ 8) and can be typed over. Pay per day carries on until you change it; saved months keep their salary. Nothing here comes from the daily report: its attendance and its rates are kept apart. PF is cut only when switched on.",
     "pf": "PF",
     "pfLess": "Less PF ({rate}%)",
     "pfOn": "Cut PF for {name} from {month} on",
@@ -1142,8 +1254,11 @@
     "moneyLede": "An advance or salary paid says cash or bank; a deduction says why. Each counts in the period of its date, and what a month leaves carries into the next.",
     "noMoney": "No advance, deduction or payment yet.",
     "noLedger": "Nothing on the ledger yet.",
-    "showDays": "See each day",
-    "hideDays": "Hide days"
+    "openingLede": "What was left with this person before you started using the app, for settling up. Type it once: it counts in the month you choose, as if it came from the month before, and carries on from there.",
+    "days": "Days",
+    "typeDays": "Type days and OT",
+    "perDay": "Pay per day",
+    "worksOut": "Works out to {amount}"
   },
   "ledger": {
     "title": "Ledger",
@@ -1226,7 +1341,7 @@
     "more": "{count} more: keep typing to narrow the list"
   },
   "form": {
-    "noCashAccount": "This firm has no cash account yet. Add one in Setup → Money accounts (kind: Owner cash, firm: this firm).",
+    "noCashAccount": "This firm has no Cash yet. Add it in Setup → Bank and cash accounts.",
     "noBankAccount": "This firm has no bank account yet. Add one in Setup → Money accounts.",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
@@ -1420,10 +1535,11 @@
     "tabs": {
       "workers": "Workers",
       "month": "Monthly entry",
-      "families": "Families"
+      "supplied": "Labour supplied",
+      "pay": "Pay"
     },
-    "title": "Labour supply",
-    "lede": "Red is what we still have to pay. Green is what we paid extra, and it comes off the next salary. This business is kept apart from the firms.",
+    "title": "Labour payment",
+    "lede": "One line for each worker. Someone whose family works with them is paid through them: add the family from their page. Red is what we still have to pay. Green is what we paid extra, and it comes off the next salary.",
     "addWorker": "Add a worker",
     "extraNote": "Comes off the next salary",
     "people": "{count, plural, one {# person} other {# people}}",
@@ -1432,7 +1548,7 @@
     "searchNone": "Nobody has that name.",
     "none": "Nobody here yet. Add your first worker.",
     "name": "Name",
-    "rate": "Salary per day (₹)",
+    "rate": "Salary (₹)",
     "rateShort": "Per day",
     "rateFrom": "Counts from",
     "rateFromHint": "A changed salary counts from this month. Earlier months stay as they were.",
@@ -1443,14 +1559,12 @@
     "change": "Change details",
     "changeOf": "Change {name}",
     "monthTitle": "Monthly entry",
-    "monthLede": "Type each worker's totals for the month. Salary, remaining and extra paid work themselves out. One double duty counts as two days, so days can pass the days in the month. A changed salary per day counts from this month on; earlier months keep theirs. Families are typed on their own page under Families.",
+    "monthLede": "Type each worker's totals for the month, with any advance and its reason. A family's members sit under its head: type each one's days and OT, and the family's advance on the head's line. An advance typed here comes off their salary but not out of a bank or cash; one given on the Pay tab is counted already, so do not type it again. Paid comes from the Pay tab. Salary, remaining and extra paid work themselves out. One double duty counts as two days, so days can pass the days in the month. A changed salary per day counts from this month on; earlier months keep theirs.",
     "month": "Month",
     "days": "Present days",
     "otHours": "OT hours",
     "salary": "Salary",
     "advance": "Advance",
-    "deduction": "Deduction",
-    "addition": "Addition",
     "reason": "Reason",
     "before": "From last month",
     "beforeToPay": "to pay",
@@ -1458,21 +1572,15 @@
     "toPay": "To pay",
     "paid": "Paid",
     "left": "Left after this",
-    "remaining": "Remaining to pay",
-    "extra": "Extra paid",
     "saved": "{count, plural, =0 {Nothing was changed.} one {# worker saved.} other {# workers saved.}}",
     "salaryIn": "Salary for {month}",
     "paidIn": "Paid in {month}",
-    "enterMonth": "Enter this month",
-    "earned": "Salary and additions",
-    "earnedNote": "Salary {salary} · Additions {addition}",
-    "cuts": "Deductions and advances",
-    "cutsNote": "Deductions {deduction} · Advances {advance}",
+    "earned": "Salary",
+    "cuts": "Advances",
     "ledgerTitle": "Ledger",
-    "noLedger": "Nothing yet. It starts when this worker's month is typed in Monthly entry.",
     "errors": {
       "name": "Please type the name.",
-      "rate": "Please type the salary per day in rupees.",
+      "rate": "Please type the salary in rupees.",
       "rate_from": "Please choose the month it counts from.",
       "date": "Please choose this month or an earlier one.",
       "days": "Present days must be a number from 0 to 100.",
@@ -1487,19 +1595,21 @@
       "method": "Please choose cash or bank.",
       "reason": "Please type the reason for the deduction.",
       "not_removed": "That line could not be removed. Only the office or owner can remove a line from an earlier day.",
-      "family_stays_head": "This person heads a family with members or money given, so they stay the head. Nothing was changed."
+      "family_stays_head": "This person heads a family with members or money given, so they stay the head. Nothing was changed.",
+      "opening_side": "Please choose whether we still have to pay them or paid them extra.",
+      "charge": "Please type what is charged in rupees, or leave it empty.",
+      "place_twice": "Choose each place once.",
+      "place_sum": "The days and OT at the places must add up to the month’s.",
+      "place": "Choose the firm and site, or the customer.",
+      "place_exists": "That place is already on the list.",
+      "account": "Choose one of the accounts it can be paid from.",
+      "paid_together": "This was paid together with others in one entry. Cancel that entry instead.",
+      "paid_twice": "Already given the same amount on this day"
     },
     "delete": {
       "title": "Delete this worker",
       "warning": "For a worker added by mistake. Only a worker with nothing saved in any month can be deleted; the owner can put them back from the recycle bin for 30 days. For someone who has left, untick Active instead: their record stays."
     },
-    "familiesTitle": "Families",
-    "familiesLede": "When a whole family works and only the head is paid. Each member's days count at their own salary, and the total is paid to the head.",
-    "newFamily": "Add a family",
-    "newFamilyLede": "Type the head of the family first. Add the other members from the family's page.",
-    "families": "{count, plural, one {# family} other {# families}}",
-    "noFamilies": "No families yet. Add one when a whole family works and the head takes the pay.",
-    "searchFamily": "Find a head of family",
     "head": "Head of family",
     "members": "People",
     "familyOf": "{name}'s family",
@@ -1507,8 +1617,7 @@
     "addMemberShort": "Add a member",
     "paidToHead": "Paid to head",
     "payHead": "To pay the head",
-    "daysIn": "Days in {month}",
-    "familyMonthLede": "Type each member's present days and OT, the head too. Each member's salary works itself out; the money goes to the head below. A changed salary per day counts from this month on.",
+    "familyMonthLede": "Type each member's present days and OT, the head too, and the family's advance and its reason on the head's line. An advance given on Pay below is counted already, so do not type it again. A changed salary per day counts from this month on.",
     "daysTotal": "{days} days in all",
     "leftAfter": "Left after {month}",
     "moneyTitle": "Money given to {name}",
@@ -1517,7 +1626,8 @@
     "kinds": {
       "payment": "Paid",
       "advance": "Advance",
-      "deduction": "Deduction"
+      "deduction": "Deduction",
+      "returned": "Handed back"
     },
     "amount": "Amount (₹)",
     "method": "Cash or bank",
@@ -1525,18 +1635,48 @@
       "cash": "Cash",
       "bank": "Bank"
     },
-    "methodHint": "Not needed for a deduction.",
-    "reasonHint": "Needed for a deduction.",
     "remove": "Remove",
     "noMoney": "Nothing given to the head yet.",
-    "moneyTotals": "Paid {paid} · Advances {advance} · Deductions {deduction}",
+    "moneyTotals": "Paid {paid} · Advances {advance}",
     "noFamilyLedger": "Nothing yet. It starts when a member's days are typed above or money is given to the head.",
     "family": "Family",
-    "noFamily": "Not in a family: paid on their own",
     "ownFamily": "Head of their own family",
     "memberOf": "Member of {name}'s family: paid to {name}",
     "familyHint": "Moving someone into a family takes their months so far with them: their salary is then paid to the head.",
-    "familyLockedHint": "This person heads a family with members or money given, so they stay the head."
+    "familyLockedHint": "This person heads a family with members or money given, so they stay the head.",
+    "newWorkerLede": "Their family can be added later from their page, as members come.",
+    "singleNote": "Working alone. Add a member when their family joins.",
+    "withMembers": "with {names}",
+    "familyOfCount": "Family of {count}",
+    "otherCut": "{amount} deduction from before",
+    "otherAdded": "{amount} added from before",
+    "opening": {
+      "button": "Opening balance",
+      "change": "Change opening balance",
+      "short": "Opening balance",
+      "from": "From {month}",
+      "title": "Opening balance for {name}",
+      "lede": "What was left with this worker or family before you started using the app. Type it once: it counts in the month you choose, as if it came from the month before, and carries on from there.",
+      "side": "Before the app",
+      "sidePay": "We still had to pay them",
+      "sideExtra": "We had paid them extra",
+      "month": "Counts from",
+      "monthHint": "Usually the first month you type for them.",
+      "note": "Note (optional)",
+      "remove": "Remove the opening balance",
+      "nowPay": "Now saved: {amount} still to pay.",
+      "nowExtra": "Now saved: {amount} paid extra.",
+      "inLedgerPay": "Opening balance {amount} to pay",
+      "inLedgerExtra": "Opening balance {amount} extra paid"
+    },
+    "rateUnit": "Salary is",
+    "perDay": "per day",
+    "perHour": "per hour",
+    "rateUnitHint": "An hour’s salary × 8 is the day’s.",
+    "charge": "Charged to firms and customers (₹)",
+    "chargeHint": "Same per day or per hour as the salary. Left empty, the salary itself is charged.",
+    "withDeductions": "{amount} deduction from before",
+    "otherAdvance": "{amount} advance given on Pay"
   },
   "machines": {
     "title": "AJAX machines",
@@ -1585,11 +1725,490 @@
       "not_saved": "That could not be saved. Please try again.",
       "not_removed": "That line could not be removed. Please try again.",
       "delete_name": "The name typed does not match. Nothing was deleted.",
-      "not_deleted": "That could not be deleted. Nothing was changed."
+      "not_deleted": "That could not be deleted. Nothing was changed.",
+      "account": "Choose an account of the firm that owns the machines.",
+      "no_cash": "There is not enough cash in that account.",
+      "has_paid": "This machine has services paid from an account, so it cannot be deleted. Untick In use instead."
     },
     "delete": {
       "title": "Delete this machine",
       "warning": "For a machine added by mistake. It goes to the recycle bin with its whole service record and can be put back for 30 days. For a machine that is sold or scrapped, untick Still in use instead: its record stays."
     }
+  },
+  "bankbook": {
+    "title": "Bankbook of {firm}",
+    "lede": "What this firm’s banks and cash have now. Open one to see each rupee in and out.",
+    "allFirms": "All firms",
+    "show": "Show",
+    "noFirm": "Shared cash from before (no firm)",
+    "empty": "No bank or cash account yet.",
+    "held": "Total money",
+    "kinds": {
+      "bank": "In banks",
+      "owner_cash": "Cash",
+      "supervisor_cash": "Cash with people"
+    },
+    "account": "Account",
+    "kind": "Type",
+    "lastEntry": "Last entry",
+    "balance": "Balance",
+    "total": "Total",
+    "off": "Switched off",
+    "unknownTitle": "Not yet known ({count})",
+    "unknownHint": "Counted above, but nobody knows yet who or why. Open each one and press Sort it out.",
+    "setup": "Bank and cash accounts",
+    "now": "Balance now:",
+    "overdrawn": "overdrawn",
+    "belowZero": "below zero, so an entry is missing or wrong",
+    "mismatch": "This bankbook does not match the books. Do not rely on it, and tell us.",
+    "switchFirm": "To add here, switch to {firm} at the top right.",
+    "fromTo": "From / to",
+    "why": "Why",
+    "in": "In",
+    "out": "Out",
+    "none": "No entries in this month.",
+    "owner": "Owner",
+    "otherAccount": "Our other account",
+    "noOpening": "No opening balance is set, so this account starts from ₹0.",
+    "buttons": {
+      "in": "Money in",
+      "out": "Money out",
+      "move": "Move money",
+      "opening": "Opening balance",
+      "sortOut": "Sort it out",
+      "withdraw": "Withdraw cash",
+      "deposit": "Deposit cash"
+    },
+    "popup": {
+      "in": "Money in: {account}",
+      "out": "Money out: {account}",
+      "move": "Move money",
+      "sortOut": "Sort it out",
+      "pick": "Choose",
+      "why": {
+        "in": "Where did it come from?",
+        "out": "Where did it go?"
+      },
+      "inWhy": {
+        "client": "A client",
+        "owner": "The owner",
+        "unknown": "Not yet known",
+        "move": "Our other account",
+        "other": "Something else"
+      },
+      "outWhy": {
+        "party": "A party",
+        "owner": "The owner",
+        "unknown": "Not yet known",
+        "move": "Our other account",
+        "other": "Something else"
+      },
+      "moveWhy": {
+        "move": "Move money"
+      },
+      "who": {
+        "in": "Client",
+        "out": "Party"
+      },
+      "left": {
+        "in": "Remaining to receive: {amount}",
+        "out": "Remaining to pay: {amount}"
+      },
+      "bankSays": "What the bank or cash book says",
+      "save": "Save {amount}",
+      "reason": "What for",
+      "withdraw": "Withdraw cash from bank",
+      "deposit": "Deposit cash in bank"
+    },
+    "opening": {
+      "title": "Opening balance of {name}",
+      "lede": "What it held at the start of the day you keep it from. Nothing can be dated before that day.",
+      "now": "Opening balance now: {amount} on {date}",
+      "side": "On that day the bank was",
+      "sideIn": "In credit (our money)",
+      "sideOver": "Overdrawn (we owed the bank)",
+      "date": "Date",
+      "dateHint": "Entries on this day count after it.",
+      "reason": "Why is it changing?",
+      "removeReason": "Why is it being removed?",
+      "errors": {
+        "date": "Give a date up to today.",
+        "amount": "Give the amount in rupees.",
+        "reason": "Say why it is changing.",
+        "cash_overdrawn": "Cash cannot be overdrawn."
+      }
+    },
+    "forFirm": "for {firm}",
+    "people": "Our people",
+    "partyBack": "Money back from a party",
+    "reasons": {
+      "firm_cost_office": "Office",
+      "firm_cost_bank_charges": "Bank charges",
+      "firm_cost_interest": "Interest",
+      "firm_cost_machine_service": "Machine service",
+      "firm_cost_other": "Other cost",
+      "other_income_machine_hire": "Machine rent",
+      "other_income_other": "Other income",
+      "loan": "Loan",
+      "deposit_given": "Deposit",
+      "gst_paid": "GST",
+      "tds_paid": "TDS",
+      "pf_paid": "PF",
+      "tds_claimed": "TDS refund",
+      "retention_held": "Retention released",
+      "security_deposit_held": "Security deposit released"
+    },
+    "clientBack": "Money back to a client",
+    "checked": "Checked",
+    "addAccount": "Add bank or cash"
+  },
+  "between": {
+    "settled": "Nothing due either way",
+    "owes": "{debtor} owes {creditor}",
+    "twice": "{name} is one of our firms and is also kept as a party or client. Type what is owed as the opening balance of its account here, then switch that party off, or it is counted twice.",
+    "openParty": "Open it in Setup",
+    "pairTitle": "Account with {firm}",
+    "nowTitle": "Now:",
+    "needBoth": "Adding here needs {firm} too, as it lands in both books. Ask the owner.",
+    "add": "Add",
+    "popupTitle": "{us} and {them}",
+    "what": "What happened",
+    "kinds": {
+      "gave": "{us} gave money to {them}",
+      "took": "{them} gave money to {us}",
+      "wePaid": "{us} paid {them}’s party",
+      "theyPaid": "{them} paid {us}’s party",
+      "rent": "Machine rent"
+    },
+    "outOf": "Out of {firm}’s bank or cash",
+    "into": "Into {firm}’s bank or cash",
+    "partyOf": "{firm}’s party",
+    "siteOf": "{firm}’s site",
+    "machine": "Machine",
+    "none": "None",
+    "savedBoth": "Saved in both firms. Serial number {serial}.",
+    "labourSupplied": "Labour supplied",
+    "paidParty": "Paid a party",
+    "givenTo": "Given to {firm}",
+    "gotFrom": "Got from {firm}",
+    "noneInMonth": "Nothing between these firms in this month.",
+    "openingTitle": "Opening balance: {a} and {b}",
+    "openingLede": "What the two firms owed each other at the start of the day you keep it from. Type it once: it goes into both firms’ books.",
+    "openingSide": "Who owes whom?",
+    "zeroRemoves": "An amount of 0 takes the opening balance off.",
+    "errors": {
+      "date": "Give a date up to today.",
+      "amount": "Give the amount in rupees.",
+      "reason": "Say why it is changing.",
+      "side": "Choose who owes whom."
+    },
+    "ourFirms": "Our other firms",
+    "ourFirm": "Our firm",
+    "bothBooks": "Goes into both firms’ books as one entry"
+  },
+  "flow": {
+    "title": "Where the money went",
+    "start": "At the start",
+    "came": "Came in",
+    "went": "Went out",
+    "now": "Now",
+    "end": "At the end",
+    "what": "What",
+    "forFirm": "Paid another firm’s party",
+    "mismatch": "This does not match the accounts, which hold {amount}. Do not rely on it, and tell us.",
+    "note": "Moves between this firm’s own accounts are left out: they are not money in or out.",
+    "noteAll": "Money that only moved between our accounts or our firms is left out."
+  },
+  "supplied": {
+    "title": "Labour supplied",
+    "lede": "Where each worker’s days were this month, and what each firm or customer is charged for them. Days come from the monthly entry. Confirm the month to put our own firms’ part in both firms’ books.",
+    "ledeLabour": "Say where each worker’s days were this month. A worker at one place needs only that place.",
+    "place": "Place",
+    "placeOf": "Place of {name}",
+    "pick": "Choose",
+    "daysShort": "days",
+    "otShort": "OT",
+    "split": "+ Another place",
+    "removePlace": "Remove this place",
+    "leftOver": "{days} days and {ot} OT hours still to place",
+    "charged": "Charged",
+    "value": "Value",
+    "savePlaces": "Save places",
+    "places": "Places",
+    "placesLede": "Where labour is supplied: our own firms’ sites, and outside customers.",
+    "addSite": "One of our firms’ sites",
+    "addClient": "An outside customer",
+    "add": "Add",
+    "clientHint": "Not in the list? Add them as a client.",
+    "ourSite": "Our firm’s site",
+    "outside": "Outside customer",
+    "switchOff": "Switch off",
+    "switchOn": "Switch on",
+    "none": "No one has days in this month yet. Type them in Monthly entry.",
+    "noPlaces": "Add the places labour is supplied to first.",
+    "noPlacesLabour": "No places yet. Ask the office to add them.",
+    "chargedIn": "Charged for {month}",
+    "paidIn": "Paid to workers",
+    "keeps": "Kept by the firm",
+    "loses": "Lost by the firm",
+    "totalsTitle": "By place",
+    "totalsHint": "Advances, deductions and additions stay between the firm and the worker: only days and OT are charged.",
+    "books": "In the books",
+    "notYet": "Not yet",
+    "inBooks": "In the books",
+    "changed": "Changed: books say {amount}",
+    "billClient": "Bill them from the client’s page.",
+    "openClient": "Open",
+    "unplaced": "{count} workers have days with no place: {names}. Save their places first.",
+    "confirm": "Confirm {month}",
+    "done": "{month} is in both firms’ books.",
+    "errors": {
+      "date": "Choose this month or an earlier one.",
+      "no_labour_firm": "Say which firm runs Labour payment first: tick it on that firm in Setup → Firms.",
+      "unplaced": "Some workers have days with no place. Save their places first.",
+      "need_both": "You need both firms to confirm this. Ask the owner.",
+      "not_saved": "That could not be saved. Please try again."
+    }
+  },
+  "pay": {
+    "from": "Paid from",
+    "salaryButton": "Pay salaries",
+    "labourButton": "Pay workers",
+    "salaryTitle": "Pay salaries from {firm}",
+    "labourTitle": "Pay workers",
+    "lede": "Type what is given to each. It leaves the account as one line, like one bank transfer or one bundle of cash, and comes off what each person is owed. Press an amount to fill it in.",
+    "noAccount": "There is no account to pay from. For a Labour login, the owner gives it a cash account in Setup → Bank and cash accounts.",
+    "fill": "Fill this amount",
+    "fillAll": "Fill everything remaining",
+    "pay": "{count, plural, one {Pay {amount}} other {Pay {amount} to # people}}",
+    "take": "Take back {amount}",
+    "saved": "{amount} saved. Serial number {serial}.",
+    "deduction": "Add a deduction"
+  },
+  "tax": {
+    "button": {
+      "gst_paid": "GST paid",
+      "tds_paid": "TDS paid",
+      "pf_paid": "PF paid"
+    },
+    "month": "For the month",
+    "challan": "Challan number",
+    "paid": "Paid",
+    "owedShort": "GST on our bills",
+    "claimShort": "GST to claim",
+    "notNetted": "What is to pay and the credit left over are never set against each other across firms: one firm’s credit cannot pay another’s GST. GST between our own firms is counted, as it is really paid.",
+    "tdsKept": "TDS we kept",
+    "tdsLeft": "Left to deposit",
+    "tdsCut": "Cut from us",
+    "tdsBack": "Got back",
+    "tdsClaim": "Left to claim",
+    "pfPaid": "PF deposited for this month",
+    "pfHint": "PF here is what was cut from salaries. The employer’s own share is not worked out: type the full deposit."
+  },
+  "repeat": {
+    "anyway": "It is a different one. Save anyway"
+  },
+  "match": {
+    "button": "Match with bank",
+    "title": "Match {name} with the bank",
+    "lede": "Type the balance on the bank statement and its date, then tick every line the statement has. A cheque not cleared yet stays unticked. When the difference is nothing, the bankbook is proved up to that day.",
+    "date": "Statement date",
+    "balance": "Balance on the statement (₹)",
+    "overdrawn": "Overdrawn: we owed the bank",
+    "expected": "The bank should say",
+    "waiting": "{count, plural, =0 {Nothing waiting} one {# line waiting} other {# lines waiting}}",
+    "bankSays": "The bank says",
+    "difference": "Difference",
+    "agrees": "Matches ✓",
+    "bankMore": "The bank has more: a line is missing here, or one is ticked too early",
+    "bankLess": "The bank has less: a line is missing here, or one is ticked too early",
+    "has": "Bank has it",
+    "clearedOn": "Bank date",
+    "none": "No lines up to this date.",
+    "save": "Save",
+    "saved": "Saved.",
+    "before": "Statements so far",
+    "bank": "Bank",
+    "notYet": "Waiting",
+    "never": "Not matched yet",
+    "upTo": "Matched up to {date}",
+    "off": "Does not match on {date}",
+    "errors": {
+      "date": "Give a date up to today.",
+      "amount": "Type the balance in rupees.",
+      "not_saved": "That could not be saved."
+    }
+  },
+  "count": {
+    "button": "Count cash",
+    "title": "Count the cash: {name}",
+    "lede": "Count what is in hand and type it. If it is not what the books say, the difference is recorded on its own against this account, with who counted it.",
+    "date": "Counted on",
+    "dateHint": "Compared with the books at the end of this day.",
+    "counted": "Cash counted (₹)",
+    "save": "Save the count",
+    "books": "Books said",
+    "difference": "Difference",
+    "matches": "The cash matches the books exactly.",
+    "short": "Short by {amount}. It is recorded.",
+    "extra": "Extra by {amount}. It is recorded.",
+    "today": "Counted today",
+    "lastOn": "Counted {date}",
+    "never": "Never counted"
+  },
+  "close": {
+    "title": "Close a month",
+    "lede": "Every check for the month in one place. When all are right, lock it: nothing dated in it or before can then be added or changed.",
+    "bank": "{name} matches the bank",
+    "cash": "{name} is counted",
+    "belowZero": "{name} is below zero",
+    "unknown": "Nothing is left as Not yet known",
+    "unknownLeft": "{count} still to sort out",
+    "pair": "{a} and {b} say the same",
+    "books": "{firm}’s books add up",
+    "notMatched": "No statement kept for {date}",
+    "agrees": "{amount}",
+    "differs": "Differs by {amount}",
+    "notCounted": "Not counted on {date}. The books say {amount}.",
+    "changedSince": "Changed since it was counted: the books now say {amount}",
+    "ok": "Right",
+    "check": "Look",
+    "open": "Open",
+    "left": "{count, plural, one {# thing to look at} other {# things to look at}}",
+    "allGood": "Everything is proved for this month.",
+    "lock": "Lock {month}",
+    "lockHint": "Locks everything dated up to {date}, in every firm.",
+    "lockAnyway": "{count, plural, one {# check is} other {# checks are}} not right yet. It can still be locked.",
+    "isLocked": "{month} is locked.",
+    "unlockReason": "Why is it opened again?",
+    "unlock": "Open {month} again",
+    "lockedThrough": "Locked up to {date}",
+    "neverLocked": "Nothing is locked yet.",
+    "history": "Locked and opened"
+  },
+  "forecast": {
+    "title": "Free money and the weeks ahead",
+    "lede": "What of the money in the accounts is really ours to spend, and what the next eight weeks look like. It is worked out from the books; nothing here moves money.",
+    "held": "In all accounts",
+    "notOurs": "Not ours to spend",
+    "free": "Free money",
+    "afterParties": "After party bills due now",
+    "afterPartiesNote": "Bills due: {amount}",
+    "lines": {
+      "gst": "GST to pay",
+      "tds": "TDS to deposit",
+      "pf": "PF cut, not deposited",
+      "salary": "Salary due",
+      "wages": "Wages of the labour business due",
+      "clientExtra": "Extra received from clients",
+      "otherFirms": "Owed to our other firms",
+      "rent": "Rent running on hired things, not billed yet"
+    },
+    "weeksTitle": "The next eight weeks",
+    "kinds": {
+      "clients": "From clients",
+      "plannedIn": "Expected money in",
+      "parties": "Party bills",
+      "salary": "Salaries",
+      "wages": "Wages of the labour business",
+      "gst": "GST",
+      "tds": "TDS",
+      "pf": "PF",
+      "site": "Site spends (usual week)",
+      "plannedOut": "Expected money out"
+    },
+    "short": "{firm} runs short by {amount}, from the week of {week}.",
+    "spare": "To spare then: {who}.",
+    "noSpare": "No other firm has money to spare then.",
+    "runsShort": "This firm runs short from the week of {week}.",
+    "note": "What is overdue is in the first week. A bill is due after its party’s or client’s days of credit (Setup → Parties). GST is taken on the 20th, TDS on the 7th, and salaries on the firm’s salary day. Salaries count for the firm that last paid each person. New bills not typed yet are not in it.",
+    "noteAll": "What is overdue is in the first week. Money between our own firms is left out. Salaries of people not paid by any firm yet, and PF, are counted here and in no single firm. New bills not typed yet are not in it.",
+    "plansTitle": "Expected money",
+    "plansHint": "What no bill says: office rent, a loan instalment, a retention to be released. One that repeats is taken as paid once its day has passed. Take a one-time one off when it has come.",
+    "plan": {
+      "name": "What",
+      "example": "e.g. Office rent",
+      "in": "Comes in",
+      "out": "Goes out",
+      "repeats": "How often",
+      "once": "Once",
+      "week": "Every week",
+      "month": "Every month",
+      "next": "Next on",
+      "until": "Until",
+      "add": "Add",
+      "late": "Late"
+    },
+    "errors": {
+      "plan": "Say what it is, and the amount in rupees.",
+      "date": "Give the dates, the last after the first.",
+      "not_saved": "That could not be saved."
+    },
+    "keptTitle": "How close was it?",
+    "keptHint": "Keep today’s forecast, and each week that passes is compared with what the accounts really held.",
+    "keep": "Keep today’s forecast",
+    "keptOn": "Kept on {date}. It is compared from the end of its first week.",
+    "madeOn": "Made on",
+    "weekEnd": "Week ending",
+    "expected": "Expected",
+    "actual": "Was"
+  },
+  "accountForm": {
+    "hints": {
+      "opening_balance": "What the account holds at the start of that day, before any entry here. Leave it empty if there is nothing. If the bank is overdrawn, leave it empty and use Opening balance in its Bankbook.",
+      "opening_date": "Nothing can be dated before this day."
+    }
+  },
+  "payList": {
+    "search": "Search by name",
+    "notFound": "No one by that name.",
+    "everyone": "Everyone ({count})",
+    "back": "Back to the list",
+    "party": {
+      "button": "Pay",
+      "title": "Pay from {firm}",
+      "lede": "Everyone this firm has to pay. Press one to pay; it goes into their ledger and out of the bank or cash you choose.",
+      "name": "Party",
+      "due": "To pay ({count})",
+      "none": "Nothing is left to pay.",
+      "also": "Also to pay",
+      "other": "Something else",
+      "otherHint": "Office costs, bank charges, loans, the owner, or money nobody knows yet:",
+      "pickFirst": "For anything else (office costs, bank charges, loans, the owner), first pick the account above.",
+      "firmExtra": "They owe us"
+    },
+    "client": {
+      "button": "Receive",
+      "title": "Receive in {firm}",
+      "lede": "Everyone this firm has money to come from. Press one when money comes; it goes into their ledger and into the bank or cash you choose.",
+      "name": "Client",
+      "due": "To receive ({count})",
+      "none": "Nothing is left to receive.",
+      "also": "Also to receive",
+      "other": "Something else",
+      "otherHint": "Loans, refunds, other income, the owner, or money nobody knows yet:",
+      "pickFirst": "For anything else (loans, refunds, other income, the owner), first pick the account above.",
+      "firmExtra": "We owe them"
+    },
+    "also": {
+      "salary": "Salaries",
+      "labour": "Labour payment",
+      "gst": "GST",
+      "tds": "TDS",
+      "pf": "PF",
+      "allFirms": "all firms together"
+    }
+  },
+  "cash": {
+    "bank": "Bank",
+    "cash": "Cash",
+    "fromBank": "From which bank",
+    "intoCash": "Into which cash",
+    "fromCash": "From which cash",
+    "intoBank": "Into which bank",
+    "withdrawn": "Cash withdrawn",
+    "deposited": "Cash deposited",
+    "noCash": "This firm has no Cash yet. Add it first.",
+    "noBank": "This firm has no bank account yet. Add a bank first."
   }
 }

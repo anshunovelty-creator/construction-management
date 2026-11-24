@@ -56,12 +56,12 @@ it('lets a Labour login keep workers and their months', async () => {
     const id = await addWorker(tx);
     await tx.query(`insert into labour_rates (worker_id, from_month, rate_paise) values ($1, '2026-01-01', 80000)`, [id]);
     // 35 days in a month of 31: double duties are allowed.
-    await tx.query(`insert into labour_months (worker_id, month, present_days, ot_hours, advance_paise, paid_paise) values ($1, '2026-10-01', 35, 40, 50000, 3000000)`, [id]);
-    await tx.query(`update labour_months set paid_paise = 2500000 where worker_id = $1`, [id]);
-    const { rows } = await tx.query<{ present_days: string; paid_paise: string }>(`select present_days, paid_paise from labour_months`);
+    await tx.query(`insert into labour_months (worker_id, month, present_days, ot_hours, deduction_paise, addition_paise) values ($1, '2026-10-01', 35, 40, 50000, 3000000)`, [id]);
+    await tx.query(`update labour_months set addition_paise = 2500000 where worker_id = $1`, [id]);
+    const { rows } = await tx.query<{ present_days: string; addition_paise: string }>(`select present_days, addition_paise from labour_months`);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ present_days: '35.00' });
-    expect(Number(rows[0]!.paid_paise)).toBe(2_500_000);
+    expect(Number(rows[0]!.addition_paise)).toBe(2_500_000);
     expect((await tx.query(`delete from labour_months where worker_id = $1`, [id])).affectedRows).toBe(1);
   });
 });
@@ -89,15 +89,16 @@ it('refuses a second line for the same month and figures that make no sense', as
     await refused(`insert into labour_months (worker_id, month) values ($1, '2026-10-01')`, 'unique');
     await refused(`insert into labour_months (worker_id, month) values ($1, '2026-11-05')`, 'check constraint');
     await refused(`insert into labour_months (worker_id, month, present_days) values ($1, '2026-11-01', 101)`, 'check constraint');
-    await refused(`insert into labour_months (worker_id, month, paid_paise) values ($1, '2026-11-01', -1)`, 'check constraint');
+    await refused(`insert into labour_months (worker_id, month, addition_paise) values ($1, '2026-11-01', -1)`, 'check constraint');
   });
 });
 
 it('keeps a family under one head and lets a Labour login give the head money with its date', async () => {
   await asUser(db, labour, async (tx) => {
-    const head = (await tx.query<{ id: string }>(
-      `insert into labour_workers (id, head_id, name, kind, joined_on) values (gen_random_uuid(), null, 'Raju', 'worker', '2026-01-01') returning id`)).rows[0]!.id;
-    await tx.query(`update labour_workers set head_id = id where id = $1`, [head]);
+    // Added with no family, a worker heads a family of their own.
+    const [head, other] = await Promise.all(['Raju', 'Gopal'].map(async (name) => (await tx.query<{ id: string; head_id: string }>(
+      `insert into labour_workers (name, kind, joined_on) values ($1, 'worker', '2026-01-01') returning id, head_id`, [name])).rows[0]!))
+      .then((rows) => rows.map((r) => { expect(r.head_id).toBe(r.id); return r.id; }));
     const wife = (await tx.query<{ id: string }>(
       `insert into labour_workers (head_id, name, kind, joined_on) values ($1, 'Sita', 'worker', '2026-01-01') returning id`, [head])).rows[0]!.id;
     await tx.exec('savepoint a');
@@ -105,10 +106,18 @@ it('keeps a family under one head and lets a Labour login give the head money wi
     await expect(tx.query(`insert into labour_workers (head_id, name, kind, joined_on) values ($1, 'Mohan', 'worker', '2026-01-01')`, [wife]))
       .rejects.toThrow('must belong to a head');
     await tx.exec('rollback to savepoint a');
-    await expect(tx.query(`update labour_workers set head_id = null where id = $1`, [head])).rejects.toThrow('stays the head');
+    await expect(tx.query(`update labour_workers set head_id = $2 where id = $1`, [head, other])).rejects.toThrow('stays the head');
+    await tx.exec('rollback to savepoint a');
+    // Taken out of a family, a member heads their own.
+    expect((await tx.query(`update labour_workers set head_id = null where id = $1 returning head_id`, [wife])).rows[0]).toEqual({ head_id: wife });
     await tx.exec('rollback to savepoint a');
 
-    await tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-05', 'advance', 500000, 'cash')`, [head]);
+    // Money given is kept with the account it came from (app_pay); only a deduction is a line of its own.
+    await tx.exec('savepoint m');
+    await expect(tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, method) values ($1, '2026-10-05', 'advance', 500000, 'cash')`, [head]))
+      .rejects.toThrow('row-level security');
+    await tx.exec('rollback to savepoint m');
+    await tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, note) values ($1, '2026-10-05', 'deduction', 500000, 'Mess')`, [head]);
     await tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise, note) values ($1, '2026-10-20', 'deduction', 100000, 'Broken tool')`, [head]);
     await tx.exec('savepoint b');
     await expect(tx.query(`insert into labour_money (worker_id, money_date, kind, amount_paise) values ($1, '2026-10-21', 'deduction', 100000)`, [head]))
@@ -117,8 +126,16 @@ it('keeps a family under one head and lets a Labour login give the head money wi
     // A head who has been given money stays the head even with no members left.
     await tx.exec('savepoint c');
     await tx.query(`update labour_workers set head_id = null where id = $1`, [wife]);
-    await expect(tx.query(`update labour_workers set head_id = null where id = $1`, [head])).rejects.toThrow('stays the head');
+    await expect(tx.query(`update labour_workers set head_id = $2 where id = $1`, [head, other])).rejects.toThrow('stays the head');
     await tx.exec('rollback to savepoint c');
+    // An opening balance belongs to a head only, and keeps them the head.
+    await tx.exec('savepoint d');
+    await expect(tx.query(`insert into labour_openings (worker_id, month, amount_paise) values ($1, '2026-10-01', 100)`, [wife]))
+      .rejects.toThrow('belongs to a head');
+    await tx.exec('rollback to savepoint d');
+    await tx.query(`insert into labour_openings (worker_id, month, amount_paise) values ($1, '2026-10-01', -250000)`, [other]);
+    await expect(tx.query(`update labour_workers set head_id = $2 where id = $1`, [other, head])).rejects.toThrow('stays the head');
+    await tx.exec('rollback to savepoint d');
     const { rows } = await tx.query<{ money_date: string }>(`select to_char(money_date, 'YYYY-MM-DD') as money_date from labour_money order by money_date`);
     expect(rows.map((r) => r.money_date)).toEqual(['2026-10-05', '2026-10-20']);
   });

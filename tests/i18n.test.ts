@@ -4,7 +4,7 @@ import { ENTRY_FORMS, ENUMS, MASTERS, NEW_USER_FIELDS, EDIT_USER_FIELDS, type Fi
 /** Every entry type the app can post (PostableEntryType in src/lib/ledger/types.ts). */
 const ENTRY_TYPES = [
   'opening', 'vendor_bill', 'vendor_payment', 'site_cash_expense', 'client_bill', 'client_receipt',
-  'cash_transfer', 'cash_close_difference', 'owner_capital', 'owner_drawing',
+  'cash_transfer', 'cash_close_difference', 'owner_capital', 'owner_drawing', 'not_yet_known', 'firm_transfer', 'labour_supplied', 'machine_rent', 'wages_paid', 'other_in', 'other_out',
 ];
 import en from '../messages/en.json';
 

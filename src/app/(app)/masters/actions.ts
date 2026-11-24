@@ -6,7 +6,9 @@ import type { FormState } from '@/components/form';
 import { quantityToMilli } from '@/lib/ledger/bill-items';
 import { requireProfile } from '@/lib/auth';
 import { moneyAccountErrors, parseFields, submittedValues } from '@/lib/masters/parse';
-import { getMaster, mayEdit } from '@/lib/masters/registry';
+import { getMaster, mayEdit, OPENING_FIELDS } from '@/lib/masters/registry';
+import { openingMoneyBalance } from '@/lib/ledger/posting/opening';
+import { todayInIndia } from '../entries/data';
 import { moveToBin, refusalQuery, type BinKind } from '@/lib/bin';
 import { sameName, TYPE_TO_DELETE } from '@/lib/delete';
 import { createClient } from '@/lib/supabase/server';
@@ -24,13 +26,43 @@ export async function saveMaster(slug: string, id: string | null, _state: FormSt
   const broken = slug === 'money-accounts' ? moneyAccountErrors(parsed.values) : null;
   if (broken) return { errors: broken, values };
 
+  // A new account's opening balance is checked before the account is added, so a wrong one leaves nothing behind.
+  let opening: { amountPaise: number; asOf: string } | null = null;
+  // One of our own firms is already on the Pay and Receive lists; kept as a party too it would be counted twice.
+  if (slug === 'parties' && !id) {
+    const { data: firms } = await (await createClient()).from('firms').select('name');
+    if ((firms ?? []).some((f) => sameName(f.name as string, String(parsed.values.name ?? '')))) return { errors: { name: 'is_firm' }, values };
+  }
+
+  if (slug === 'money-accounts' && !id) {
+    const extra = parseFields(OPENING_FIELDS, data);
+    if (!extra.ok) return { errors: extra.errors, values };
+    const asOf = (extra.values.opening_date as string | null) ?? todayInIndia();
+    if (asOf > todayInIndia()) return { errors: { opening_date: 'future_date' }, values };
+    if (extra.values.opening_balance) {
+      if (!parsed.values.firm_id) return { errors: { firm_id: 'account_needs_firm' }, values };
+      opening = { amountPaise: extra.values.opening_balance as number, asOf };
+    }
+  }
+
   const db = await createClient();
-  const { error } = id
-    ? await db.from(def.table).update(parsed.values as Record<string, unknown>).eq('id', id)
-    : await db.from(def.table).insert(parsed.values as Record<string, unknown>);
+  const { data: added, error } = id
+    ? await db.from(def.table).update(parsed.values as Record<string, unknown>).eq('id', id).select('*').maybeSingle()
+    : await db.from(def.table).insert(parsed.values as Record<string, unknown>).select('*').maybeSingle();
   if (error) {
+    if (error.message.includes('already has its cash account')) return { errors: { kind: 'one_cash' }, values };
     const duplicate = error.code === '23505';
     return { errors: { _form: duplicate ? 'duplicate' : 'save_failed' }, detail: duplicate ? undefined : error.message, values };
+  }
+  if (slug === 'money-accounts' && !id && added) {
+    if (opening) {
+      const { error: refused } = await db.rpc('app_post_entry', { p_entry: openingMoneyBalance({ account: { id: added.id, kind: added.kind, firmId: added.firm_id }, ...opening }) });
+      revalidatePath('/', 'layout');
+      // The account is there; only its opening was refused (e.g. a closed month), so it is asked for again.
+      if (refused) redirect(`/bankbook/${added.id}/opening?error=${encodeURIComponent(refused.message)}`);
+    }
+    revalidatePath('/', 'layout');
+    if (added.is_active) redirect(`/bankbook/${added.id}`);
   }
   revalidatePath('/', 'layout');
   redirect(`/masters/${slug}`);

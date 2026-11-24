@@ -113,15 +113,13 @@ describe('parseFields', () => {
 });
 
 describe('bank and cash account rules', () => {
-  it('ties a bank to a firm, keeps cash common, and gives supervisor cash a supervisor', () => {
-    expect(moneyAccountErrors({ kind: 'bank', firm_id: FIRM, holder_user_id: null })).toBeNull();
-    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: FIRM, holder_user_id: null })).toBeNull();
-    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: null, holder_user_id: null })).toEqual({ firm_id: 'cash_needs_firm' });
-    expect(moneyAccountErrors({ kind: 'supervisor_cash', firm_id: null, holder_user_id: SITE })).toBeNull();
-    expect(moneyAccountErrors({ kind: 'bank', firm_id: null, holder_user_id: SITE }))
-      .toEqual({ firm_id: 'bank_needs_firm', holder_user_id: 'only_supervisor_cash' });
-    expect(moneyAccountErrors({ kind: 'supervisor_cash', firm_id: FIRM, holder_user_id: null }))
-      .toEqual({ firm_id: 'cash_no_firm', holder_user_id: 'needs_supervisor' });
+  it('gives every account a firm', () => {
+    for (const kind of ['bank', 'owner_cash']) {
+      expect(moneyAccountErrors({ kind, firm_id: FIRM, is_active: true })).toBeNull();
+      expect(moneyAccountErrors({ kind, firm_id: null, is_active: true })).toEqual({ firm_id: 'account_needs_firm' });
+    }
+    // Shared cash left from before can be switched off.
+    expect(moneyAccountErrors({ kind: 'owner_cash', firm_id: null, is_active: false })).toBeNull();
   });
 });
 

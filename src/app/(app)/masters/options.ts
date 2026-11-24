@@ -1,7 +1,7 @@
 import type { getTranslations } from 'next-intl/server';
 import type { Choices } from '@/components/form';
 import type { WorkingFirm } from '@/lib/auth';
-import { accountChoices, accountScope, type AccountRow } from '@/lib/firm';
+import { accountChoices, type AccountRow } from '@/lib/firm';
 import type { Choice, Field, RefSource } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 import type { createClient } from '@/lib/supabase/server';
@@ -31,7 +31,7 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
       return (data ?? []).map((r) => ({ value: r.id, label: r.name }));
     }
     case 'supervisors': {
-      const { data } = await db.from('profiles').select('user_id, full_name').eq('role', 'supervisor').order('full_name');
+      const { data } = await db.from('profiles').select('user_id, full_name').in('role', ['supervisor', 'labour']).order('full_name');
       return (data ?? []).map((r) => ({ value: r.user_id, label: r.full_name }));
     }
     case 'vendors':
@@ -63,14 +63,11 @@ async function load(db: Db, source: RefSource, scope?: ChoiceScope): Promise<Cho
         label: r.section ? `${r.rate_bp / 100}% · ${r.section}` : `${r.rate_bp / 100}%`,
       }));
     }
-    case 'moneyAccounts':
-    case 'firmAccounts': {
-      // Payments and receipts (firmAccounts) never offer supervisor cash; only the firm's own accounts are listed.
-      let query = db.from('money_accounts').select('id, name, firm_id, kind').eq('is_active', true).order('name');
-      if (source === 'firmAccounts') query = query.neq('kind', 'supervisor_cash');
-      const { data } = await query.returns<AccountRow[]>();
+    case 'moneyAccounts': {
+      const { data } = await db.from('money_accounts').select('id, name, firm_id, kind').eq('is_active', true).order('name')
+        .returns<AccountRow[]>();
       if (!scope) return (data ?? []).map((r) => ({ value: r.id, label: r.name, kind: r.kind }));
-      return accountChoices(data ?? [], accountScope(source)!, scope.working.firm.id);
+      return accountChoices(data ?? [], scope.working.firm.id);
     }
   }
 }

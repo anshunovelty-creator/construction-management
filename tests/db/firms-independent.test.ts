@@ -17,7 +17,7 @@ beforeEach(async () => {
   seed = await seedBasics(db);
 });
 
-it('refuses a new entry that moves money from one firm to another, even if the lines balance', async () => {
+it('refuses to move money between firms as any other kind of entry, even if the lines balance', async () => {
   const draft: EntryDraft = {
     id: crypto.randomUUID(),
     entryType: 'owner_capital',
@@ -30,25 +30,21 @@ it('refuses a new entry that moves money from one firm to another, even if the l
       { account: 'inter_firm', amountPaise: -1_000, firmId: seed.ab, counterFirmId: seed.jayraj },
     ],
   };
-  await expect(postEntry(db, draft, OWNER)).rejects.toThrow('firms are independent');
+  await expect(postEntry(db, draft, OWNER)).rejects.toThrow('this kind of entry cannot move money between firms');
   const { rows } = await db.query('select count(*)::int as n from entries');
   expect(rows[0]).toEqual({ n: 0 });
 });
 
-it('lets a firm keep its own cash and pay a vendor from it; banks still need a firm, supervisor cash still has none', async () => {
-  const add = (kind: string, name: string, firmId: string | null) =>
-    db.query<{ id: string }>('insert into money_accounts (kind, name, firm_id) values ($1, $2, $3) returning id', [kind, name, firmId]);
-  const cash = (await add('owner_cash', 'Jayraj Infra - Cash', seed.jayraj)).rows[0]!.id;
-  // Common owner cash (no firm) is still allowed.
-  await add('owner_cash', 'Owner cash 2', null);
-  await expect(add('bank', 'Bank with no firm', null)).rejects.toThrow(/money_accounts_check/);
-  await expect(add('supervisor_cash', 'Supervisor cash with a firm', seed.jayraj)).rejects.toThrow(/money_accounts_check/);
-
+it('lets a firm pay a vendor from its own cash, once there is cash to pay from', async () => {
+  const cash = seed.ownerCash.id;
   const { vendorPayment } = await import('@/lib/ledger/posting/vendor');
+  const { openingMoneyBalance } = await import('@/lib/ledger/posting/opening');
+  const account = { id: cash, kind: 'owner_cash' as const, firmId: seed.jayraj };
+  await postEntry(db, openingMoneyBalance({ account, amountPaise: 5_000_00, asOf: '2026-10-30' }), OWNER);
   await postEntry(db, vendorPayment({
-    billFirmId: seed.jayraj, vendorId: seed.ansari, from: { id: cash, kind: 'owner_cash', firmId: seed.jayraj },
+    billFirmId: seed.jayraj, vendorId: seed.ansari, from: account,
     amountPaise: 1_000_00, paymentDate: '2026-10-31',
   }), OWNER);
-  const { rows } = await db.query('select firm_id, amount_paise from entry_lines where money_account_id = $1', [cash]);
+  const { rows } = await db.query('select firm_id, amount_paise from entry_lines where money_account_id = $1 and amount_paise < 0', [cash]);
   expect(rows).toEqual([{ firm_id: seed.jayraj, amount_paise: -1_000_00 }]);
 });

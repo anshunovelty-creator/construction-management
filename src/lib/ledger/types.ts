@@ -12,7 +12,9 @@ export const COST_HEADS = [
   'transport',
   'other',
 ] as const;
-export type CostHead = (typeof COST_HEADS)[number];
+/** What a firm's own costs are for, beside a site's. */
+export const FIRM_HEADS = ['office', 'bank_charges', 'interest', 'machine_service'] as const;
+export type CostHead = (typeof COST_HEADS)[number] | (typeof FIRM_HEADS)[number];
 
 export type LedgerAccount =
   | 'money'
@@ -29,6 +31,25 @@ export type LedgerAccount =
   | 'owner_capital'
   | 'opening_balance'
   | 'cash_short_excess'
+  | 'round_off'
+  /** Money in or out that nobody can explain yet; sorted out by replacing the entry. */
+  | 'not_yet_known'
+  /** What one of our firms earns from another: labour or a machine supplied. */
+  | 'firm_income'
+  /** Salaries, wages and advances given; who got them is kept on their own accounts. */
+  | 'wages_paid'
+  /** A firm's own costs, not a site's: office, bank charges, interest, machine service. */
+  | 'firm_cost'
+  | 'other_income'
+  /** Borrowed money still to pay back. ponytail: one balance per firm; keep it per lender when a firm has two. */
+  | 'loan'
+  /** Deposits we gave (tenders, rent) and get back. */
+  | 'deposit_given'
+  | 'gst_paid'
+  | 'tds_paid'
+  | 'pf_paid'
+  /** TDS got back as a refund. */
+  | 'tds_claimed'
   | 'gst_input'
   | 'gst_output'
   | 'tds_payable';
@@ -52,7 +73,14 @@ export type PostableEntryType =
   | 'cash_transfer'
   | 'cash_close_difference'
   | 'owner_capital'
-  | 'owner_drawing';
+  | 'owner_drawing'
+  | 'not_yet_known'
+  | 'firm_transfer'
+  | 'labour_supplied'
+  | 'machine_rent'
+  | 'wages_paid'
+  | 'other_in'
+  | 'other_out';
 
 export type MoneyAccountKind = 'bank' | 'owner_cash' | 'supervisor_cash';
 
@@ -91,7 +119,7 @@ export interface EntryDraft {
 export interface MoneyAccountRef {
   id: string;
   kind: MoneyAccountKind;
-  /** Bank accounts belong to a firm; owner and supervisor cash are common (null). */
+  /** Every account belongs to a firm; null only for shared cash from before (switched off). */
   firmId: string | null;
 }
 

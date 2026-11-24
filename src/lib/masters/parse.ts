@@ -32,17 +32,12 @@ export function percentToBasisPoints(input: string): number {
  * Empty optional fields become the column's empty value; an empty optional password is left out.
  */
 /**
- * The rules for a bank or cash account, said per field: a bank and each firm's own cash belong to one firm, and supervisor cash to none (the database
- * checks this too), and supervisor cash, and only that, is held by a supervisor.
+ * The rules for a bank or cash account, said per field: each belongs to one firm (the database checks this too; one left
+ * over from when cash was shared may only be switched off).
  */
 export function moneyAccountErrors(v: Record<string, Value>): Record<string, string> | null {
   const errors: Record<string, string> = {};
-  if (v.kind === 'bank' && !v.firm_id) errors.firm_id = 'bank_needs_firm';
-  // Each firm keeps its own cash; supervisor cash belongs to the supervisor, not a firm.
-  if (v.kind === 'owner_cash' && !v.firm_id) errors.firm_id = 'cash_needs_firm';
-  if (v.kind === 'supervisor_cash' && v.firm_id) errors.firm_id = 'cash_no_firm';
-  if (v.kind === 'supervisor_cash' && !v.holder_user_id) errors.holder_user_id = 'needs_supervisor';
-  if (v.kind !== 'supervisor_cash' && v.holder_user_id) errors.holder_user_id = 'only_supervisor_cash';
+  if (!v.firm_id && v.is_active) errors.firm_id = 'account_needs_firm';
   return Object.keys(errors).length ? errors : null;
 }
 
@@ -115,6 +110,10 @@ export function parseFields(fields: Field[], data: FormData): ParseResult {
         } catch {
           errors[field.name] = 'invalid_percent';
         }
+        break;
+      case 'whole':
+        if (/^\d{1,4}$/.test(text) && Number(text) >= field.min && Number(text) <= field.max) values[field.name] = Number(text);
+        else errors[field.name] = 'invalid_whole';
         break;
       case 'date':
         try {

@@ -15,7 +15,7 @@ it('posts the opposite of the remainder, balanced, with no money moving', () => 
   const line = { account: 'vendor_payable', amountPaise: 1, firmId: 'f', partyId: 'p' } as const;
   const draft = roundOffDraft(line, -50, '2026-11-06');
   expect(draft).toMatchObject({ entryType: 'vendor_payment', firmId: 'f', partyId: 'p', narration: 'Round off', entryDate: '2026-11-06' });
-  expect(draft.lines.map((l) => [l.account, l.amountPaise])).toEqual([['vendor_payable', 50], ['cash_short_excess', -50]]);
+  expect(draft.lines.map((l) => [l.account, l.amountPaise])).toEqual([['vendor_payable', 50], ['round_off', -50]]);
   expect(roundOffDraft({ ...line, account: 'client_receivable' }, 99, '2026-11-06').entryType).toBe('client_receipt');
 });
 

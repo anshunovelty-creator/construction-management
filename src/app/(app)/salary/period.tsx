@@ -9,8 +9,8 @@ type T = Awaited<ReturnType<typeof getTranslations>>;
 export const periodQuery = (p: { from: string; to: string; month?: string }) =>
   p.month ? `month=${p.month}` : `from=${p.from}&to=${p.to}`;
 
-/** Pick the salary period: this month, last month, any month, or any from–to dates. A pick opens straight away. */
-export function PeriodBar({ path, period, today, t }: { path: string; period: { from: string; to: string; month?: string }; today: string; t: T }) {
+/** Pick the salary period: this month, last month, any month, or (not for workers, typed by the month) any from–to dates. A pick opens straight away. */
+export function PeriodBar({ path, period, today, t, monthOnly = false }: { path: string; period: { from: string; to: string; month?: string }; today: string; t: T; monthOnly?: boolean }) {
   const thisMonth = today.slice(0, 7);
   return (
     <div className="card report-bar salary-bar no-print">
@@ -22,12 +22,12 @@ export function PeriodBar({ path, period, today, t }: { path: string; period: { 
         <label className="muted" htmlFor="salary-month">{t('salary.month')}</label>
         <input key={period.month} id="salary-month" type="month" name="month" defaultValue={period.month ?? ''} max={thisMonth} required />
       </AutoForm>
-      <AutoForm action={path} className="date-filter">
+      {!monthOnly && <AutoForm action={path} className="date-filter">
         <label className="muted" htmlFor="salary-from">{t('salary.from')}</label>
         <input key={`f${period.from}`} id="salary-from" type="date" name="from" defaultValue={period.from} max={today} required />
         <label className="muted" htmlFor="salary-to">{t('salary.to')}</label>
         <input key={`t${period.to}`} id="salary-to" type="date" name="to" defaultValue={period.to} max={today} required />
-      </AutoForm>
+      </AutoForm>}
     </div>
   );
 }

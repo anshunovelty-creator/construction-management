@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, expect, it } from 'vitest';
 import { reverseEntry } from '@/lib/ledger/lifecycle';
 import { siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill } from '@/lib/ledger/posting/client';
+import { openingMoneyBalance } from '@/lib/ledger/posting/opening';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import { postEntry } from '@/lib/ledger/repo';
 import { asUser, createMigratedDb, createUser, OWNER, seedBasics, SUPERVISOR, type Seed } from './harness';
@@ -30,7 +31,8 @@ it('lists what was spent at a site and what the client was billed, leaving out p
   await post(vendorPayment({
     billFirmId: seed.jayraj, vendorId: seed.ansari, from: seed.jayrajBank, amountPaise: 300_00, paymentDate: '2026-10-23', reference: 'UTR1',
   }));
-  // Supervisor cash belongs to no firm: a common cost.
+  // Cash with a person is a firm's: that firm's cost.
+  await post(openingMoneyBalance({ account: seed.rameshCash, amountPaise: 200_00, asOf: '2026-10-01' }));
   await post(siteCashExpense({
     from: seed.rameshCash, siteId: seed.svgSite, costHead: 'labour', amountPaise: 150_00, expenseDate: '2026-10-24', narration: 'Labour',
   }), SUPERVISOR);
@@ -51,7 +53,7 @@ it('lists what was spent at a site and what the client was billed, leaving out p
   expect(rows).toEqual([
     // Cost before GST: both items, no GST.
     { entry_type: 'vendor_bill', firm_id: seed.jayraj, party_id: seed.ansari, cost_paise: 700_00, billed_paise: 0 },
-    { entry_type: 'site_cash_expense', firm_id: null, party_id: null, cost_paise: 150_00, billed_paise: 0 },
+    { entry_type: 'site_cash_expense', firm_id: seed.jayraj, party_id: null, cost_paise: 150_00, billed_paise: 0 },
     // Gross before GST is billed; material the client supplied and cut from the bill is a cost of the site.
     { entry_type: 'client_bill', firm_id: seed.jayraj, party_id: seed.svgClient, cost_paise: 40_00, billed_paise: 2_000_00 },
   ]);

@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireProfile } from '@/lib/auth';
+import { machineService } from '@/lib/ledger/posting/other';
 import { rupeesToPaise } from '@/lib/money';
 import { sameName } from '@/lib/delete';
 import { moveToBin } from '@/lib/bin';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
+import { payAccount } from '../pay/data';
 
 const text = (data: FormData, name: string) => String(data.get(name) ?? '').trim();
 
@@ -50,10 +52,21 @@ export async function addService(machineId: string, data: FormData): Promise<voi
     // stays below zero, refused next
   }
   if (cost < 0) fail('cost');
-  const { error } = await (await createClient()).from('machine_services').insert({
-    machine_id: machineId, service_date: date, running_hours: Number(hours), cost_paise: cost, note: text(data, 'note'),
-  });
-  if (error) fail('not_saved');
+  const db = await createClient();
+  const note = text(data, 'note');
+  if (!text(data, 'account')) {
+    // Not paid yet (a bill will come), or it cost nothing: a record only.
+    const { error } = await db.from('machine_services').insert({ machine_id: machineId, service_date: date, running_hours: Number(hours), cost_paise: cost, note });
+    if (error) fail('not_saved');
+  } else {
+    if (cost === 0) fail('cost');
+    const [account, { data: machine }] = await Promise.all([payAccount(db, text(data, 'account')), db.from('machines').select('name').eq('id', machineId).maybeSingle()]);
+    if (!account || !machine) return fail('account');
+    const entry = machineService({ account, amountPaise: cost, date, narration: [machine.name, note].filter(Boolean).join(' · ') });
+    const { error } = await db.rpc('app_pay', { p_batches: [{ entry, lines: [{ source: 'machine', id: machineId, hours: Number(hours), amountPaise: cost, note }] }] });
+    if (error) fail(error.message.includes('not enough cash') ? 'no_cash' : 'not_saved');
+    revalidatePath('/', 'layout');
+  }
   revalidatePath('/machines', 'layout');
   redirect(page);
 }
@@ -64,6 +77,9 @@ export async function deleteMachine(id: string, data: FormData): Promise<void> {
   const fail = (error: string): never => redirect(`/machines/${id}/edit?error=${error}`);
   const { data: machine } = await (await createClient()).from('machines').select('name').eq('id', id).maybeSingle();
   if (!machine || !sameName(String(data.get('confirm') ?? ''), machine.name as string)) fail('delete_name');
+  // Deleting it would take its paid services off with it, and their money back into the account.
+  const { count } = await (await createClient()).from('machine_services').select('id', { count: 'exact', head: true }).eq('machine_id', id).not('entry_id', 'is', null);
+  if (count) fail('has_paid');
   if (await moveToBin('machines', id)) fail('not_deleted');
   revalidatePath('/machines', 'layout');
   redirect('/machines');

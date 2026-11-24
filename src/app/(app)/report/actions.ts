@@ -5,11 +5,14 @@ import { redirect } from 'next/navigation';
 import type { LabourLine, OtherLine, LineState } from '@/components/labour-form';
 import type { MaterialLine, MaterialState } from '@/components/material-use-form';
 import type { WorkActivity, WorkState } from '@/components/work-done-form';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { quantityToMilli } from '@/lib/ledger/bill-items';
-import { COST_HEADS } from '@/lib/ledger/types';
+import { siteCashExpense } from '@/lib/ledger/posting/cash';
+import { COST_HEADS, type CostHead, type EntryDraft } from '@/lib/ledger/types';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
+import { todayInIndia } from '../entries/data';
+import { payAccount } from '../pay/data';
 import { dayAmount, dayPay, otCenti } from '@/lib/wages';
 import { amountPaise, measurementText, quantityMilli, type Measure } from '@/lib/work';
 
@@ -79,12 +82,17 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
   return insertLines('labour_day', rows);
 }
 
-/** Anything else the site cost that day, like the tractor or the labour colony: what, what for, how many × rate. */
+/**
+ * Anything else the site cost that day, like the tractor or the labour colony: what, what for, how many × rate. One paid
+ * already comes out of the account it names, as an entry of its own; the rest wait for their bill. All or none are saved.
+ */
 export async function addOtherCost(siteId: string, date: string, _state: LineState, data: FormData): Promise<LineState> {
   await requireProfile('owner', 'office', 'supervisor');
   const lines = parseLines<OtherLine>(data);
   if (!lines) return { error: 'nothing' };
-  const rows = [];
+  const db = await createClient();
+  const batches: { entry: EntryDraft | null; lines: object[] }[] = [];
+  const unpaid: object[] = [];
   for (const [i, line] of lines.entries()) {
     const description = (line.description ?? '').trim();
     if (!description && !line.quantity?.trim() && !line.rate?.trim()) continue;
@@ -98,12 +106,49 @@ export async function addOtherCost(siteId: string, date: string, _state: LineSta
     }
     const rate = ratePaise(line.rate);
     if (rate === null) return { error: 'bad_rate', line: i };
-    rows.push({
-      site_id: siteId, work_date: date, description, cost_head: line.costHead,
-      quantity: milli / 1000, rate_paise: rate, amount_paise: amountPaise(milli, rate),
-    });
+    const amount = amountPaise(milli, rate);
+    const row = { source: 'other_cost', siteId, date, description, costHead: line.costHead, quantity: milli / 1000, ratePaise: rate, amountPaise: amount };
+    if (!line.paidFrom) {
+      unpaid.push(row);
+      continue;
+    }
+    if (amount <= 0) return { error: 'bad_rate', line: i };
+    if (date > todayInIndia()) return { error: 'future_paid', line: i };
+    const from = await payAccount(db, line.paidFrom);
+    if (!from) return { error: 'bad_account', line: i };
+    batches.push({ entry: siteCashExpense({ from, siteId, costHead: line.costHead as CostHead, amountPaise: amount, expenseDate: date, narration: description }), lines: [row] });
   }
-  return insertLines('other_cost', rows);
+  if (unpaid.length > 0) batches.push({ entry: null, lines: unpaid });
+  if (batches.length === 0) return { error: 'nothing' };
+  const { error } = await db.rpc('app_pay', { p_batches: batches });
+  if (error) return { error: 'save_failed', detail: error.message };
+  revalidatePath('/', 'layout');
+  return { saved: Date.now() };
+}
+
+/** A cost typed as not paid yet, now paid from the working firm's bank or cash. */
+export async function payCost(id: string, entryId: string, siteId: string, date: string, data: FormData): Promise<void> {
+  await requireProfile('owner', 'office');
+  const fail = (error: string): never => redirect(`/report?site=${siteId}&date=${date}&error=${encodeURIComponent(error)}`);
+  const db = await createClient();
+  const paidOn = String(data.get('date') ?? '');
+  const [{ data: cost }, from, working] = await Promise.all([
+    db.from('other_cost').select('description, cost_head, amount_paise').eq('id', id).maybeSingle(),
+    payAccount(db, String(data.get('account') ?? '')), getWorkingFirm(),
+  ]);
+  if (!cost) return fail('This cost is already paid or removed.');
+  if (!from || from.firmId !== working?.firm.id) return fail('Choose one of this firm’s accounts.');
+  if (paidOn > todayInIndia()) return fail('This date is in the future.');
+  let entry;
+  try {
+    entry = siteCashExpense({ id: entryId, from, siteId, costHead: cost.cost_head as CostHead, amountPaise: Number(cost.amount_paise), expenseDate: paidOn, narration: cost.description as string });
+  } catch (error) {
+    return fail((error as Error).message);
+  }
+  const { error } = await db.rpc('app_pay_cost', { p_cost: id, p_entry: entry });
+  if (error) return fail(error.message);
+  revalidatePath('/', 'layout');
+  redirect(`/report?site=${siteId}&date=${date}#other-title`);
 }
 
 /**

@@ -2,9 +2,10 @@ import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Form } from '@/components/form';
 import { ListLink } from '@/components/list-link';
-import { requireProfile } from '@/lib/auth';
-import { getMaster, mayEdit, mayView } from '@/lib/masters/registry';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
+import { getMaster, mayEdit, mayView, OPENING_FIELDS, type Field } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
+import { todayInIndia } from '../../entries/data';
 import { saveMaster } from '../actions';
 import { displayValue, loadChoices } from '../options';
 
@@ -19,10 +20,15 @@ export default async function MasterListPage({ params, searchParams }: { params:
   const db = await createClient();
   const query = db.from(def.table).select('*');
   const [{ data: rows }, choices, t] = await Promise.all([
-    (def.kinds ? query.in('kind', def.kinds) : query).order(def.list[0]!),
+    // Banks and cash go firm by firm, the ones in use first.
+    slug === 'money-accounts' ? query.order('is_active', { ascending: false }).order('firm_id').order('kind').order('name')
+      : (def.kinds ? query.in('kind', def.kinds) : query).order(def.list[0]!),
     loadChoices(db, def.fields),
     getTranslations(),
   ]);
+  // A new bank or cash account can say what it holds already, and starts in the firm being worked in.
+  const account = slug === 'money-accounts' && canEdit;
+  const working = account ? await getWorkingFirm() : null;
   const fieldByName = new Map(def.fields.map((f) => [f.name, f]));
 
   return (
@@ -64,8 +70,10 @@ export default async function MasterListPage({ params, searchParams }: { params:
       )}
       {canEdit && (
         <>
-          <h2>{t('masters.add')}</h2>
-          <Form fields={def.fields} choices={choices} action={saveMaster.bind(null, slug, null)} submitLabel={t('masters.save')} />
+          <h2 id="add">{t('masters.add')}</h2>
+          <Form fields={account ? [...def.fields.slice(0, -1).map((f) => (f.name === 'firm_id' ? { ...f, required: true } as Field : f)), ...OPENING_FIELDS, ...def.fields.slice(-1)] : def.fields} choices={choices}
+            defaults={account ? { firm_id: working?.firm.id ?? '', opening_date: todayInIndia() } : undefined} hintPrefix={account ? 'accountForm.hints' : undefined}
+            action={saveMaster.bind(null, slug, null)} submitLabel={t('masters.save')} />
         </>
       )}
     </>

@@ -144,7 +144,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
         received={f.paid}
         balance={f.balance}
         lastBill={bills.at(-1)?.receivable}
-        accounts={choices.firmAccounts ?? []}
+        accounts={choices.moneyAccounts ?? []}
         lastAccount={lastTo}
         today={todayInIndia()}
         save={postClientRows.bind(null, firm.id, client.id)}
@@ -255,7 +255,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
             )}
             <details className="add-rows">
               <summary className="btn ghost">＋ {t('client.addReceipts')}</summary>
-              {(choices.firmAccounts ?? []).length === 0 && (
+              {(choices.moneyAccounts ?? []).length === 0 && (
                 <p className="banner bad">
                   {t('party.needAccount')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link>
                 </p>

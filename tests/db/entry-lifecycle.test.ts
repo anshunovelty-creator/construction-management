@@ -7,7 +7,7 @@ import {
   createMigratedDb,
   OFFICE,
   OWNER,
-  ownerToRamesh,
+  bankToRamesh,
   seedBasics,
   SUPERVISOR,
   type Seed,
@@ -28,9 +28,9 @@ beforeEach(async () => {
 
 describe('cancelling an entry', () => {
   it('posts exactly opposite lines and marks the original cancelled', async () => {
-    const posted = await postEntry(db, ownerToRamesh(seed, 2_000_000), OFFICE);
+    const posted = await postEntry(db, bankToRamesh(seed, 2_000_000), OFFICE);
     const reversal = await reverseEntry(db, posted.id, OWNER, 'entered twice');
-    expect(reversal.serial).toBe('CM/26-27/000002');
+    expect(reversal.serial).toBe('JI/26-27/000002');
     expect(await balanceOf(db, 'money', { money_account_id: seed.rameshCash.id })).toBe(0);
     expect(await entryStatus(db, posted.id)).toBe('cancelled');
     expect(await entryStatus(db, reversal.id)).toBe('reversal');
@@ -39,14 +39,14 @@ describe('cancelling an entry', () => {
   });
 
   it('needs a reason', async () => {
-    const posted = await postEntry(db, ownerToRamesh(seed, 100), OFFICE);
+    const posted = await postEntry(db, bankToRamesh(seed, 100), OFFICE);
     await expect(reverseEntry(db, posted.id, OWNER, '  ')).rejects.toThrow('a reason is required');
   });
 });
 
 describe('verifying and rejecting', () => {
   it('lets someone else verify an entry, but never the person who entered it', async () => {
-    const posted = await postEntry(db, ownerToRamesh(seed, 100), SUPERVISOR);
+    const posted = await postEntry(db, bankToRamesh(seed, 100), SUPERVISOR);
     expect(await entryStatus(db, posted.id)).toBe('unverified');
     await expect(verifyEntry(db, posted.id, SUPERVISOR)).rejects.toThrow('cannot verify your own entry');
     await verifyEntry(db, posted.id, OFFICE);
@@ -55,13 +55,13 @@ describe('verifying and rejecting', () => {
   });
 
   it('rejects an unverified entry by reversing it, but not your own or a verified one', async () => {
-    const posted = await postEntry(db, ownerToRamesh(seed, 100), SUPERVISOR);
+    const posted = await postEntry(db, bankToRamesh(seed, 100), SUPERVISOR);
     await expect(rejectEntry(db, posted.id, SUPERVISOR, 'oops')).rejects.toThrow('cannot reject your own entry');
     await rejectEntry(db, posted.id, OFFICE, 'Ramesh did not receive this cash');
     expect(await entryStatus(db, posted.id)).toBe('cancelled');
     expect(await balanceOf(db, 'money', { money_account_id: seed.rameshCash.id })).toBe(0);
 
-    const verified = await postEntry(db, ownerToRamesh(seed, 100), SUPERVISOR);
+    const verified = await postEntry(db, bankToRamesh(seed, 100), SUPERVISOR);
     await verifyEntry(db, verified.id, OFFICE);
     await expect(rejectEntry(db, verified.id, OWNER, 'late')).rejects.toThrow('already verified');
   });
@@ -69,8 +69,8 @@ describe('verifying and rejecting', () => {
 
 describe('replacing (editing) an entry', () => {
   it('cancels the old entry and posts the corrected one, linked', async () => {
-    const posted = await postEntry(db, ownerToRamesh(seed, 2_000_000), OFFICE);
-    const result = await replaceEntry(db, posted.id, ownerToRamesh(seed, 1_500_000), OWNER, 'amount was ₹15,000');
+    const posted = await postEntry(db, bankToRamesh(seed, 2_000_000), OFFICE);
+    const result = await replaceEntry(db, posted.id, bankToRamesh(seed, 1_500_000), OWNER, 'amount was ₹15,000');
     expect(await balanceOf(db, 'money', { money_account_id: seed.rameshCash.id })).toBe(1_500_000);
     expect(await entryStatus(db, posted.id)).toBe('cancelled');
     expect(await entryStatus(db, result.entry.id)).toBe('unverified');

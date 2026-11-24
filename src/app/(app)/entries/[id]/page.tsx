@@ -5,8 +5,10 @@ import { requireProfile } from '@/lib/auth';
 import { lineLabel, type LineRow } from '@/lib/ledger/plain';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
-import { cancelEntry } from '../actions';
-import { loadNames, showDate, showMoment } from '../data';
+import { MoneyPopup } from '@/components/money-popup';
+import { loadAccounts, loadPeople } from '../../bankbook/data';
+import { cancelEntry, sortOut } from '../actions';
+import { loadNames, showDate, showMoment, todayInIndia } from '../data';
 import { BackLink } from '@/components/back-link';
 import { Icon } from '@/components/icons';
 
@@ -15,6 +17,7 @@ interface Entry {
   serial: string;
   entry_type: string;
   entry_date: string;
+  firm_id: string | null;
   party_id: string | null;
   reference: string;
   narration: string;
@@ -68,6 +71,12 @@ export default async function EntryPage({
   // Entries are no longer checked. Ones checked before that stay owner-only to cancel (the database enforces it too).
   const canCancel = state === 'unverified' || (state === 'verified' && profile.role === 'owner');
   const date = showDate(entry.entry_date);
+  const money = (lines ?? []).find((l) => l.account === 'money');
+  // Money not yet known is sorted out here: the entry that takes its place keeps the account, amount and date.
+  const office = profile.role === 'owner' || profile.role === 'office';
+  const toSort = office && canCancel && entry.entry_type === 'not_yet_known' && entry.firm_id && money?.money_account_id
+    ? { firm: entry.firm_id, account: money.money_account_id, amount: Number(money.amount_paise) } : null;
+  const [accounts, people] = toSort ? await Promise.all([loadAccounts(db), loadPeople(db, toSort.firm)]) : [[], null];
 
   return (
     <>
@@ -154,6 +163,16 @@ export default async function EntryPage({
           <p className="muted">
             <Link href={`/entries/${entry.reverses_entry_id}`} className="underline">{t('entries.seeOriginal')}</Link>
           </p>
+        )}
+
+        {toSort && (
+          <div className="quick-buttons sort-out">
+            <MoneyPopup mode={toSort.amount > 0 ? 'in' : 'out'} firm={{ id: toSort.firm, name: names.firms.get(toSort.firm) ?? '' }}
+              account={toSort.account} accounts={accounts.filter((a) => a.firm_id === toSort.firm && a.is_active)}
+              people={toSort.amount > 0 ? people!.in : people!.out} others={toSort.amount > 0 ? people!.out : people!.in} owner={profile.role === 'owner'} today={todayInIndia()}
+              fixed={{ paise: Math.abs(toSort.amount), date: entry.entry_date, note: entry.narration }} button={t('bankbook.buttons.sortOut')}
+              save={sortOut.bind(null, id)} />
+          </div>
         )}
 
         {canCancel && (

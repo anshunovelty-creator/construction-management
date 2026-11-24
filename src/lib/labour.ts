@@ -37,7 +37,9 @@ export interface LedgerMonth {
   advance: Paise;
   /** The month's salary with the addition, deduction and advance counted. */
   net: Paise;
-  /** What the months before left: above zero still to pay, below zero paid extra. */
+  /** A family's opening balance, when it counts from this month: above zero to pay, below zero paid extra. */
+  opening: Paise;
+  /** What the months before left, with any opening balance: above zero still to pay, below zero paid extra. */
   before: Paise;
   paid: Paise;
   /** What this month leaves: above zero still to pay, below zero paid extra and cut from the next salary. */
@@ -45,16 +47,17 @@ export interface LedgerMonth {
   note: string;
 }
 
-type MonthFigures = Omit<LedgerMonth, 'net' | 'before' | 'balance'>;
+type MonthFigures = Omit<LedgerMonth, 'net' | 'opening' | 'before' | 'balance'> & { opening?: Paise };
 
 /** Months in order, each carrying what the one before left, so extra paid comes off the next salary. */
 function carry(months: MonthFigures[]): LedgerMonth[] {
   let balance = 0;
   return [...months].sort((a, b) => a.month.localeCompare(b.month)).map((m) => {
     const net = m.salary + m.addition - m.deduction - m.advance;
-    const before = balance;
+    const opening = m.opening ?? 0;
+    const before = balance + opening;
     balance = roundOffSmall(before + net - m.paid);
-    return { ...m, net, before, balance };
+    return { ...m, net, opening, before, balance };
   });
 }
 
@@ -76,15 +79,19 @@ export function labourLedger(months: LabourMonth[], rates: LabourRate[]): Ledger
 /** Money given to a family's head (or taken off), kept with its date. */
 export interface LabourMoney {
   money_date: string;
-  kind: 'advance' | 'payment' | 'deduction';
+  kind: 'advance' | 'payment' | 'deduction' | 'returned';
   amount_paise: number | string;
 }
 
+/** A family's balance when the app started, counting from a month ("2026-10-01"): above zero to pay, below zero paid extra. */
+export interface LabourOpening { month: string; amount_paise: number | string }
+
 /**
  * A family's ledger: every member's days at their own day salary, added up per month, with the money given to the head
- * counted in the month of its date. It carries like one person's. `rate` is 0, as members' salaries differ.
+ * counted in the month of its date, and any opening balance in its month's "from last month". It carries like one
+ * person's. `rate` is 0, as members' salaries differ.
  */
-export function familyLedger(members: { months: LabourMonth[]; rates: LabourRate[] }[], money: LabourMoney[]): LedgerMonth[] {
+export function familyLedger(members: { months: LabourMonth[]; rates: LabourRate[] }[], money: LabourMoney[], opening?: LabourOpening | null): LedgerMonth[] {
   const byMonth = new Map<string, MonthFigures>();
   const at = (month: string) => byMonth.get(month)
     ?? byMonth.set(month, { month, days: 0, otHours: 0, rate: 0, salary: 0, addition: 0, deduction: 0, advance: 0, paid: 0, note: '' }).get(month)!;
@@ -102,9 +109,11 @@ export function familyLedger(members: { months: LabourMonth[]; rates: LabourRate
   }
   for (const line of money) {
     const m = at(line.money_date.slice(0, 7));
-    const key = line.kind === 'payment' ? 'paid' : line.kind;
-    m[key] += Number(line.amount_paise);
+    // Handed back: that much less was paid.
+    if (line.kind === 'returned') m.paid -= Number(line.amount_paise);
+    else m[line.kind === 'payment' ? 'paid' : line.kind] += Number(line.amount_paise);
   }
+  if (opening) at(opening.month.slice(0, 7)).opening = Number(opening.amount_paise);
   return carry([...byMonth.values()]);
 }
 

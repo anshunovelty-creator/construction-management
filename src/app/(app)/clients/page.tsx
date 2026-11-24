@@ -7,6 +7,7 @@ import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { sumFigures } from '@/lib/ledger/party';
 import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
+import { OurFirms } from '../between/our-firms';
 import { showDate } from '../entries/data';
 import { loadFirmClients, MoneyCell, PercentBar, Stat, StatusPill } from '../party/shared';
 
@@ -113,6 +114,8 @@ export default async function ClientIndexPage() {
           </div>
         </>
       )}
+
+      <OurFirms db={db} firm={firm} />
 
       <form action="/client" className="open-other card">
         <label htmlFor="open-id">{t('client.openOther')}</label>

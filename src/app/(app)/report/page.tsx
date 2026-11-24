@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { AccountOptions } from '@/components/account-options';
 import { LabourForm, OtherCostForm, type Person } from '@/components/labour-form';
 import { MaterialUseForm } from '@/components/material-use-form';
 import { SearchSelect } from '@/components/search-select';
@@ -10,9 +11,10 @@ import { byWork, QTY, stockLines, valueOf, type Bought, type Used } from '@/lib/
 import { createClient } from '@/lib/supabase/server';
 import { lineSerial, type Measure } from '@/lib/work';
 import { dayPay } from '@/lib/wages';
+import { payAccounts } from '../pay/data';
 import { Stat } from '../party/shared';
 import { showDate, todayInIndia } from '../entries/data';
-import { addLabour, addMaterialUse, addOtherCost, addWorkDone, removeReportLine } from './actions';
+import { addLabour, addMaterialUse, addOtherCost, addWorkDone, payCost, removeReportLine } from './actions';
 import { Icon } from '@/components/icons';
 import { AutoForm } from '@/components/auto-form';
 import { PrintButton } from '@/components/print-button';
@@ -56,6 +58,7 @@ interface OtherRow {
   rate_paise: number | string;
   amount_paise: number | string;
   created_by: string;
+  entry_id: string | null;
 }
 
 type PersonRow = Person & { site_id: string | null; rate_paise: number | null };
@@ -108,7 +111,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       .order('kind', { ascending: false }).order('name').returns<PersonRow[]>(),
     db.from('labour_day').select('id, party_id, present, ot_hours, day_pay_paise, amount_paise, created_by')
       .eq('site_id', site.id).eq('work_date', date).returns<LabourRow[]>(),
-    db.from('other_cost').select('id, description, cost_head, quantity, rate_paise, amount_paise, created_by')
+    db.from('other_cost').select('id, description, cost_head, quantity, rate_paise, amount_paise, created_by, entry_id')
       .eq('site_id', site.id).eq('work_date', date).order('created_at').returns<OtherRow[]>(),
     db.from('mixes').select('id, name, unit:units(name), items:mix_items(material_id, quantity, position)').eq('is_active', true).order('name')
       .returns<{ id: string; name: string; unit: { name: string } | null; items: { material_id: string; quantity: number | string; position: number }[] }[]>(),
@@ -174,6 +177,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const dayLink = (days: number) => `/report?site=${site.id}&date=${shiftDate(date, days)}`;
 
   const working = await getWorkingFirm();
+  const accounts = await payAccounts(db, profile.role, working?.firm.id);
   const sheet: SheetData = {
     firm: working?.firm.name ?? null,
     site: site.name,
@@ -449,7 +453,17 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
               <tbody>
                 {otherRows.map((r) => (
                   <tr key={r.id}>
-                    <td><strong>{r.description}</strong></td>
+                    <td><strong>{r.description}</strong>{r.entry_id && <span className="pill cleared">{t('report.other.paid')}</span>}
+                      {!r.entry_id && accounts.length > 0 && Number(r.amount_paise) > 0 && (
+                        <details className="pay-cost no-print">
+                          <summary className="btn ghost small">{t('report.other.payNow')}</summary>
+                          <form action={payCost.bind(null, r.id, crypto.randomUUID(), site.id, date)}>
+                            <select name="account" required defaultValue="" aria-label={t('report.other.paidFrom')}><option value="">{t('bankbook.popup.pick')}</option><AccountOptions accounts={accounts} /></select>
+                            <input type="date" name="date" required defaultValue={today} max={today} aria-label={t('fields.entry_date')} />
+                            <button type="submit" className="btn small">{t('payList.party.button')}</button>
+                          </form>
+                        </details>
+                      )}</td>
                     <td>{t(`options.cost_head.${r.cost_head}`)}</td>
                     <td className="num">{QTY.format(Number(r.quantity))}</td>
                     <td className="num">{showPaise(Number(r.rate_paise))}</td>
@@ -462,7 +476,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           </div>
         )}
 
-        <OtherCostForm key={`${site.id}/${date}`} action={addOtherCost.bind(null, site.id, date)} />
+        <OtherCostForm key={`${site.id}/${date}`} accounts={accounts} action={addOtherCost.bind(null, site.id, date)} />
       </section>
 
       <section className="report-section" aria-labelledby="profit-title">

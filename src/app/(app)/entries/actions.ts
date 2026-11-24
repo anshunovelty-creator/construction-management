@@ -5,8 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect, RedirectType } from 'next/navigation';
 import type { FormState } from '@/components/form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
-import { accountScope, firmErrors, firmsForSave } from '@/lib/firm';
-import { cashCloseDifference, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
+import { firmErrors, firmsForSave } from '@/lib/firm';
+import { cashTransfer, notYetKnown, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
+import { otherMoney, reasonOf } from '@/lib/ledger/posting/other';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import type { CostHead, EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
@@ -14,6 +15,7 @@ import { showPaise, percentOf } from '@/lib/money';
 import { parseFields, submittedValues, type Value } from '@/lib/masters/parse';
 import { getEntryForm, type EntryFormSlug, type Field } from '@/lib/masters/registry';
 import { createClient } from '@/lib/supabase/server';
+import { todayInIndia } from './data';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -38,12 +40,6 @@ function checkMethod(method: string, account: MoneyAccountRef): void {
   if (method && (method === 'cash') !== (account.kind !== 'bank')) throw new Error('payment_method');
 }
 
-/** What the books say is in a bank or cash account right now. */
-async function moneyBalance(db: Db, accountId: string): Promise<number> {
-  const { data } = await db.from('balances').select('amount_paise').eq('account', 'money').eq('money_account_id', accountId);
-  return (data ?? []).reduce((sum, r) => sum + Number(r.amount_paise), 0);
-}
-
 /** The optional material and the type; picking a material is enough, the type then defaults to material. */
 function materialAndType(s: (name: string) => string): { materialId?: string; costHead: CostHead } {
   const materialId = s('material_id') || undefined;
@@ -53,15 +49,14 @@ function materialAndType(s: (name: string) => string): { materialId?: string; co
 }
 
 /**
- * For each bank/cash field filled in, the firm of the row picked (null = common cash).
+ * For each bank/cash field filled in, the firm of the row picked (null = shared cash from before each firm had its own).
  * Rows the person may not see are left out; buildDraft then reports them as not found.
  */
 async function firmsPicked(fields: Field[], v: Record<string, Value>, db: Db): Promise<Record<string, string | null>> {
   const picked: Record<string, string | null> = {};
   for (const field of fields) {
     const id = v[field.name];
-    if (field.kind !== 'ref' || typeof id !== 'string') continue;
-    if (!accountScope(field.ref)) continue;
+    if (field.kind !== 'ref' || field.ref !== 'moneyAccounts' || typeof id !== 'string') continue;
     const { data } = await db.from('money_accounts').select('firm_id').eq('id', id).maybeSingle();
     if (data) picked[field.name] = data.firm_id as string | null;
   }
@@ -130,12 +125,21 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
         narration: s('narration'), materialId,
       });
     }
-    case 'day-close': {
-      const account = await moneyAccount(db, s('account_id'));
-      return cashCloseDifference({
-        account, expectedPaise: await moneyBalance(db, account.id), countedPaise: n('counted'), closeDate: s('entry_date'),
+    case 'move-money':
+      return cashTransfer({
+        from: await moneyAccount(db, s('from_account_id')), to: await moneyAccount(db, s('to_account_id')),
+        amountPaise: n('amount'), transferDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
-    }
+    case 'not-yet-known':
+      return notYetKnown({
+        account: await moneyAccount(db, s('account_id')), direction: s('direction') as 'in' | 'out',
+        amountPaise: n('amount'), date: s('entry_date'), reference: s('reference'), narration: s('narration'),
+      });
+    case 'other-money':
+      return otherMoney({
+        reason: s('reason'), account: await moneyAccount(db, s('account_id')), amountPaise: n('amount'), date: s('entry_date'),
+        partyId: s('person_id') || undefined, month: s('month'), reference: s('reference'), narration: s('narration'),
+      });
     case 'owner-money': {
       const input = { account: await moneyAccount(db, s('account_id')), amountPaise: n('amount'), date: s('entry_date'), narration: s('narration') };
       return s('direction') === 'in' ? ownerCapital(input) : ownerDrawing(input);
@@ -158,6 +162,28 @@ async function sameBillNumber(db: Db, draft: EntryDraft): Promise<string | null>
   return same.find((e) => !cancelled.has(e.id))?.serial ?? null;
 }
 
+/**
+ * A payment or receipt that looks like one already there: the same account, day, amount and person, or the same cheque or
+ * UTR number with the same person. Returns that entry's serial. Asked for by the pop-ups, which offer Save anyway; rows
+ * typed in a sheet are in front of the person already.
+ */
+async function looksRepeated(db: Db, draft: EntryDraft, replaced?: string): Promise<string | null> {
+  const line = draft.lines.find((l) => l.account === 'money');
+  if (!line?.moneyAccountId) return null;
+  const alike = () => {
+    let query = db.from('money_rows').select('entry_id, serial').eq('money_account_id', line.moneyAccountId!).eq('entry_type', draft.entryType)
+      .neq('entry_id', draft.id).limit(1);
+    query = draft.partyId ? query.eq('party_id', draft.partyId) : query.is('party_id', null);
+    return replaced ? query.neq('entry_id', replaced) : query;
+  };
+  const [{ data: same }, { data: number }] = await Promise.all([
+    alike().eq('entry_date', draft.entryDate).eq('amount_paise', line.amountPaise),
+    // A tax entry's reference is its month, so only people are looked at.
+    draft.partyId && draft.reference ? alike().eq('reference', draft.reference) : { data: [] as { serial: string }[] },
+  ]);
+  return same?.[0]?.serial ?? number?.[0]?.serial ?? null;
+}
+
 export type Saved = { id: string; serial: string };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -165,9 +191,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * Saves one entry as the signed-in user. The database checks permissions, balance and locks again.
  * `firmId` is the firm the form was opened in (null for supervisors): the entry is made for that firm,
  * even if the person has switched firm since. `entryId` makes a retry safe: saving the same id twice
- * returns the first entry instead of a copy.
+ * returns the first entry instead of a copy. `replaces`: the entry this one takes the place of, cancelled in the same step.
  */
-async function saveEntry(slug: string, firmId: string | null, data: FormData, db: Db, entryId?: string): Promise<Saved | FormState> {
+async function saveEntry(slug: string, firmId: string | null, data: FormData, db: Db, entryId?: string, replaces?: { id: string; reason: string }): Promise<Saved | FormState> {
   const form = getEntryForm(slug);
   const profile = await requireProfile();
   if (!form || !(form.roles as string[]).includes(profile.role)) return { errors: { _form: 'not_allowed' } };
@@ -179,12 +205,14 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   const picked = allowed?.length ? await firmsPicked(form.fields, parsed.values, db) : {};
   const wrong = firmErrors(slug, form.fields, firmId, allowed, picked);
   if (wrong) return { errors: wrong, values };
-
-  if (slug === 'day-close') {
-    // ponytail: compares with today's balance, not the balance on the chosen date.
-    const expected = await moneyBalance(db, parsed.values.account_id as string);
-    if (expected === parsed.values.counted) return { errors: { _form: 'cash_matches' }, detail: showPaise(expected), values };
+  // Money moves on the day it moves; a bill may carry the date printed on it.
+  if (slug !== 'vendor-bill' && slug !== 'client-bill' && (parsed.values.entry_date as string) > todayInIndia()) {
+    return { errors: { entry_date: 'future_date' }, values };
   }
+  if (slug === 'move-money' && parsed.values.from_account_id === parsed.values.to_account_id) {
+    return { errors: { to_account_id: 'same_account' }, values };
+  }
+
   let draft: EntryDraft;
   try {
     draft = await buildDraft(slug as EntryFormSlug, parsed.values, firmId, db);
@@ -196,6 +224,16 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   if (entryId && UUID.test(entryId)) draft.id = entryId;
   const repeat = await sameBillNumber(db, draft);
   if (repeat) return { errors: { _form: 'duplicate_bill', bill_no: 'duplicate' }, detail: repeat, values };
+  if (data.get('check') === '1') {
+    const alike = await looksRepeated(db, draft, replaces?.id);
+    if (alike) return { errors: { _form: 'maybe_repeat' }, detail: alike, values };
+  }
+  if (replaces) {
+    const { data: done, error } = await db.rpc('app_replace_entry', { p_old_id: replaces.id, p_new: draft, p_reason: replaces.reason });
+    if (error) return { errors: { _form: 'save_failed' }, detail: error.message, values };
+    await clearSmallRemainder(db, draft);
+    return (done as { entry: Saved }).entry;
+  }
   const { data: result, error } = await db.rpc('app_post_entry', { p_entry: draft });
   if (error) return { errors: { _form: 'save_failed' }, detail: error.message, values };
   if (!(result as { duplicate?: boolean }).duplicate) await clearSmallRemainder(db, draft);
@@ -286,6 +324,44 @@ export async function postClientRows(
   rows: { id: string; cells: Record<string, string> }[],
 ): Promise<Record<string, Saved | FormState>> {
   return postEntryRows('client-receipt', firmId, rows.map((row) => ({ ...row, cells: { ...row.cells, client_id: clientId } })));
+}
+
+/** What money not yet known can turn out to be, and which box of that form the account goes in. */
+const SORTED: Record<'in' | 'out', Record<string, string>> = {
+  in: { 'client-receipt': 'to_account_id', 'owner-money': 'account_id', 'other-money': 'account_id', 'move-money': 'to_account_id' },
+  out: { 'pay-vendor': 'from_account_id', 'owner-money': 'account_id', 'other-money': 'account_id', 'move-money': 'from_account_id' },
+};
+
+/**
+ * Money not yet known turns out to be something: the entry is cancelled and the right one posted, linked, in one step.
+ * The account, the amount and the date are taken from the entry, never from the screen.
+ */
+export async function sortOut(entryId: string, _newId: string, slug: string, _firmId: string, cells: Record<string, string>): Promise<Saved | FormState> {
+  const db = await createClient();
+  const [{ data: entry }, { data: line }] = await Promise.all([
+    db.from('entries').select('entry_date, firm_id').eq('id', entryId).eq('entry_type', 'not_yet_known').maybeSingle(),
+    db.from('entry_lines').select('money_account_id, amount_paise').eq('entry_id', entryId).eq('account', 'money').maybeSingle(),
+  ]);
+  if (!entry || !line) return { errors: { _form: 'not_allowed' } };
+  const amount = Number(line.amount_paise);
+  const direction = amount > 0 ? 'in' : 'out';
+  const box = SORTED[direction][slug];
+  // What it turns out to be must go the way the money went.
+  if (!box || (slug === 'other-money' && reasonOf(cells.reason ?? '')?.direction !== direction)) return { errors: { _form: 'not_allowed' } };
+  const data = new FormData();
+  for (const [name, value] of Object.entries(cells)) data.set(name, value);
+  data.set('amount', String(Math.abs(amount) / 100));
+  data.set('entry_date', entry.entry_date as string);
+  data.set('direction', direction);
+  data.set(box, line.money_account_id as string);
+  const saved = await saveEntry(slug, entry.firm_id as string, data, db, undefined, { id: entryId, reason: 'Sorted out' });
+  if ('id' in saved) revalidatePath('/', 'layout');
+  return saved;
+}
+
+/** One entry from a bankbook pop-up. Stays on the page, which then shows the new balance. */
+export async function postMoney(entryId: string, slug: string, firmId: string, cells: Record<string, string>): Promise<Saved | FormState> {
+  return (await postEntryRows(slug, firmId, [{ id: entryId, cells }]))[entryId]!;
 }
 
 // Replace, not push: after a cancel the browser's back (and the page's Back link) still returns to where the entry was opened from.
