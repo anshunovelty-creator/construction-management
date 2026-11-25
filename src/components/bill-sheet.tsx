@@ -146,7 +146,7 @@ function Sheet({ side, state, formAction, pending, party, partyNote, firm, choic
               autoComplete="off" required aria-invalid={a.invalid} aria-describedby={a.describedBy} />
           ))}
           {field('entry_date', say('date'), (a) => (
-            <input id={a.id} type="date" name="entry_date" defaultValue={value('entry_date') || today} required
+            <input id={a.id} type="date" name="entry_date" defaultValue={value('entry_date') || today} max={today} required
               aria-invalid={a.invalid} aria-describedby={a.describedBy} />
           ))}
         </div>

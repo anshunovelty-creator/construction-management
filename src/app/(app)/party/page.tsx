@@ -45,7 +45,7 @@ const LABELS: Record<string, string> = {
 
 /** One party's page in the working firm, like a vendor sheet of the outstanding workbook. ?id= */
 export default async function PartyPage({ searchParams }: { searchParams: Promise<{ id?: string; tab?: string }> }) {
-  await requireProfile('owner', 'office');
+  const profile = await requireProfile('owner', 'office');
   const { id = '', tab = 'bills' } = await searchParams;
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
@@ -116,6 +116,7 @@ export default async function PartyPage({ searchParams }: { searchParams: Promis
         {/* With no entries there is nothing to be settled, so no "fully paid" either. */}
         {rows.length > 0 && <StatusPill status={f.status} t={t} />}
         <Link href={`/ledger?of=party:${party.id}`} className="btn ghost small">{t('nav.ledger')}</Link>
+        {profile.role === 'owner' && <Link href={`/party/opening?id=${party.id}`} className="btn ghost small">{t('partyOpening.button')}</Link>}
       </div>
       <p className="lede">
         {opening

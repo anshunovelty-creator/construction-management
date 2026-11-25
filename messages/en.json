@@ -36,8 +36,7 @@
     "labour": "Labour payment",
     "machines": "AJAX machines",
     "bankbook": "Bankbook",
-    "close": "Close a month",
-    "forecast": "Free money"
+    "close": "Close a month"
   },
   "login": {
     "title": "Sign in",
@@ -184,9 +183,8 @@
     "reason": "What for",
     "person_id": "Who with",
     "month": "For the month",
-    "salary_day": "Salary day of the month (1 to 28)",
-    "credit_days": "Days of credit",
     "opening_balance": "Opening balance (money already in it)",
+    "pay_from": "Salary starts on (staff only)",
     "opening_date": "Opening balance as on"
   },
   "options": {
@@ -249,6 +247,9 @@
     "worker_kind": {
       "worker": "Worker (paid by the hour)",
       "staff": "Staff (fixed monthly salary)"
+    },
+    "worker_only": {
+      "worker": "Worker (paid by the hour)"
     },
     "skill_level": {
       "skilled": "Skilled",
@@ -353,11 +354,11 @@
     "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
     "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
     "maybe_repeat": "This looks like one already saved",
-    "invalid_whole": "Enter a whole number in the range allowed.",
     "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks.",
     "is_firm": "This is one of our own firms. It is already on the Pay and Receive lists."
   },
   "common": {
+    "unsaved": "What you typed is not saved yet. Leave without saving?",
     "yes": "Yes",
     "no": "No",
     "none": "—",
@@ -1107,6 +1108,16 @@
     "workerList": "Add them in Setup → Workers and staff",
     "labourTotal": "Labour",
     "staffTotal": "Staff",
+    "help": "How to fill this",
+    "parts": {
+      "label": "Parts of the report",
+      "work": "Work",
+      "material": "Material",
+      "labour": "People",
+      "other": "Costs",
+      "profit": "Total"
+    },
+    "noStaffPay": "Staff salaries are not counted here.",
     "otherHeading": "Other costs",
     "otherNote": "Tractor, labour colony, room, light, petrol: anything else the site cost today",
     "profitHeading": "Day’s profit or loss",
@@ -1124,6 +1135,10 @@
       },
       "dayTotal": "Labour and staff",
       "save": "Save attendance",
+      "find": "Find a name",
+      "elsewhere": "Present at another site today",
+      "others": "Show {n} others",
+      "onlyHere": "Show only this site’s people",
       "allPresent": "Mark everyone left as present",
       "attendance": "Attendance",
       "ot": "OT",
@@ -1920,6 +1935,7 @@
     "noteAll": "Money that only moved between our accounts or our firms is left out."
   },
   "supplied": {
+    "refused": "These are not in the books for {month}. The others are; put these right and confirm again.",
     "title": "Labour supplied",
     "lede": "Where each worker’s days were this month, and what each firm or customer is charged for them. Days come from the monthly entry. Confirm the month to put our own firms’ part in both firms’ books.",
     "ledeLabour": "Say where each worker’s days were this month. A worker at one place needs only that place.",
@@ -2008,6 +2024,54 @@
   "repeat": {
     "anyway": "It is a different one. Save anyway"
   },
+  "doubts": {
+    "more": "This is {amount} more than what is left ({left}).",
+    "morePerson": "{name} gets {amount} more than what is left ({left}).",
+    "overdrawn": "This takes {account} below zero, to {amount}.",
+    "check": "Please check the amount.",
+    "anyway": "It is right. Save it"
+  },
+  "unpaid": {
+    "title": "Costs not paid yet",
+    "lede": "Costs typed as not paid yet on the daily reports of every site, and machine services. Pay one from {firm}, or press On a bill when a party’s bill has it: then it is paid to that party.",
+    "count": "{count, plural, =0 {Nothing left} one {# cost} other {# costs}}",
+    "none": "Every cost is paid or on a bill.",
+    "place": "Site or machine",
+    "what": "What",
+    "onBill": "On a bill",
+    "notOnBill": "Not on a bill",
+    "billed": "On a party’s bill ({count})"
+  },
+  "partyOpening": {
+    "button": "Opening balance",
+    "title": "Opening balance of {name}",
+    "lede": {
+      "party": "What was left with this party in {firm} before you started using the app. Type it once.",
+      "client": "What was left with this client in {firm} before you started using the app. Type it once."
+    },
+    "now": {
+      "left": "Opening balance now: {amount} on {date}",
+      "extra": "Opening balance now: {amount} extra on {date}"
+    },
+    "side": "Before the app",
+    "left": {
+      "party": "We still had to pay them",
+      "client": "They still had to pay us"
+    },
+    "extra": {
+      "party": "We had paid them extra",
+      "client": "They had paid us extra"
+    },
+    "date": "As on",
+    "dateHint": "Usually the day you started using the app.",
+    "errors": {
+      "amount": "Please type the amount in rupees, like 5,000.",
+      "date": "Choose today or an earlier date.",
+      "reason": "Please say why it is changing.",
+      "many": "There is more than one opening balance here. Open each entry and cancel the wrong one first.",
+      "not_saved": "That could not be saved. Please try again."
+    }
+  },
   "match": {
     "button": "Match with bank",
     "title": "Match {name} with the bank",
@@ -2086,72 +2150,10 @@
     "neverLocked": "Nothing is locked yet.",
     "history": "Locked and opened"
   },
-  "forecast": {
-    "title": "Free money and the weeks ahead",
-    "lede": "What of the money in the accounts is really ours to spend, and what the next eight weeks look like. It is worked out from the books; nothing here moves money.",
-    "held": "In all accounts",
-    "notOurs": "Not ours to spend",
-    "free": "Free money",
-    "afterParties": "After party bills due now",
-    "afterPartiesNote": "Bills due: {amount}",
-    "lines": {
-      "gst": "GST to pay",
-      "tds": "TDS to deposit",
-      "pf": "PF cut, not deposited",
-      "salary": "Salary due",
-      "wages": "Wages of the labour business due",
-      "clientExtra": "Extra received from clients",
-      "otherFirms": "Owed to our other firms",
-      "rent": "Rent running on hired things, not billed yet"
-    },
-    "weeksTitle": "The next eight weeks",
-    "kinds": {
-      "clients": "From clients",
-      "plannedIn": "Expected money in",
-      "parties": "Party bills",
-      "salary": "Salaries",
-      "wages": "Wages of the labour business",
-      "gst": "GST",
-      "tds": "TDS",
-      "pf": "PF",
-      "site": "Site spends (usual week)",
-      "plannedOut": "Expected money out"
-    },
-    "short": "{firm} runs short by {amount}, from the week of {week}.",
-    "spare": "To spare then: {who}.",
-    "noSpare": "No other firm has money to spare then.",
-    "runsShort": "This firm runs short from the week of {week}.",
-    "note": "What is overdue is in the first week. A bill is due after its party’s or client’s days of credit (Setup → Parties). GST is taken on the 20th, TDS on the 7th, and salaries on the firm’s salary day. Salaries count for the firm that last paid each person. New bills not typed yet are not in it.",
-    "noteAll": "What is overdue is in the first week. Money between our own firms is left out. Salaries of people not paid by any firm yet, and PF, are counted here and in no single firm. New bills not typed yet are not in it.",
-    "plansTitle": "Expected money",
-    "plansHint": "What no bill says: office rent, a loan instalment, a retention to be released. One that repeats is taken as paid once its day has passed. Take a one-time one off when it has come.",
-    "plan": {
-      "name": "What",
-      "example": "e.g. Office rent",
-      "in": "Comes in",
-      "out": "Goes out",
-      "repeats": "How often",
-      "once": "Once",
-      "week": "Every week",
-      "month": "Every month",
-      "next": "Next on",
-      "until": "Until",
-      "add": "Add",
-      "late": "Late"
-    },
-    "errors": {
-      "plan": "Say what it is, and the amount in rupees.",
-      "date": "Give the dates, the last after the first.",
-      "not_saved": "That could not be saved."
-    },
-    "keptTitle": "How close was it?",
-    "keptHint": "Keep today’s forecast, and each week that passes is compared with what the accounts really held.",
-    "keep": "Keep today’s forecast",
-    "keptOn": "Kept on {date}. It is compared from the end of its first week.",
-    "madeOn": "Made on",
-    "weekEnd": "Week ending",
-    "expected": "Expected",
-    "actual": "Was"
+  "masterForm": {
+    "hints": {
+      "pay_from": "Staff earn from this day. Left empty, they earn from the day they are added here."
+    }
   },
   "accountForm": {
     "hints": {
@@ -2196,6 +2198,9 @@
       "gst": "GST",
       "tds": "TDS",
       "pf": "PF",
+      "costs": "Costs not paid yet",
+      "service": "Machine services not paid yet",
+      "allSites": "all sites",
       "allFirms": "all firms together"
     }
   },

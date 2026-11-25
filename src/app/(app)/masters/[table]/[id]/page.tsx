@@ -21,9 +21,9 @@ export default async function MasterEditPage({
 }) {
   const { table: slug, id } = await params;
   const { error, used } = await searchParams;
-  const def = getMaster(slug);
-  if (!def) notFound();
   const profile = await requireProfile();
+  const def = getMaster(slug, profile.role);
+  if (!def) notFound();
   if (!mayEdit(def, profile.role)) redirect(`/masters/${slug}`);
   const db = await createClient();
   const { data: row } = await db.from(def.table).select('*').eq('id', id).maybeSingle();
@@ -43,7 +43,7 @@ export default async function MasterEditPage({
       <h2 className="card-title">
         {t('masters.edit')}: {name}
       </h2>
-      <Form fields={def.fields} defaults={defaults} choices={choices} action={saveMaster.bind(null, slug, id)} submitLabel={t('masters.save')} />
+      <Form fields={def.fields} defaults={defaults} choices={choices} hintPrefix="masterForm.hints" action={saveMaster.bind(null, slug, id)} submitLabel={t('masters.save')} />
 
       {slug === 'money-accounts' && row.firm_id && profile.role === 'owner' && (
         <p className="mt-6"><Link href={`/bankbook/${id}/opening`} className="btn ghost"><Icon name="bank" /> {t('bankbook.buttons.opening')}</Link></p>

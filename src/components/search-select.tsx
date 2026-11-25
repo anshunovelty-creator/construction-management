@@ -202,7 +202,7 @@ export function SearchSelect(props: SearchSelectProps) {
           id={listId}
           role="listbox"
           className="search-list"
-          style={{ left: box.left, width: Math.max(box.width, 220), ...(box.up ? { bottom: window.innerHeight - box.top } : { top: box.top }) }}
+          style={{ left: Math.max(8, Math.min(box.left, document.documentElement.clientWidth - Math.max(box.width, 220) - 8)), width: Math.max(box.width, 220), ...(box.up ? { bottom: window.innerHeight - box.top } : { top: box.top }) }}
           // Keep the box focused while the list is pressed, so blur does not close it first.
           onMouseDown={(e) => e.preventDefault()}
         >

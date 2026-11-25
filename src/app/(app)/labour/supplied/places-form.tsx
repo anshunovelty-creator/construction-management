@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useActionState, useState } from 'react';
+import { useUnsaved } from '@/components/unsaved';
 import { showPaise } from '@/lib/money';
 import type { PlacesState, WorkerPlaces } from './actions';
 
@@ -26,6 +27,7 @@ export function PlacesForm({ rows: given, places, action }: { rows: Row[]; place
     setRows((all) => all.map((r) => (r.id === id ? { ...r, lines } : r)));
     setChanged((c) => new Set(c).add(id));
   };
+  useUnsaved(() => changed.size > 0);
   const payload: WorkerPlaces[] = rows.filter((r) => changed.has(r.id)).map(({ id, lines }) => ({ id, lines }));
   // Whole paise until the last step, like the server's own sum.
   const value = (r: Row, days: number, ot: number) => Math.round((Math.round(days * 100) * r.charge!) / 100 + (Math.round(ot * 100) * r.charge!) / 800);

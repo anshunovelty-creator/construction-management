@@ -11,6 +11,7 @@ import { AmountBox, DateBox } from '@/components/money-boxes';
 import { SearchSelect } from '@/components/search-select';
 import { lastMonth } from '@/lib/wages';
 import { IN_REASONS, OUT_REASONS, reasonOf } from '@/lib/ledger/posting/other';
+import { amountDoubts } from '@/lib/doubts';
 import { groupRupees, showPaise } from '@/lib/money';
 
 type Saved = { id: string; serial: string };
@@ -76,7 +77,9 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   const [reference, setReference] = useState('');
   const [narration, setNarration] = useState(fixed?.note ?? '');
   const [failed, setFailed] = useState<string | null>(null);
-  const [repeat, setRepeat] = useState(false);
+  // Asked before saving: it looks like one already there, or the amount looks wrong. Saving anyway answers it.
+  // The answer is only for what was asked: anything changed is asked about again.
+  const [asking, setAsking] = useState<{ about: 'repeat' | 'doubt'; of: string } | null>(null);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [pending, startSaving] = useTransition();
 
@@ -100,11 +103,27 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
     if (saved) startNext();
     dialog.current?.showModal();
   };
-  const submit = (e: React.SyntheticEvent, anyway = false) => {
+  const asked = `${paise}|${who}|${why}|${from}|${to}`;
+  const ask = asking?.of === asked ? asking.about : null;
+  const submit = (e: React.SyntheticEvent, answered: 'repeat' | 'doubt' | null = null) => {
     e.preventDefault();
     if (pending || !ready) return;
     setFailed(null);
-    setRepeat(false);
+    setAsking(null);
+    if (!answered) {
+      // Money being sorted out has moved already, so only what is left to the person is compared.
+      const leaves = fixed || mode === 'in' ? undefined : accounts.find((a) => a.id === (why === 'move' ? from : account));
+      const bank = leaves?.kind === 'bank' ? leaves : undefined;
+      const left = why === person ? chosen?.left : undefined;
+      const found = amountDoubts({ paise, left, before: bank?.balance, after: bank && bank.balance - paise });
+      if (found.length > 0) {
+        setAsking({ about: 'doubt', of: asked });
+        setFailed([...found.map((d) => (d === 'more' ? t('doubts.more', { amount: showPaise(paise - left!), left: showPaise(left!) })
+          : t('doubts.overdrawn', { account: bank!.name, amount: showPaise(bank!.balance - paise) }))), t('doubts.check')].join(' '));
+        return;
+      }
+    }
+    const anyway = answered === 'repeat';
     // Kept per entry, so a retry after a lost connection cannot save it twice.
     entryId.current ||= crypto.randomUUID();
     const cells: Record<string, string> = { entry_date: date, amount: text, reference, narration, ...(anyway ? {} : { check: '1' }) };
@@ -124,7 +143,7 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
         // Sorted out: on to the entry that took its place.
         if ('id' in result) return fixed ? router.replace(`/entries/${result.id}?saved=1`) : setSaved(result);
         const key = Object.values(result.errors ?? {})[0] ?? 'save_failed';
-        setRepeat(key === 'maybe_repeat');
+        setAsking(key === 'maybe_repeat' ? { about: 'repeat', of: asked } : null);
         setFailed(`${t(`errors.${key}`)}${result.detail ? ` (${result.detail})` : ''}`);
       });
     });
@@ -240,7 +259,7 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
               </label>
             </div>
             {failed && <p role="alert" className="error form-error">{failed}</p>}
-            {repeat && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, true)}>{t('repeat.anyway')}</button>}
+            {ask && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, ask)}>{t(ask === 'repeat' ? 'repeat.anyway' : 'doubts.anyway')}</button>}
             <button type="submit" className="btn big rcv-save" disabled={pending || !ready}>
               {pending ? '…' : paise > 0 ? t('bankbook.popup.save', { amount: showPaise(paise) }) : t('client.receive.typeAmount')}
             </button>

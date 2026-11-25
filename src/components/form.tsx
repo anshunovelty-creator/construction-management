@@ -25,7 +25,7 @@ export type Owed = { name: string; paise: number };
 export type FormAction = (state: FormState, data: FormData) => Promise<FormState>;
 export type Choices = Partial<Record<RefSource, Choice[]>>;
 
-const INPUT_TYPES = { text: 'text', email: 'email', password: 'password', percent: 'text', whole: 'text', date: 'date' } as const;
+const INPUT_TYPES = { text: 'text', email: 'email', password: 'password', percent: 'text', date: 'date' } as const;
 
 export const toPaise = (text: string) => {
   try {
@@ -195,10 +195,10 @@ function Fields({
         let control: React.ReactNode;
 
         if (field.kind === 'checkbox') {
-          const checked = state.values ? state.values[field.name] === 'on' : value !== false;
+          const checked = state.values ? state.values[field.name] === 'on' : value ?? field.name === 'is_active';
           control = (
             <label className="flex items-center gap-2">
-              <input type="checkbox" name={field.name} defaultChecked={checked} /> {label}
+              <input type="checkbox" name={field.name} defaultChecked={Boolean(checked)} /> {label}
             </label>
           );
         } else if (field.kind === 'multi') {
@@ -262,7 +262,7 @@ function Fields({
                 <input
                   {...shared}
                   type={INPUT_TYPES[field.kind]}
-                  inputMode={field.kind === 'percent' ? 'decimal' : field.kind === 'whole' ? 'numeric' : undefined}
+                  inputMode={field.kind === 'percent' ? 'decimal' : undefined}
                   autoComplete={field.kind === 'email' ? 'username' : 'off'}
                 />
               )}

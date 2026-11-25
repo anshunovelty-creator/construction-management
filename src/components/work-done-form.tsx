@@ -5,8 +5,10 @@ import { useActionState, useEffect, useState } from 'react';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY } from '@/lib/stock';
 import { amountPaise, DIMENSIONS, lineSerial, quantityMilli, type MeasurementLine, type Measure } from '@/lib/work';
+import { Help } from '@/components/help';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
+import { useUnsaved } from '@/components/unsaved';
 
 export interface WorkActivity {
   description: string;
@@ -76,6 +78,7 @@ export function WorkDoneForm({
     if (state.saved) setActivities([emptyActivity()]);
   }, [state.saved]);
 
+  useUnsaved(() => JSON.stringify(activities) !== JSON.stringify([emptyActivity()]));
   const change = (a: number, patch: Partial<WorkActivity>) =>
     setActivities((all) => all.map((x, i) => (i === a ? { ...x, ...patch } : x)));
   const changeLine = (a: number, l: number, box: keyof MeasurementLine, value: string) =>
@@ -103,7 +106,7 @@ export function WorkDoneForm({
       <input type="hidden" name="work" value={JSON.stringify(activities)} />
       <div className="work-builder-head">
         <h2>{t('work.addTitle')}</h2>
-        <p className="hint">{t('work.addHint')}</p>
+        <Help title={t('help')}>{t('work.addHint')}</Help>
       </div>
       {state.error && (
         <p className="banner bad" role="alert">{where} {t(`errors.${state.error}`)} {state.detail}</p>

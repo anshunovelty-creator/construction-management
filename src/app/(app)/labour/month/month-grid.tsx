@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { asRupees, toPaise } from '@/components/form';
+import { useUnsaved } from '@/components/unsaved';
 import { salaryFor } from '@/lib/labour';
 import { roundOffSmall, showPaise } from '@/lib/money';
 import type { MonthState } from '../actions';
@@ -164,8 +165,10 @@ export function MonthGrid({ families, action }: {
 }) {
   const t = useTranslations('labour');
   const [state, formAction, pending] = useActionState(action, {});
+  const form = useRef<HTMLFormElement>(null);
+  useUnsaved(() => Boolean(form.current?.querySelector('input[name=changed]')));
   return (
-    <form action={formAction} className="sheet-wrap month-grid">
+    <form ref={form} action={formAction} className="sheet-wrap month-grid">
       <div className="table-wrap">
         <table className="sheet" id="labour-month">
           <thead>

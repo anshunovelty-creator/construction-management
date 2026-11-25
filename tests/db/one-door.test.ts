@@ -202,6 +202,20 @@ describe('machine service', () => {
     await reverseEntry(db, paid!.id, OWNER, 'wrong');
     expect(await count('machine_services')).toBe(0);
   });
+
+  it('can be paid later, keeping the day of the service', async () => {
+    const machine = (await db.query<{ id: string }>(`insert into machines (name) values ('AJAX 1') returning id`)).rows[0]!.id;
+    const id = (await db.query<{ id: string }>(
+      `insert into machine_services (machine_id, service_date, running_hours, cost_paise, created_by) values ($1, '2026-11-01', 500, 1200000, $2) returning id`, [machine, owner])).rows[0]!.id;
+    const pay = (amountPaise: number, account: MoneyAccountRef) => asUser(db, owner, (tx) => tx.query(`select app_pay_service($1, $2)`,
+      [id, JSON.stringify(machineService({ account, amountPaise, date: '2026-11-20', narration: 'AJAX 1' }))]));
+    await expect(pay(11_000_00, ansariCash)).rejects.toThrow('does not pay this service');
+    await expect(pay(12_000_00, seed.jayrajBank)).rejects.toThrow('the firm that owns it');
+    await pay(12_000_00, ansariCash);
+    expect(await held(ansariCash)).toBe(38_000_00);
+    expect((await db.query(`select service_date::text as day, entry_id is not null as paid from machine_services`)).rows).toEqual([{ day: '2026-11-01', paid: true }]);
+    await expect(pay(12_000_00, ansariCash)).rejects.toThrow('already paid or removed');
+  });
 });
 
 describe('every other reason', () => {

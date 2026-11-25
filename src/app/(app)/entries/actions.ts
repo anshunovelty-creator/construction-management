@@ -205,8 +205,8 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   const picked = allowed?.length ? await firmsPicked(form.fields, parsed.values, db) : {};
   const wrong = firmErrors(slug, form.fields, firmId, allowed, picked);
   if (wrong) return { errors: wrong, values };
-  // Money moves on the day it moves; a bill may carry the date printed on it.
-  if (slug !== 'vendor-bill' && slug !== 'client-bill' && (parsed.values.entry_date as string) > todayInIndia()) {
+  // Nothing is dated after today: a bill with a later date printed on it is typed when that day comes.
+  if ((parsed.values.entry_date as string) > todayInIndia()) {
     return { errors: { entry_date: 'future_date' }, values };
   }
   if (slug === 'move-money' && parsed.values.from_account_id === parsed.values.to_account_id) {

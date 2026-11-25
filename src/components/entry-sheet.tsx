@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, useTransition, type ClipboardEvent, type KeyboardEvent } from 'react';
+import { useState, useTransition, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { SearchSelect } from '@/components/search-select';
+import { useUnsaved } from '@/components/unsaved';
 import type { FormState } from '@/components/form';
 import type { Choice } from '@/lib/masters/registry';
 import { Icon } from '@/components/icons';
@@ -21,6 +22,8 @@ type Saved = { id: string; serial: string };
 interface Row {
   id: string;
   cells: Record<string, string>;
+  /** How it began, to tell whether anything was typed. */
+  start: Record<string, string>;
   result?: Saved | FormState;
 }
 
@@ -66,24 +69,17 @@ export function EntrySheet({
   defaults?: Record<string, string>;
 }) {
   const t = useTranslations();
-  const blank = (): Row => ({
-    id: crypto.randomUUID(),
-    cells: Object.fromEntries(columns.map((c) => [c.name, c.name === 'entry_date' ? today : (defaults[c.name] ?? '')])),
-  });
+  const blank = (): Row => {
+    const start = Object.fromEntries(columns.map((c) => [c.name, c.name === 'entry_date' ? today : (defaults[c.name] ?? '')]));
+    return { id: crypto.randomUUID(), cells: start, start };
+  };
   const [rows, setRows] = useState<Row[]>(() => Array.from({ length: start }, blank));
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState('');
 
   // A row only counts as typed in once something differs from how it began.
-  const filled = (row: Row) => columns.some((c) => c.name !== 'entry_date' && (row.cells[c.name] ?? '').trim() !== (defaults[c.name] ?? ''));
-  // Warn before closing or refreshing the page while typed rows are not saved yet.
-  const unsaved = rows.some((row) => !isSaved(row) && filled(row));
-  useEffect(() => {
-    if (!unsaved) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [unsaved]);
+  const filled = (row: Row) => columns.some((c) => c.name !== 'entry_date' && (row.cells[c.name] ?? '').trim() !== (row.start[c.name] ?? ''));
+  useUnsaved(() => rows.some((row) => !isSaved(row) && filled(row)));
   const setCell = (r: number, name: string, value: string) =>
     setRows((all) => all.map((row, i) => (i === r ? { ...row, cells: { ...row.cells, [name]: value }, result: undefined } : row)));
   // A row added just now only exists after the next render, so wait a frame for it.

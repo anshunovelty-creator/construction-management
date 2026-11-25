@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { supplied } from '@/lib/labour-supply';
 import { firmSupply } from '@/lib/ledger/posting/firms';
@@ -76,7 +77,7 @@ export async function confirmSupplied(month: string, data: FormData): Promise<vo
   const fail = (error: string): never => redirect(`/labour/supplied?month=${month}&error=${encodeURIComponent(error)}`);
   const today = todayInIndia();
   if (!MONTH.test(month) || month > today.slice(0, 7)) fail('date');
-  const db = await createClient();
+  const [db, words] = await Promise.all([createClient(), getTranslations()]);
   const [{ workers, places }, firms, confirmed, working] = await Promise.all([loadSupplied(db, month), loadFirms(db), loadConfirmed(db, month), getWorkingFirm()]);
   const supplier = firms.find((f) => f.runs_labour);
   if (!supplier) return fail('no_labour_firm');
@@ -93,14 +94,19 @@ export async function confirmSupplied(month: string, data: FormData): Promise<vo
 
   const last = `${month}-${daysInMonth(`${month}-01`)}`;
   const date = last < today ? last : today;
+  // Each firm and site is an entry of its own, so one that is refused does not stop the others; the page says which and why.
+  const refused: string[] = [];
   for (const place of places.filter((p) => p.firm_id && p.site_id)) {
     const charged = totals.get(place.id)?.charged ?? 0;
     const old = confirmed.get(`${place.firm_id}/${place.site_id}`);
     if (charged === 0 && !old) continue;
-    if (!mine.has(supplier.id) || !mine.has(place.firm_id!)) fail('need_both');
+    if (!mine.has(supplier.id) || !mine.has(place.firm_id!)) {
+      refused.push(`${place.name}: ${words('supplied.errors.need_both')}`);
+      continue;
+    }
     if (charged === 0) {
       const { error } = await db.rpc('app_reverse_entry', { p_entry_id: old!.entryId, p_reason: 'No labour at this site any more' });
-      if (error) fail(error.message);
+      if (error) refused.push(`${place.name}: ${error.message}`);
       continue;
     }
     const bp = (name: string) => {
@@ -117,9 +123,10 @@ export async function confirmSupplied(month: string, data: FormData): Promise<vo
     const { error } = old
       ? await db.rpc('app_replace_entry', { p_old_id: old.entryId, p_new: draft, p_reason: 'Month confirmed again' })
       : await db.rpc('app_post_entry', { p_entry: draft });
-    if (error) fail(error.message);
+    if (error) refused.push(`${place.name}: ${error.message}`);
   }
   revalidatePath('/', 'layout');
+  if (refused.length > 0) redirect(`/labour/supplied?month=${month}&refused=${encodeURIComponent(refused.join('\n'))}`);
   redirect(`/labour/supplied?month=${month}&confirmed=1`);
 }
 

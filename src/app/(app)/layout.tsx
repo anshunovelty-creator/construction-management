@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { FirmSwitch } from '@/components/firm-switch';
+import { FitTables } from '@/components/fit-tables';
 import { Icon } from '@/components/icons';
 import { NavLink } from '@/components/nav-link';
 import { NavMenu } from '@/components/nav-menu';
@@ -63,7 +64,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <NavLink href="/" section="/party"><Icon name="parties" /><span>{t('nav.parties')}</span></NavLink>
               <NavLink href="/clients" section="/client"><Icon name="clients" /><span>{t('nav.clients')}</span></NavLink>
               <NavLink href="/bankbook" section="/bankbook"><Icon name="bank" /><span>{t('nav.bankbook')}</span></NavLink>
-              <NavLink href="/forecast"><Icon name="overview" /><span>{t('nav.forecast')}</span></NavLink>
               <NavLink href="/entries" exact><Icon name="daybook" /><span>{t('nav.daybook')}</span></NavLink>
               <NavLink href="/ledger" section="/ledger"><Icon name="invoice" /><span>{t('nav.ledger')}</span></NavLink>
               <NavLink href="/tds" section="/tds"><Icon name="tds" /><span>{t('nav.tds')}</span></NavLink>
@@ -130,6 +130,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
         <main className="wrap">{children}</main>
       </div>
+      <FitTables />
     </div>
   );
 }

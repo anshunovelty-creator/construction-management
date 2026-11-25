@@ -10,10 +10,9 @@ import { createClient } from '@/lib/supabase/server';
 import { loadDues, loadFirmLines, loadFirms } from '../between/data';
 import { postMoney } from '../entries/actions';
 import { showDate, todayInIndia } from '../entries/data';
-import { loadForecast } from '../forecast/data';
 import { labourFirm } from '../pay/data';
 import { Stat } from '../party/shared';
-import { loadAccounts, loadPayList } from './data';
+import { loadAccounts, loadOtherDues, loadPayList, loadUnpaid } from './data';
 
 interface Also { name: string; note?: string; amount: number; href: string }
 
@@ -27,9 +26,9 @@ export async function PayListPage({ side, account: asked }: { side: 'party' | 'c
   const path = pay ? '/bankbook/pay' : '/bankbook/receive';
   const db = await createClient();
   const today = todayInIndia();
-  const [everything, lists, dues, firms, labour, forecast] = await Promise.all([
+  const [everything, lists, dues, firms, labour, mine, unpaid] = await Promise.all([
     loadAccounts(db), loadPayList(db, firm.id), loadDues(db), loadFirms(db),
-    labourFirm(db), pay ? loadForecast(db, [firm], today) : null,
+    labourFirm(db), pay ? loadOtherDues(db, firm.id, today) : null, pay ? loadUnpaid(db) : [],
   ]);
   const accounts = everything.filter((a) => a.firm_id === firm.id && a.is_active)
     .sort((a, b) => Number(b.kind === 'bank') - Number(a.kind === 'bank'));
@@ -45,14 +44,15 @@ export async function PayListPage({ side, account: asked }: { side: 'party' | 'c
   const extra = people.filter((p) => !p.firm).reduce((s, p) => s + Math.max(-p.left, 0), 0);
 
   // On Pay the people and taxes, each paid on its own page as many at once.
-  const mine = forecast?.firms[0];
+  const unpaidSum = (kind: 'cost' | 'service') => unpaid.filter((u) => u.kind === kind && !u.onBill).reduce((s, u) => s + u.amount, 0);
   const also: Also[] = [
     ...(mine ? [
-      { name: t('payList.also.salary'), note: t('payList.also.allFirms'), amount: mine.salary + forecast!.shared.salary, href: '/salary/pay' },
-      ...(labour?.id === firm.id ? [{ name: t('payList.also.labour'), amount: mine.wages, href: '/labour/pay' }] : []),
+      { name: t('payList.also.salary'), note: t('payList.also.allFirms'), amount: mine.salary, href: '/salary/pay' },
+      ...(labour?.id === firm.id ? [{ name: t('payList.also.labour'), amount: mine.wages, href: '/labour/pay' }, { name: t('payList.also.service'), amount: unpaidSum('service'), href: '/bankbook/unpaid' }] : []),
+      { name: t('payList.also.costs'), note: t('payList.also.allSites'), amount: unpaidSum('cost'), href: '/bankbook/unpaid' },
       { name: t('payList.also.gst'), amount: mine.gst, href: '/gst' },
       { name: t('payList.also.tds'), amount: mine.tds, href: '/tds' },
-      { name: t('payList.also.pf'), note: t('payList.also.allFirms'), amount: forecast!.shared.pf, href: '/salary' },
+      { name: t('payList.also.pf'), note: t('payList.also.allFirms'), amount: mine.pf, href: '/salary' },
     ] : []),
     ...others.filter((f) => !both.includes(f)).map((f) => ({ name: f.name, amount: (dues.get(`${firm.id}/${f.id}`) ?? 0) * (pay ? -1 : 1), href: `/between/${f.id}` })),
   ].filter((a) => a.amount > 0);

@@ -8,8 +8,10 @@ import { rupeesToPaise, showPaise } from '@/lib/money';
 import { dayAmount, otCenti, type PersonKind } from '@/lib/wages';
 import { amountPaise } from '@/lib/work';
 import { AccountOptions } from '@/components/account-options';
+import { Help } from '@/components/help';
 import { Icon } from '@/components/icons';
 import { SearchSelect } from '@/components/search-select';
+import { onPhone, useUnsaved } from '@/components/unsaved';
 
 /** What saving comes back with: when it was saved, or the mistake and the line it is on (from 0). */
 export interface LineState {
@@ -46,6 +48,12 @@ export interface Person {
   kind: PersonKind;
   rate: number | null;
   dayPay: number | null;
+  /** Staff, as a supervisor sees them: marked, but what they are paid is not shown. */
+  hidden?: boolean;
+  /** Usually works at this site, so they come first. */
+  here?: boolean;
+  /** Already present at another site this day. */
+  elsewhere?: boolean;
 }
 
 type Action = (state: LineState, data: FormData) => Promise<LineState>;
@@ -90,9 +98,17 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
   const [state, formAction, pending] = useActionState(action, {});
   const [lines, setLines] = useState(() => people.map((p): LabourLine => ({ partyId: p.id, mark: '', ot: '' })));
 
+  // This site's people first; the rest are a tap away. With nobody known here yet, everyone is shown.
+  const anyHere = people.some((p) => p.here);
+  const [all, setAll] = useState(false);
+  const [find, setFind] = useState('');
+  const word = find.trim().toLowerCase();
+  const shows = (p: Person, l: number) => (word ? p.name.toLowerCase().includes(word) : all || !anyHere || p.here || Boolean(lines[l]!.mark));
+  const others = anyHere ? people.filter((p, l) => !p.here && !lines[l]!.mark).length : 0;
   const change = (l: number, patch: Partial<LabourLine>) => setLines((all) => all.map((x, i) => (i === l ? { ...x, ...patch } : x)));
   const amounts = people.map((p, l) => pay(p, lines[l]!));
   const total = amounts.reduce<number>((sum, a) => sum + (a ?? 0), 0);
+  useUnsaved(() => lines.some((x) => x.mark));
   const count = (mark: 'P' | 'A') => lines.filter((x) => x.mark === mark).length;
 
   return (
@@ -100,12 +116,15 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
       <input type="hidden" name="lines" value={JSON.stringify(lines)} />
       <div className="work-builder-head">
         <h2>{t('labour.addTitle')}</h2>
-        <p className="hint">{t('labour.addHint')}</p>
-        <button type="button" className="btn ghost small" onClick={() => setLines((all) => all.map((x) => (x.mark ? x : { ...x, mark: 'P' })))}>
+        <Help title={t('help')}>{t('labour.addHint')}</Help>
+        <button type="button" className="btn ghost small" onClick={() => setLines((was) => was.map((x, l) => (x.mark || people[l]!.elsewhere || !shows(people[l]!, l) ? x : { ...x, mark: 'P' })))}>
           {t('labour.allPresent')}
         </button>
       </div>
       <Problem state={state} t={t} />
+      {people.length > 8 && (
+        <input type="search" className="labour-find" value={find} onChange={(e) => setFind(e.target.value)} placeholder={t('labour.find')} aria-label={t('labour.find')} />
+      )}
 
       <div className="activity">
         <div className="table-wrap">
@@ -123,12 +142,14 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
             <tbody>
               {people.map((p, l) => {
                 const line = lines[l]!;
+                if (!shows(p, l)) return null;
                 return (
-                  <tr key={p.id} className={state.line === l ? 'wrong' : undefined}>
+                  <tr key={p.id} className={[state.line === l && 'wrong', line.mark !== 'P' && 'unmarked', p.kind === 'staff' && 'staff', p.hidden && 'unpaid-staff'].filter(Boolean).join(' ') || undefined}>
                     <td className="box muted line-no">{l + 1}</td>
                     <td className="wide" data-label={t('labour.name')}>
                       <strong>{p.name}</strong>
                       {p.kind === 'staff' && <span className="pill common small-pill">{t('labour.staff')}</span>}
+                      {p.elsewhere && <small className="muted elsewhere">{t('labour.elsewhere')}</small>}
                     </td>
                     <td className="mark" data-label={t('labour.attendance')}>
                       <span className="quick-time">
@@ -137,6 +158,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                             key={mark}
                             type="button"
                             className={`chip mark-${mark}${line.mark === mark ? ' on' : ''}`}
+                            disabled={mark === 'P' && p.elsewhere}
                             aria-pressed={line.mark === mark}
                             aria-label={`${p.name}: ${t(`labour.mark.${mark}`)}`}
                             title={t(`labour.mark.${mark}`)}
@@ -161,8 +183,8 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                       </span>
                       )}
                     </td>
-                    <td className={p.rate === null ? 'num rate minus' : 'num rate'} data-label={t('labour.rate')}>
-                      {p.rate === null ? t('labour.noRate') : `${showPaise(p.rate)} ${t(`labour.per.${p.kind}`)}`}
+                    <td className={p.rate === null && !p.hidden ? 'num rate minus' : 'num rate'} data-label={t('labour.rate')}>
+                      {p.hidden ? '–' : p.rate === null ? t('labour.noRate') : `${showPaise(p.rate)} ${t(`labour.per.${p.kind}`)}`}
                     </td>
                     <td className="num result" data-label={t('use.amount')}>{amounts[l] == null ? '—' : showPaise(amounts[l])}</td>
                   </tr>
@@ -171,6 +193,11 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
             </tbody>
           </table>
         </div>
+        {!word && others > 0 && (
+          <div className="activity-foot">
+            <button type="button" className="btn ghost small" onClick={() => setAll((on) => !on)}>{t(all ? 'labour.onlyHere' : 'labour.others', { n: others })}</button>
+          </div>
+        )}
       </div>
 
       <div className="work-total-bar">
@@ -191,9 +218,11 @@ export function OtherCostForm({ action, accounts }: { action: Action; accounts: 
   const [lines, setLines] = useState<OtherLine[]>([emptyOther(), emptyOther()]);
 
   useEffect(() => {
-    if (state.saved) setLines([emptyOther(), emptyOther()]);
+    if (state.saved) setLines(onPhone() ? [emptyOther()] : [emptyOther(), emptyOther()]);
+    else if (onPhone()) setLines((all) => all.slice(0, 1));
   }, [state.saved]);
 
+  useUnsaved(() => lines.some((x) => x.description.trim() || x.quantity.trim() || x.rate.trim()));
   const change = (l: number, patch: Partial<OtherLine>) => setLines((all) => all.map((x, i) => (i === l ? { ...x, ...patch } : x)));
   const amounts = lines.map((line) => (line.rate.trim() ? preview(line.quantity || '1', line.rate) : null));
   const total = amounts.reduce<number>((sum, a) => sum + (a ?? 0), 0);
@@ -203,7 +232,7 @@ export function OtherCostForm({ action, accounts }: { action: Action; accounts: 
       <input type="hidden" name="lines" value={JSON.stringify(lines)} />
       <div className="work-builder-head">
         <h2>{t('other.addTitle')}</h2>
-        <p className="hint">{t('other.addHint')}</p>
+        <Help title={t('help')}>{t('other.addHint')}</Help>
       </div>
       <Problem state={state} t={t} />
 

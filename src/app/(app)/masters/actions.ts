@@ -16,8 +16,8 @@ import type { MixLine, MixState } from './mixes/mix-form';
 
 /** Adds (id = null) or edits a master row as the signed-in user. Row level security has the final say. */
 export async function saveMaster(slug: string, id: string | null, _state: FormState, data: FormData): Promise<FormState> {
-  const def = getMaster(slug);
   const profile = await requireProfile();
+  const def = getMaster(slug, profile.role);
   if (!def || !mayEdit(def, profile.role)) return { errors: { _form: 'not_allowed' } };
 
   const values = submittedValues(data);

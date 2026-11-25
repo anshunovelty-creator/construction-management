@@ -51,7 +51,7 @@ const LABELS: Record<string, string> = {
 
 /** One client's page in the working firm: bills given and money received. ?id= */
 export default async function ClientPage({ searchParams }: { searchParams: Promise<{ id?: string; tab?: string }> }) {
-  await requireProfile('owner', 'office');
+  const profile = await requireProfile('owner', 'office');
   const { id = '', tab = 'bills' } = await searchParams;
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
@@ -118,6 +118,7 @@ export default async function ClientPage({ searchParams }: { searchParams: Promi
         {/* With no entries there is nothing to be settled, so no "fully received" either. */}
         {rows.length > 0 && <StatusPill status={f.status} t={t} side="client" />}
         <Link href={`/ledger?of=party:${client.id}`} className="btn ghost small">{t('nav.ledger')}</Link>
+        {profile.role === 'owner' && <Link href={`/party/opening?id=${client.id}`} className="btn ghost small">{t('partyOpening.button')}</Link>}
       </div>
       <p className="lede">
         {opening

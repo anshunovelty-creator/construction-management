@@ -4,9 +4,11 @@ import { useTranslations } from 'next-intl';
 import { Fragment, useActionState, useEffect, useState } from 'react';
 import { rupeesToPaise, showPaise } from '@/lib/money';
 import { QTY, valueOf } from '@/lib/stock';
+import { Help } from '@/components/help';
 import { Icon } from '@/components/icons';
 import { NewMaterial } from '@/components/new-material';
 import { SearchSelect } from '@/components/search-select';
+import { onPhone, useUnsaved } from '@/components/unsaved';
 import type { Choice } from '@/lib/masters/registry';
 
 export interface MaterialLine {
@@ -92,13 +94,18 @@ export function MaterialUseForm({
   const materials = [...given, ...added];
   const material = new Map(materials.map((m) => [m.id, m]));
 
+  // A phone starts with one line, not three: each is tall there, and one more is a tap away.
+  useEffect(() => {
+    if (onPhone()) setLines((all) => (all.every(isEmpty) ? all.slice(0, 1) : all));
+  }, [state.saved]);
   useEffect(() => {
     if (state.saved) {
-      setLines([emptyLine(), emptyLine(), emptyLine()]);
+      setLines(onPhone() ? [emptyLine()] : [emptyLine(), emptyLine(), emptyLine()]);
       setDone({});
     }
   }, [state.saved]);
 
+  useUnsaved(() => lines.some((x) => !isEmpty(x)));
   // The work done fills each of its materials: done × what 1 unit takes. Lines added to the group by hand are left alone,
   // and a filled quantity can still be typed over.
   const fillMix = (name: string, text: string) => {
@@ -171,7 +178,7 @@ export function MaterialUseForm({
       )}
       <div className="work-builder-head">
         <h2>{t('use.addTitle')}</h2>
-        <p className="hint">{t('use.addHint')}</p>
+        <Help title={t('help')}>{t('use.addHint')}</Help>
       </div>
       {state.error && (
         <p className="banner bad" role="alert">

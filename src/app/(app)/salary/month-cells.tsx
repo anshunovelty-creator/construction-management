@@ -1,8 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useActionState, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { asRupees, toPaise } from '@/components/form';
+import { useUnsaved } from '@/components/unsaved';
 import { salaryFor } from '@/lib/labour';
 import { showPaise } from '@/lib/money';
 import type { MonthState } from './actions';
@@ -11,8 +12,10 @@ import type { MonthState } from './actions';
 export function MonthForm({ action, children }: { action: (state: MonthState, data: FormData) => Promise<MonthState>; children: React.ReactNode }) {
   const t = useTranslations('labour');
   const [state, formAction, pending] = useActionState(action, {});
+  const form = useRef<HTMLFormElement>(null);
+  useUnsaved(() => Boolean(form.current?.querySelector('input[name=changed]')));
   return (
-    <form action={formAction}>
+    <form ref={form} action={formAction}>
       {children}
       <div className="month-save">
         <button type="submit" className="btn" disabled={pending}>{t('save')}</button>

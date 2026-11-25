@@ -22,7 +22,7 @@ const ERRORS = new Set(['date', 'no_labour_firm', 'unplaced', 'need_both', 'not_
  * Labour supplied in a month: where each worker's days were, what each place is charged for them, and (for the owner and
  * office) putting our own firms' part in both firms' books. A Labour login says where the days were and sees no charges.
  */
-export default async function LabourSuppliedPage({ searchParams }: { searchParams: Promise<{ month?: string; error?: string; confirmed?: string }> }) {
+export default async function LabourSuppliedPage({ searchParams }: { searchParams: Promise<{ month?: string; error?: string; refused?: string; confirmed?: string }> }) {
   const profile = await requireProfile('owner', 'office', 'labour');
   const office = profile.role !== 'labour';
   const [t, asked] = await Promise.all([getTranslations(), searchParams]);
@@ -61,6 +61,14 @@ export default async function LabourSuppliedPage({ searchParams }: { searchParam
         {office && <Link href="/labour/places" className="btn ghost">{t('supplied.places')}</Link>}
       </div>
       {asked.error && <p className="banner bad" role="alert">{ERRORS.has(asked.error) ? t(`supplied.errors.${asked.error}`) : asked.error}</p>}
+      {asked.refused && (
+        <div className="banner bad" role="alert">
+          <div>
+            <p>{t('supplied.refused', { month: showMonth(month) })}</p>
+            <ul className="refused">{asked.refused.split('\n').slice(0, 20).map((line) => <li key={line}>{line}</li>)}</ul>
+          </div>
+        </div>
+      )}
       {asked.confirmed && <p className="banner" role="status">{t('supplied.done', { month: showMonth(month) })}</p>}
       {office && !supplier && <p className="banner bad"><span>{t('supplied.errors.no_labour_firm')} <Link href="/masters/firms" className="underline">{t('party.goSetup')}</Link></span></p>}
 

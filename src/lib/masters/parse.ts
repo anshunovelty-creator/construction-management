@@ -111,10 +111,6 @@ export function parseFields(fields: Field[], data: FormData): ParseResult {
           errors[field.name] = 'invalid_percent';
         }
         break;
-      case 'whole':
-        if (/^\d{1,4}$/.test(text) && Number(text) >= field.min && Number(text) <= field.max) values[field.name] = Number(text);
-        else errors[field.name] = 'invalid_whole';
-        break;
       case 'date':
         try {
           assertDate(text, field.name);

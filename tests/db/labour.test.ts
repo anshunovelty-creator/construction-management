@@ -51,3 +51,38 @@ it('keeps other site costs, but not material, which comes from stock', async () 
   await add('machine_hire');
   await expect(add('material')).rejects.toThrow('check constraint');
 });
+
+it('keeps what staff are paid from a supervisor, who still marks them', async () => {
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const office = await createUser(db, 'office', 'Priya', { firms: [seed.jayraj] });
+  const sunil = (await db.query<{ id: string }>(`insert into parties (kind, name, rate_paise) values ('staff', 'Sunil', 3100000) returning id`)).rows[0]!.id;
+  await asUser(db, ramesh, async (tx) => {
+    expect((await tx.query(`select id from parties where kind = 'staff'`)).rows).toEqual([]);
+    expect((await tx.query(`select * from app_site_staff()`)).rows).toEqual([{ id: sunil, name: 'Sunil', site_id: null, has_rate: true }]);
+    // Whatever amount is sent, the database works out the day: 31,000 ÷ 31 days.
+    await tx.query(`insert into labour_day (site_id, work_date, party_id, present, day_pay_paise, amount_paise) values ($1, '2026-10-18', $2, true, 7, 7)`, [seed.svgSite, sunil]);
+    expect((await tx.query(`select day_pay_paise::int, amount_paise::int from labour_day`)).rows).toEqual([{ day_pay_paise: 0, amount_paise: 0 }]);
+    expect((await tx.query(`select * from labour_day_staff`)).rows).toEqual([]);
+    expect((await tx.query(`update parties set rate_paise = 1 where id = $1 returning id`, [sunil])).rows).toEqual([]);
+  });
+  await expect(asUser(db, ramesh, (tx) => tx.query(`insert into parties (kind, name) values ('staff', 'Extra')`))).rejects.toThrow('row-level security');
+  await asUser(db, office, async (tx) => {
+    expect((await tx.query(`select day_pay_paise::int, amount_paise::int from labour_day_staff`)).rows).toEqual([{ day_pay_paise: 100000, amount_paise: 100000 }]);
+  });
+  // Taken off by the supervisor the same day, its pay goes with it.
+  await asUser(db, ramesh, (tx) => tx.query(`delete from labour_day where party_id = $1`, [sunil]));
+  expect((await db.query(`select * from labour_day_staff`)).rows).toEqual([]);
+});
+
+it('marks a cost as on a bill, by the office only and not once it is paid', async () => {
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const office = await createUser(db, 'office', 'Priya', { firms: [seed.jayraj] });
+  const cost = (await asUser(db, ramesh, (tx) => tx.query<{ id: string }>(
+    `insert into other_cost (site_id, work_date, description, cost_head, quantity, rate_paise, amount_paise)
+     values ($1, '2026-10-18', 'Tractor', 'transport', 1, 200000, 200000) returning id`, [seed.svgSite]))).rows[0]!.id;
+  const mark = (user: string) => asUser(db, user, (tx) => tx.query(`select app_mark_on_bill('cost', $1, true)`, [cost]));
+  await expect(mark(ramesh)).rejects.toThrow('cannot settle');
+  await mark(office);
+  expect((await db.query(`select on_bill from other_cost where id = $1`, [cost])).rows).toEqual([{ on_bill: true }]);
+  await expect(asUser(db, office, (tx) => tx.query(`select app_mark_on_bill('cost', $1, true)`, [margub]))).rejects.toThrow('already paid or removed');
+});

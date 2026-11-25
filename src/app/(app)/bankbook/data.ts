@@ -2,7 +2,11 @@ import type { ListPerson } from '@/components/pay-list';
 import type { PopupAccount, PopupPerson } from '@/components/money-popup';
 import type { Names } from '@/lib/ledger/plain';
 import type { createClient } from '@/lib/supabase/server';
+import { taxDue } from '@/lib/tax';
+import { salaryLedger } from '@/lib/wages';
+import { allRows, loadFamilies } from '../labour/data';
 import { loadFirmClients, loadFirmParties } from '../party/shared';
+import { loadSalaryPeople } from '../salary/data';
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -76,6 +80,62 @@ export async function loadPayList(db: Db, firmId: string): Promise<Record<'party
     return [...people.values()].sort((a, b) => Math.max(b.left, 0) - Math.max(a.left, 0) || a.name.localeCompare(b.name));
   };
   return { party: list(parties, 'vendor'), client: list(clients, 'client') };
+}
+
+/** What a firm has to pay besides its parties. Salaries and PF are of all firms together, as a worker belongs to no one firm. */
+export async function loadOtherDues(db: Db, firmId: string, today: string): Promise<Record<'salary' | 'wages' | 'gst' | 'tds' | 'pf', number>> {
+  const month = today.slice(0, 7);
+  const mine: [string, string] = ['firm_id', firmId];
+  const [gstRows, tdsRows, { data: taxes }, { data: pfPaid }, people, families] = await Promise.all([
+    allRows<{ entry_type: string; entry_date: string; gst_paise: number | string }>(db, 'gst_rows', ['entry_date', 'entry_id'], mine),
+    allRows<{ entry_type: string; entry_date: string; tds_paise: number | string }>(db, 'tds_rows', ['entry_date', 'entry_id'], mine),
+    db.from('tax_rows').select('account, amount_paise').eq('firm_id', firmId),
+    db.from('tax_rows').select('amount_paise').eq('account', 'pf_paid'),
+    loadSalaryPeople(db, today), loadFamilies(db),
+  ]);
+  const sum = (rows: { amount_paise: number | string }[] | null) => (rows ?? []).reduce((s, r) => s + Number(r.amount_paise), 0);
+  const paid = (account: string) => sum((taxes ?? []).filter((x) => x.account === account));
+  const ledgers = people.map((p) => salaryLedger(p.person).filter((m) => m.month <= month));
+  return {
+    salary: ledgers.reduce((s, l) => s + Math.max(l.at(-1)?.balance ?? 0, 0), 0),
+    wages: families.reduce((s, f) => s + Math.max(f.ledger.find((m) => m.month === month)?.balance ?? f.balance, 0), 0),
+    gst: taxDue(gstRows.map((r) => ({ month: r.entry_date.slice(0, 7), amount: Number(r.gst_paise) * (r.entry_type === 'client_bill' ? 1 : -1) })), paid('gst_paid'), month),
+    tds: taxDue(tdsRows.filter((r) => r.entry_type === 'vendor_bill').map((r) => ({ month: r.entry_date.slice(0, 7), amount: Number(r.tds_paise) })), paid('tds_paid'), month),
+    pf: Math.max(ledgers.flat().reduce((s, m) => s + m.pf, 0) - sum(pfPaid), 0),
+  };
+}
+
+export interface Unpaid {
+  kind: 'cost' | 'service';
+  id: string;
+  date: string;
+  /** The site of a cost, or the machine of a service. */
+  placeId: string;
+  place: string;
+  what: string;
+  head?: string;
+  amount: number;
+  /** It came on a party's bill, so it is paid there. */
+  onBill: boolean;
+}
+
+/** Costs typed as not paid yet: other costs on the daily reports, and machine services. The newest first. */
+export async function loadUnpaid(db: Db): Promise<Unpaid[]> {
+  // ponytail: the newest 1000 of each; page through them if a business ever leaves that many unpaid.
+  const [costs, services] = await Promise.all([
+    db.from('other_cost').select('id, work_date, description, cost_head, amount_paise, on_bill, site:sites(id, name)').is('entry_id', null).gt('amount_paise', 0)
+      .order('work_date', { ascending: false }).limit(1000)
+      .returns<{ id: string; work_date: string; description: string; cost_head: string; amount_paise: number | string; on_bill: boolean | null; site: { id: string; name: string } | null }[]>(),
+    db.from('machine_services').select('id, service_date, note, cost_paise, on_bill, machine:machines(id, name)').is('entry_id', null).gt('cost_paise', 0)
+      .order('service_date', { ascending: false }).limit(1000)
+      .returns<{ id: string; service_date: string; note: string; cost_paise: number | string; on_bill: boolean | null; machine: { id: string; name: string } | null }[]>(),
+  ]);
+  const error = costs.error ?? services.error;
+  if (error) throw new Error(error.message);
+  return [
+    ...(costs.data ?? []).map((r) => ({ kind: 'cost' as const, id: r.id, date: r.work_date, placeId: r.site?.id ?? '', place: r.site?.name ?? '', what: r.description, head: r.cost_head, amount: Number(r.amount_paise), onBill: r.on_bill === true })),
+    ...(services.data ?? []).map((r) => ({ kind: 'service' as const, id: r.id, date: r.service_date, placeId: r.machine?.id ?? '', place: r.machine?.name ?? '', what: r.note, amount: Number(r.cost_paise), onBill: r.on_bill === true })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export interface BankMatch { money_account_id: string; statement_date: string; balance_paise: number | string; expected_paise: number | string }

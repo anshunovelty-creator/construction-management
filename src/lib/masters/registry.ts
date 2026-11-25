@@ -23,6 +23,8 @@ export const ENUMS = {
   unit_measure: ['quantity', 'length', 'area', 'volume'],
   /** The party kinds kept on the Workers and staff list: a worker is paid by the hour, staff a fixed salary per month. */
   worker_kind: ['worker', 'staff'],
+  /** The same list for a supervisor, who does not see staff: what they are paid is not theirs to see. */
+  worker_only: ['worker'],
   /** The kinds added on the Parties screen; workers and staff have their own screen. */
   party_main: ['vendor', 'client'],
   /** Not a database enum (a checked text column): for information only, pay is unaffected. */
@@ -45,8 +47,6 @@ export type Choice = { value: string; label: string; group?: string; kind?: stri
 
 export type Field =
   | { name: string; kind: 'text' | 'email' | 'password' | 'percent' | 'date' | 'checkbox'; required?: boolean }
-  /** A whole number, from `min` to `max`. */
-  | { name: string; kind: 'whole'; min: number; max: number; required?: boolean }
   | { name: string; kind: 'rupees'; required?: boolean; allowZero?: boolean }
   | { name: string; kind: 'enum'; enum: EnumName; required?: boolean }
   | { name: string; kind: 'ref' | 'multi'; ref: RefSource; required?: boolean };
@@ -77,13 +77,12 @@ export const MASTERS: Record<string, MasterDef> = {
   firms: {
     table: 'firms',
     ownerOnly: true,
-    list: ['code', 'name', 'salary_day', 'runs_labour'],
+    list: ['code', 'name', 'runs_labour'],
     fields: [
       { name: 'code', kind: 'text', required: true },
       { name: 'name', kind: 'text', required: true },
       // One firm (the database checks): Ansari Enterprise.
       { name: 'runs_labour', kind: 'checkbox' },
-      { name: 'salary_day', kind: 'whole', min: 1, max: 28, required: true },
     ],
   },
   sites: {
@@ -97,13 +96,12 @@ export const MASTERS: Record<string, MasterDef> = {
     ownerOnly: false,
     // Old "other" parties stay listed so they can still be found and changed to a party or client.
     kinds: ['vendor', 'client', 'other'],
-    list: ['name', 'kind', 'phone', 'gst_number', 'credit_days', 'is_active'],
+    list: ['name', 'kind', 'phone', 'gst_number', 'is_active'],
     fields: [
       { name: 'kind', kind: 'enum', enum: 'party_main', required: true },
       { name: 'name', kind: 'text', required: true },
       { name: 'phone', kind: 'text' },
       { name: 'gst_number', kind: 'text' },
-      { name: 'credit_days', kind: 'whole', min: 0, max: 365 },
       active,
     ],
   },
@@ -121,6 +119,8 @@ export const MASTERS: Record<string, MasterDef> = {
       { name: 'rate_paise', kind: 'rupees', required: true },
       { name: 'site_id', kind: 'ref', ref: 'sites' },
       { name: 'phone', kind: 'text' },
+      // Staff: the day their salary starts. Left empty, the day they are added here.
+      { name: 'pay_from', kind: 'date' },
       active,
     ],
   },
@@ -178,8 +178,14 @@ export const mayView = (def: MasterDef, role: AppRole) => role !== 'supervisor' 
 export const mayEdit = (def: MasterDef, role: AppRole) =>
   role === 'owner' || (role === 'office' ? !def.ownerOnly : Boolean(def.supervisor));
 
-export function getMaster(slug: string): MasterDef | undefined {
-  return Object.hasOwn(MASTERS, slug) ? MASTERS[slug] : undefined;
+/** A Setup screen as this person has it: a supervisor keeps workers but not staff, whose salaries they do not see. */
+export function getMaster(slug: string, role?: AppRole): MasterDef | undefined {
+  const def = Object.hasOwn(MASTERS, slug) ? MASTERS[slug] : undefined;
+  if (slug !== 'workers' || role !== 'supervisor' || !def) return def;
+  return {
+    ...def, kinds: ENUMS.worker_only,
+    fields: def.fields.filter((f) => f.name !== 'pay_from').map((f) => (f.name === 'kind' ? { name: 'kind', kind: 'enum', enum: 'worker_only', required: true } : f)),
+  };
 }
 
 export const LOGIN_FIELDS: Field[] = [

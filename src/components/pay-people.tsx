@@ -5,6 +5,7 @@ import { startTransition, useRef, useState, useTransition } from 'react';
 import { AccountOptions } from '@/components/account-options';
 import { toPaise } from '@/components/form';
 import { DateBox } from '@/components/money-boxes';
+import { amountDoubts } from '@/lib/doubts';
 import { groupRupees, showPaise } from '@/lib/money';
 import { rupeesInWords } from '@/lib/words';
 import type { PayInput, PayKind, PayResult } from '@/app/(app)/pay/actions';
@@ -27,18 +28,39 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
   const [date, setDate] = useState(today);
   const [note, setNote] = useState('');
   const [message, setMessage] = useState<{ bad: boolean; text: string } | null>(null);
-  const [repeat, setRepeat] = useState(false);
+  // Asked before saving: someone looks paid already, or an amount looks wrong. Saving anyway answers it.
+  // The answer is only for what was asked: anything changed is asked about again.
+  const [asking, setAsking] = useState<{ about: 'repeat' | 'doubt'; of: string } | null>(null);
   const [pending, start] = useTransition();
   const total = rows.reduce((s, r) => s + toPaise(amounts[r.id] ?? ''), 0);
   const people = rows.filter((r) => toPaise(amounts[r.id] ?? '') > 0).length;
   const chosen = accounts.find((a) => a.id === account);
   const after = chosen ? chosen.balance + (kind === 'returned' ? total : -total) : 0;
 
-  const submit = (e: React.SyntheticEvent, anyway = false) => {
+  const asked = `${JSON.stringify(amounts)}|${account}|${kind}`;
+  const ask = asking?.of === asked ? asking.about : null;
+  const submit = (e: React.SyntheticEvent, answered: 'repeat' | 'doubt' | null = null) => {
     e.preventDefault();
     if (pending || total <= 0 || !account) return;
     setMessage(null);
-    setRepeat(false);
+    setAsking(null);
+    if (!answered && kind !== 'returned') {
+      const bank = chosen?.kind === 'bank' ? chosen : undefined;
+      const found = [
+        // An advance is meant to be ahead of what is owed.
+        ...(kind === 'payment' ? rows.flatMap((r) => {
+          const paise = toPaise(amounts[r.id] ?? '');
+          return amountDoubts({ paise, left: r.left }).map(() => t('doubts.morePerson', { name: r.name, amount: showPaise(paise - r.left), left: showPaise(r.left) }));
+        }) : []),
+        ...amountDoubts({ paise: total, before: bank?.balance, after: bank && after }).map(() => t('doubts.overdrawn', { account: bank!.name, amount: showPaise(after) })),
+      ];
+      if (found.length > 0) {
+        setAsking({ about: 'doubt', of: asked });
+        setMessage({ bad: true, text: [...found.slice(0, 5), t('doubts.check')].join(' ') });
+        return;
+      }
+    }
+    const anyway = answered === 'repeat';
     entryId.current ||= crypto.randomUUID();
     start(async () => {
       let result: PayResult;
@@ -54,7 +76,7 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
           setNote('');
           setMessage({ bad: false, text: t('pay.saved', { amount: showPaise(total), serial: result.serial }) });
         } else {
-          setRepeat(result.error === 'paid_twice');
+          setAsking(result.error === 'paid_twice' ? { about: 'repeat', of: asked } : null);
           setMessage({ bad: true, text: `${t(`labour.errors.${result.error}`)}${result.detail ? ` (${result.detail})` : ''}` });
         }
       });
@@ -108,7 +130,7 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
       {!single && <button type="button" className="link-button" onClick={() => setAmounts(Object.fromEntries(rows.filter((r) => r.left > 0).map((r) => [r.id, groupRupees(String(r.left / 100))])))}>{t('pay.fillAll')}</button>}
       <p className="rcv-words">{total > 0 ? <><b>{showPaise(total)}</b> · {rupeesInWords(total)}{chosen && <> · {chosen.name} → <b className={after < 0 ? 'minus' : undefined}>{showPaise(after)}</b></>}</> : t('client.receive.typeAmount')}</p>
       {message && <p role={message.bad ? 'alert' : 'status'} className={`banner${message.bad ? ' bad' : ''}`}>{message.text}</p>}
-      {repeat && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, true)}>{t('repeat.anyway')}</button>}
+      {ask && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, ask)}>{t(ask === 'repeat' ? 'repeat.anyway' : 'doubts.anyway')}</button>}
       <button type="submit" className="btn big" disabled={pending || total <= 0 || !account}>
         {pending ? '…' : total > 0 ? t(kind === 'returned' ? 'pay.take' : 'pay.pay', { amount: showPaise(total), count: people }) : t('client.receive.typeAmount')}
       </button>

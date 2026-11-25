@@ -12,9 +12,9 @@ import { displayValue, loadChoices } from '../options';
 export default async function MasterListPage({ params, searchParams }: { params: Promise<{ table: string }>; searchParams: Promise<{ binned?: string }> }) {
   const { binned } = await searchParams;
   const { table: slug } = await params;
-  const def = getMaster(slug);
-  if (!def) notFound();
   const profile = await requireProfile();
+  const def = getMaster(slug, profile.role);
+  if (!def) notFound();
   if (!mayView(def, profile.role)) redirect('/masters/workers');
   const canEdit = mayEdit(def, profile.role);
   const db = await createClient();
@@ -72,7 +72,7 @@ export default async function MasterListPage({ params, searchParams }: { params:
         <>
           <h2 id="add">{t('masters.add')}</h2>
           <Form fields={account ? [...def.fields.slice(0, -1).map((f) => (f.name === 'firm_id' ? { ...f, required: true } as Field : f)), ...OPENING_FIELDS, ...def.fields.slice(-1)] : def.fields} choices={choices}
-            defaults={account ? { firm_id: working?.firm.id ?? '', opening_date: todayInIndia() } : undefined} hintPrefix={account ? 'accountForm.hints' : undefined}
+            defaults={account ? { firm_id: working?.firm.id ?? '', opening_date: todayInIndia() } : undefined} hintPrefix={account ? 'accountForm.hints' : 'masterForm.hints'}
             action={saveMaster.bind(null, slug, null)} submitLabel={t('masters.save')} />
         </>
       )}

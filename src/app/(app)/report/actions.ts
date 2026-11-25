@@ -57,13 +57,20 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
   const lines = parseLines<LabourLine>(data);
   if (!lines) return { error: 'nothing' };
   const db = await createClient();
-  const { data: people } = await db.from('parties').select('id, kind, rate_paise').in('id', lines.map((l) => l.partyId));
-  const person = new Map((people ?? []).map((p) => [p.id as string, p]));
+  // Staff come without their salary, which a supervisor does not see: the database works out what their day comes to.
+  const [{ data: workers }, { data: staff }] = await Promise.all([
+    db.from('parties').select('id, rate_paise').eq('kind', 'worker').in('id', lines.map((l) => l.partyId)),
+    db.rpc('app_site_staff'),
+  ]);
+  const person = new Map<string, { id: string; kind: 'worker' | 'staff'; rate: number | null }>([
+    ...(workers ?? []).map((p) => [p.id as string, { id: p.id as string, kind: 'worker' as const, rate: p.rate_paise === null ? null : Number(p.rate_paise) }] as const),
+    ...((staff ?? []) as { id: string; has_rate: boolean }[]).map((p) => [p.id, { id: p.id, kind: 'staff' as const, rate: p.has_rate ? 0 : null }] as const),
+  ]);
   const rows = [];
   for (const [i, line] of lines.entries()) {
     if (line.mark !== 'P' && line.mark !== 'A') continue;
     const p = person.get(line.partyId);
-    if (!p || (p.kind !== 'worker' && p.kind !== 'staff')) return { error: 'save_failed', line: i };
+    if (!p) return { error: 'save_failed', line: i };
     const present = line.mark === 'P';
     let ot: number;
     try {
@@ -73,8 +80,8 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
     }
     if (!present && ot > 0) return { error: 'ot_absent', line: i };
     if (p.kind === 'staff' && ot > 0) return { error: 'staff_no_ot', line: i };
-    if (present && p.rate_paise === null) return { error: 'no_rate', line: i };
-    const pay = dayPay(p.kind, Number(p.rate_paise ?? 0), date);
+    if (present && p.rate === null) return { error: 'no_rate', line: i };
+    const pay = dayPay(p.kind, p.rate ?? 0, date);
     rows.push({
       site_id: siteId, work_date: date, party_id: p.id, present, ot_hours: ot / 100, day_pay_paise: pay, amount_paise: dayAmount(present, ot, pay),
     });
@@ -129,7 +136,9 @@ export async function addOtherCost(siteId: string, date: string, _state: LineSta
 /** A cost typed as not paid yet, now paid from the working firm's bank or cash. */
 export async function payCost(id: string, entryId: string, siteId: string, date: string, data: FormData): Promise<void> {
   await requireProfile('owner', 'office');
-  const fail = (error: string): never => redirect(`/report?site=${siteId}&date=${date}&error=${encodeURIComponent(error)}`);
+  // Paid from the report, or from the list of costs not paid yet.
+  const listed = data.get('back') === 'unpaid';
+  const fail = (error: string): never => redirect(listed ? `/bankbook/unpaid?error=${encodeURIComponent(error)}` : `/report?site=${siteId}&date=${date}&error=${encodeURIComponent(error)}`);
   const db = await createClient();
   const paidOn = String(data.get('date') ?? '');
   const [{ data: cost }, from, working] = await Promise.all([
@@ -148,7 +157,7 @@ export async function payCost(id: string, entryId: string, siteId: string, date:
   const { error } = await db.rpc('app_pay_cost', { p_cost: id, p_entry: entry });
   if (error) return fail(error.message);
   revalidatePath('/', 'layout');
-  redirect(`/report?site=${siteId}&date=${date}#other-title`);
+  redirect(listed ? '/bankbook/unpaid' : `/report?site=${siteId}&date=${date}#other-title`);
 }
 
 /**

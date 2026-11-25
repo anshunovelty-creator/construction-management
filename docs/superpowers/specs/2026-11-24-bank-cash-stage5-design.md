@@ -1,7 +1,7 @@
 # Bank and Cash, Stage 5: Design Spec
 
 **Date:** 2026-11-24
-**Status:** Built on the owner's go-ahead (not committed, not on live).
+**Status:** Set aside (owner decision 2026-11-25): finish the tracking system first, forecast later. The page and code were removed; they are in git at commit 5ef58e2. The migration stays, unused.
 **Builds on:** stages 1 to 4, and the whole plan: https://claude.ai/artifact/36ZTuWZQZjJe3CayAqvjt5
 
 `/forecast` (Money → Free money), owner and office; the owner also sees all firms. It is worked out from the books and moves nothing (`src/lib/forecast.ts`, `src/app/(app)/forecast/data.ts`).

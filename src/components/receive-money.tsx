@@ -7,6 +7,7 @@ import { AccountOptions } from '@/components/account-options';
 import { asRupees, toPaise, type FormState } from '@/components/form';
 import { Icon } from '@/components/icons';
 import { AmountBox, DateBox } from '@/components/money-boxes';
+import { amountDoubts } from '@/lib/doubts';
 import type { Choice } from '@/lib/masters/registry';
 import { groupRupees, roundOffSmall, showPaise } from '@/lib/money';
 
@@ -98,7 +99,9 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
   const [reference, setReference] = useState('');
   const [narration, setNarration] = useState('');
   const [failed, setFailed] = useState<string | null>(null);
-  const [repeat, setRepeat] = useState(false);
+  // Asked before saving: it looks like one already there, or the amount looks wrong. Saving anyway answers it.
+  // The answer is only for what was asked: anything changed is asked about again.
+  const [asking, setAsking] = useState<{ about: 'repeat' | 'doubt'; of: string } | null>(null);
   const [savedSerial, setSavedSerial] = useState<string | null>(null);
   const [pending, startSaving] = useTransition();
 
@@ -124,11 +127,24 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     dialog.current?.showModal();
     amountBox.current?.focus();
   };
-  const submit = (e: React.SyntheticEvent, anyway = false) => {
+  const asked = `${paise}|${account}`;
+  const ask = asking?.of === asked ? asking.about : null;
+  const submit = (e: React.SyntheticEvent, answered: 'repeat' | 'doubt' | null = null) => {
     e.preventDefault();
     if (!ready || pending) return;
     setFailed(null);
-    setRepeat(false);
+    setAsking(null);
+    if (!answered) {
+      const account = chosen?.kind === 'bank' && side === 'party' ? chosen : undefined;
+      const found = amountDoubts({ paise, left: other ? undefined : balance, before: account?.balance, after: account && after });
+      if (found.length > 0) {
+        setAsking({ about: 'doubt', of: asked });
+        setFailed([...found.map((d) => (d === 'more' ? t('doubts.more', { amount: showPaise(paise - balance), left: showPaise(balance) })
+          : t('doubts.overdrawn', { account: chosen!.label, amount: showPaise(after) }))), t('doubts.check')].join(' '));
+        return;
+      }
+    }
+    const anyway = answered === 'repeat';
     rowId.current ||= crypto.randomUUID();
     const id = rowId.current;
     startSaving(async () => {
@@ -138,7 +154,7 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
           if ('id' in result) setSavedSerial(result.serial);
           else {
             const key = Object.values(result.errors ?? {})[0] ?? 'save_failed';
-            setRepeat(key === 'maybe_repeat');
+            setAsking(key === 'maybe_repeat' ? { about: 'repeat', of: asked } : null);
             setFailed(`${t(`errors.${key}`)}${result.detail ? ` (${result.detail})` : ''}`);
           }
         });
@@ -273,7 +289,7 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
               </div>
 
               {failed && <p role="alert" className="error form-error">{failed}</p>}
-              {repeat && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, true)}>{t('repeat.anyway')}</button>}
+              {ask && <button type="button" className="btn ghost big" disabled={pending} onClick={(e) => submit(e, ask)}>{t(ask === 'repeat' ? 'repeat.anyway' : 'doubts.anyway')}</button>}
               <button type="submit" className="btn big rcv-save" disabled={pending || !ready}>
                 {pending ? '…' : paise > 0 ? t(`${side}.receive.save`, { amount: showPaise(paise) }) : t('client.receive.typeAmount')}
               </button>

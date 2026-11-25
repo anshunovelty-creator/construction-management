@@ -2,11 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireProfile } from '@/lib/auth';
+import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { openingMoneyBalance } from '@/lib/ledger/posting/opening';
+import { machineService } from '@/lib/ledger/posting/other';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
+import { payAccount } from '../pay/data';
 
 const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const text = (data: FormData, name: string) => String(data.get(name) ?? '').trim();
@@ -84,4 +86,34 @@ export async function countCash(accountId: string, countId: string, data: FormDa
   if (error) fail(error.message);
   revalidatePath('/', 'layout');
   redirect(`${page}?done=${(result as { difference: number }).difference}`);
+}
+
+const unpaidFail = (error: string): never => redirect(`/bankbook/unpaid?error=${encodeURIComponent(error)}`);
+
+/** A cost not paid yet came on a party's bill (so it is paid there), or did not after all. */
+export async function markOnBill(kind: 'cost' | 'service', id: string, on: boolean): Promise<void> {
+  await requireProfile('owner', 'office');
+  const { error } = await (await createClient()).rpc('app_mark_on_bill', { p_kind: kind, p_id: id, p_on: on });
+  if (error) unpaidFail(error.message);
+  revalidatePath('/', 'layout');
+  redirect('/bankbook/unpaid');
+}
+
+/** A machine's service typed as not paid yet, now paid from the working firm's bank or cash. */
+export async function payService(id: string, entryId: string, data: FormData): Promise<void> {
+  await requireProfile('owner', 'office');
+  const db = await createClient();
+  const paidOn = text(data, 'date');
+  if (!DATE.test(paidOn) || paidOn > todayInIndia()) return unpaidFail('This date is in the future.');
+  const [{ data: service }, account, working] = await Promise.all([
+    db.from('machine_services').select('cost_paise, note, machine:machines(name)').eq('id', id).is('entry_id', null).maybeSingle<{ cost_paise: number | string; note: string; machine: { name: string } | null }>(),
+    payAccount(db, text(data, 'account')), getWorkingFirm(),
+  ]);
+  if (!service) return unpaidFail('This cost is already paid or removed.');
+  if (!account || account.firmId !== working?.firm.id) return unpaidFail('Choose one of this firm’s accounts.');
+  const entry = machineService({ id: entryId, account, amountPaise: Number(service.cost_paise), date: paidOn, narration: [service.machine?.name, service.note].filter(Boolean).join(' · ') });
+  const { error } = await db.rpc('app_pay_service', { p_service: id, p_entry: entry });
+  if (error) unpaidFail(error.message);
+  revalidatePath('/', 'layout');
+  redirect('/bankbook/unpaid');
 }
