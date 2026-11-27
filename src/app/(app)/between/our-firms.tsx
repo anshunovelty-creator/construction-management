@@ -17,12 +17,12 @@ export async function OurFirms({ db, firm }: { db: Awaited<ReturnType<typeof cre
   ]);
   const others = firms.filter((f) => f.id !== firm.id);
   if (others.length === 0) return null;
-  // The same firm kept as a party too would be counted twice.
+  // A firm may also be kept as a party when it bills us; the note asks to enter each thing in one place only.
   const twice = (kept ?? []).filter((p) => firms.some((f) => sameName(f.name, p.name)));
   return (
     <section className="our-firms">
       {twice.map((p) => (
-        <p key={p.id} className="banner bad">
+        <p key={p.id} className="banner">
           <span>{t('between.twice', { name: p.name })} <Link href={`/masters/parties/${p.id}`} className="underline">{t('between.openParty')}</Link></span>
         </p>
       ))}

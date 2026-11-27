@@ -357,8 +357,7 @@
     "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
     "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
     "maybe_repeat": "This looks like one already saved",
-    "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks.",
-    "is_firm": "This is one of our own firms. It is already on the Pay and Receive lists."
+    "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks."
   },
   "common": {
     "unsaved": "What you typed is not saved yet. Leave without saving?",
@@ -1906,7 +1905,7 @@
   "between": {
     "settled": "Nothing due either way",
     "owes": "{debtor} owes {creditor}",
-    "twice": "{name} is one of our firms and is also kept as a party or client. Type what is owed as the opening balance of its account here, then switch that party off, or it is counted twice.",
+    "twice": "{name} is one of our firms and is also kept as a party or client. That is fine when it bills us or we bill it. Put each bill or payment in one place only: on its party or client page, or in the account between firms, not both.",
     "openParty": "Open it in Setup",
     "pairTitle": "Account with {firm}",
     "nowTitle": "Now:",

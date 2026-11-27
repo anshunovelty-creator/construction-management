@@ -111,6 +111,8 @@
   button[type='submit']:not(.btn):not(.nav-link):hover { background: var(--accent-hover); border-color: var(--accent-hover); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  /* A line between columns, like Excel, so each column reads on its own (owner decision 2026-10-28, again 2026-11-27). */
+  :is(th, td) + :is(th, td) { border-left: 1px solid var(--rule); }
   th { font-weight: 500; font-size: 12.5px; color: var(--muted); }
   thead th { background: var(--head); border-bottom-color: var(--rule); white-space: nowrap; vertical-align: bottom; }
   tbody tr { transition: background-color 0.12s; }
@@ -1455,6 +1457,7 @@ table.statement .pill { margin-left: 6px; }
   table[data-fit='small'] { zoom: var(--fit); }
   table[data-fit='cards'], table[data-fit='cards'] > :is(tbody, tfoot) { display: block; width: 100% !important; min-width: 0 !important; }
   table[data-fit='cards'] > thead { display: none; }
+  table[data-fit='cards'] > * > tr > :is(td, th) + :is(td, th) { border-left: 0; }
   table[data-fit='cards'] > * > tr {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(min(7.25rem, 100%), 1fr)); gap: 8px 12px; align-items: start;
     padding: 12px 14px; border-bottom: 1px solid var(--rule);
