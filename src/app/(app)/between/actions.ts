@@ -6,7 +6,7 @@ import type { FormState } from '@/components/form';
 import type { BetweenKind } from '@/components/firm-popup';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { firmSupply, firmTransfer, openingFirms, paidForFirm } from '@/lib/ledger/posting/firms';
-import type { EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
+import { COST_HEADS, type EntryDraft, type MoneyAccountRef } from '@/lib/ledger/types';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
@@ -41,11 +41,16 @@ export async function postBetween(firmId: string, counterId: string, entryId: st
   const note = { reference: cells.reference ?? '', narration: cells.narration ?? '' };
   let draft: EntryDraft;
   try {
-    if (kind === 'rent') {
+    const bp = (name: string) => (/^\d{1,5}$/.test(cells[name] ?? '') ? Number(cells[name]) : 0);
+    if (kind === 'theyBilled' || kind === 'weBilled') {
+      const head = COST_HEADS.find((h) => h === cells.head);
+      if (!head || !cells.site) return refuse('required');
+      const [supplierId, takerId] = kind === 'weBilled' ? [firmId, counterId] : [counterId, firmId];
+      draft = firmSupply({ id: entryId, kind: 'firm_bill', costHead: head, supplierId, takerId, siteId: cells.site, amountPaise, gstBp: bp('gst'), tdsBp: bp('tds'), date, ...note });
+    } else if (kind === 'rent') {
       const firms = await loadFirms(db);
       const supplier = firms.find((f) => f.runs_labour && (f.id === firmId || f.id === counterId));
       if (!supplier || !cells.site) return refuse('not_allowed');
-      const bp = (name: string) => (/^\d{1,5}$/.test(cells[name] ?? '') ? Number(cells[name]) : 0);
       draft = firmSupply({
         id: entryId, kind: 'machine_rent', supplierId: supplier.id, takerId: supplier.id === firmId ? counterId : firmId, siteId: cells.site,
         amountPaise, gstBp: bp('gst'), tdsBp: bp('tds'), date, reference: note.reference,

@@ -8,11 +8,14 @@ import { Icon } from '@/components/icons';
 import { AmountBox, DateBox } from '@/components/money-boxes';
 import type { PopupAccount, PopupPerson } from '@/components/money-popup';
 import { SearchSelect } from '@/components/search-select';
+import { COST_HEADS } from '@/lib/ledger/types';
 import type { Choice } from '@/lib/masters/registry';
 import { showPaise } from '@/lib/money';
 
 type Saved = { id: string; serial: string };
-export type BetweenKind = 'gave' | 'took' | 'wePaid' | 'theyPaid' | 'rent';
+export type BetweenKind = 'gave' | 'took' | 'wePaid' | 'theyPaid' | 'theyBilled' | 'weBilled' | 'rent';
+/** What a bill between our firms may be for: a site's cost heads. */
+const HEADS = COST_HEADS.filter((h) => h !== 'staff');
 interface Side { id: string; name: string; accounts: PopupAccount[]; parties: PopupPerson[] }
 
 /** One movement between the working firm and another of our firms, from their running account's page. */
@@ -31,8 +34,8 @@ export function FirmPopup({ us, them, sites, gstRates, tdsRates, machines, rentT
   const t = useTranslations();
   const dialog = useRef<HTMLDialogElement>(null);
   const entryId = useRef('');
-  const kinds: BetweenKind[] = ['gave', 'took', 'wePaid', 'theyPaid', ...(rentTo ? ['rent' as const] : [])];
-  const [kind, setKind] = useState<BetweenKind>('gave');
+  const kinds: BetweenKind[] = ['theyBilled', 'weBilled', 'gave', 'took', 'wePaid', 'theyPaid', ...(rentTo ? ['rent' as const] : [])];
+  const [kind, setKind] = useState<BetweenKind>('theyBilled');
   const [text, setText] = useState('');
   const [date, setDate] = useState(today);
   const [cells, setCells] = useState<Record<string, string>>({});
@@ -44,7 +47,8 @@ export function FirmPopup({ us, them, sites, gstRates, tdsRates, machines, rentT
   const payer = kind === 'gave' || kind === 'wePaid' ? us : them;
   const other = payer === us ? them : us;
   const transfer = kind === 'gave' || kind === 'took';
-  const ready = paise > 0 && (kind === 'rent' ? Boolean(cells.site) : transfer ? Boolean(cells.from && cells.to) : Boolean(cells.from && cells.party));
+  const billed = kind === 'theyBilled' || kind === 'weBilled';
+  const ready = paise > 0 && (billed ? Boolean(cells.site && cells.head) : kind === 'rent' ? Boolean(cells.site) : transfer ? Boolean(cells.from && cells.to) : Boolean(cells.from && cells.party));
 
   const pickKind = (k: BetweenKind) => {
     setKind(k);
@@ -128,7 +132,18 @@ export function FirmPopup({ us, them, sites, gstRates, tdsRates, machines, rentT
                 ))}
               </div>
             </fieldset>
-            {kind === 'rent' ? (
+            {billed ? (
+              <>
+                <div className="rcv-notes">
+                  {select('site', t('between.siteOf', { firm: kind === 'weBilled' ? them.name : us.name }), sites, true)}
+                  {select('head', t('between.billFor'), HEADS.map((h) => ({ value: h, label: t(`options.cost_head.${h}`) })), true)}
+                </div>
+                <div className="rcv-notes">
+                  {select('gst', t('fields.gst_rate'), gstRates, false, t('between.none'))}
+                  {select('tds', t('fields.tds_rate'), tdsRates, false, t('between.none'))}
+                </div>
+              </>
+            ) : kind === 'rent' ? (
               <>
                 <div className="rcv-notes">
                   {select('site', t('between.siteOf', { firm: rentTo === us.id ? us.name : them.name }), sites, true)}

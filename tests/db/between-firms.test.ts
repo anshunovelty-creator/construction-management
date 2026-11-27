@@ -86,6 +86,16 @@ describe('the running account of two firms', () => {
     ]);
   });
 
+  it('takes a material bill between firms in both books, with its GST and TDS records', async () => {
+    await post(firmSupply({ kind: 'firm_bill', costHead: 'material', supplierId: ansari, takerId: seed.jayraj, siteId: seed.svgSite, amountPaise: 1_00_000_00, gstBp: 1800, tdsBp: 100, date: '2026-10-31', reference: '13' }));
+    expect(await due(ansari, seed.jayraj)).toBe(1_17_000_00);
+    expect(await balanceOf(db, 'site_cost', { firm_id: seed.jayraj, site_id: seed.svgSite })).toBe(1_00_000_00);
+    expect(await balanceOf(db, 'firm_income', { firm_id: ansari })).toBe(-1_00_000_00);
+    expect((await db.query('select firm_id from gst_rows')).rows).toHaveLength(2);
+    expect((await db.query('select firm_id from tds_rows')).rows).toHaveLength(2);
+    await everyFirmBalances();
+  });
+
   it('lets one firm pay another’s party: that party is owed less, and the firm owes the one that paid', async () => {
     await post(vendorBill({ firmId: seed.ab, vendorId: seed.ansari, siteId: seed.svgSite, billDate: '2026-11-01', billNo: 'C-1', items: [{ costHead: 'material', amountPaise: 2_00_000_00 }] }));
     await post(paidForFirm({ from: seed.jayrajBank, billFirmId: seed.ab, vendorId: seed.ansari, amountPaise: 50_000_00, date: '2026-11-03' }));

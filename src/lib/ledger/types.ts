@@ -78,6 +78,7 @@ export type PostableEntryType =
   | 'firm_transfer'
   | 'labour_supplied'
   | 'machine_rent'
+  | 'firm_bill'
   | 'wages_paid'
   | 'other_in'
   | 'other_out';

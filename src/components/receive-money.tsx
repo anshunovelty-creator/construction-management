@@ -98,6 +98,8 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
   const [date, setDate] = useState(today);
   const [reference, setReference] = useState('');
   const [narration, setNarration] = useState('');
+  // What the bank keeps on top when it sends a party's money (owner decision 2026-11-27).
+  const [charges, setCharges] = useState('');
   const [failed, setFailed] = useState<string | null>(null);
   // Asked before saving: it looks like one already there, or the amount looks wrong. Saving anyway answers it.
   // The answer is only for what was asked: anything changed is asked about again.
@@ -119,6 +121,7 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     setText('');
     setReference('');
     setNarration('');
+    setCharges('');
     setFailed(null);
     setSavedSerial(null);
   };
@@ -127,7 +130,7 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     dialog.current?.showModal();
     amountBox.current?.focus();
   };
-  const asked = `${paise}|${account}`;
+  const asked = `${paise}|${account}|${charges}`;
   const ask = asking?.of === asked ? asking.about : null;
   const submit = (e: React.SyntheticEvent, answered: 'repeat' | 'doubt' | null = null) => {
     e.preventDefault();
@@ -149,7 +152,7 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     const id = rowId.current;
     startSaving(async () => {
       try {
-        const result = (await save([{ id, cells: { entry_date: date, amount: text, [side === 'client' ? 'to_account_id' : 'from_account_id']: account, reference, narration, ...(other && { other_account_id: otherAccount }), ...(anyway ? {} : { check: '1' }) } }]))[id]!;
+        const result = (await save([{ id, cells: { entry_date: date, amount: text, [side === 'client' ? 'to_account_id' : 'from_account_id']: account, reference, narration, ...(chargeable && { charges }), ...(other && { other_account_id: otherAccount }), ...(anyway ? {} : { check: '1' }) } }]))[id]!;
         startTransition(() => {
           if ('id' in result) setSavedSerial(result.serial);
           else {
@@ -171,7 +174,9 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     </button>
   );
   const chosen = accounts.find((a) => a.value === account);
-  const after = chosen?.balance === undefined ? 0 : chosen.balance + (side === 'client' ? paise : -paise);
+  const chargeable = side === 'party' && !other && chosen?.kind === 'bank';
+  const chargePaise = chargeable ? toPaise(charges) : 0;
+  const after = chosen?.balance === undefined ? 0 : chosen.balance + (side === 'client' ? paise : -paise - chargePaise);
 
   const button = !listed && (
     <button type="button" className="btn big" aria-haspopup="dialog" onClick={open}>
@@ -265,6 +270,15 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
                 )}
               </fieldset>
 
+              {chargeable && (
+                <div className="field">
+                  <label>
+                    <span>{t('fields.charges')} <span className="optional">{t('common.optional')}</span></span>
+                    <input type="text" inputMode="decimal" autoComplete="off" value={charges} onChange={(e) => setCharges(e.target.value)} />
+                  </label>
+                  {chargePaise > 0 && paise > 0 && <p className="hint">{t('party.withCharges', { amount: showPaise(paise), charges: showPaise(chargePaise), total: showPaise(paise + chargePaise) })}</p>}
+                </div>
+              )}
               {other && (
                 <div className="field">
                   <label>{t(side === 'client' ? 'between.outOf' : 'between.into', { firm: other.name })}

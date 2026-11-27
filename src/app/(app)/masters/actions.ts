@@ -28,6 +28,12 @@ export async function saveMaster(slug: string, id: string | null, _state: FormSt
 
   // A new account's opening balance is checked before the account is added, so a wrong one leaves nothing behind.
   let opening: { amountPaise: number; asOf: string } | null = null;
+  // One of our own firms is kept once, as a firm: its bills and payments go in the account between firms (owner decision 2026-11-27).
+  if (slug === 'parties' && !id) {
+    const { data: firms } = await (await createClient()).from('firms').select('name');
+    if ((firms ?? []).some((f) => sameName(f.name as string, String(parsed.values.name ?? '')))) return { errors: { name: 'is_firm' }, values };
+  }
+
   if (slug === 'money-accounts' && !id) {
     const extra = parseFields(OPENING_FIELDS, data);
     if (!extra.ok) return { errors: extra.errors, values };

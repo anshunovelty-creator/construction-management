@@ -46,6 +46,15 @@ describe('vendorPayment', () => {
     expect(sumOf(draft)).toBe(0);
   });
 
+  it('takes bank charges out of the bank as a firm cost: the party is paid the amount only', () => {
+    const draft = vendorPayment({ billFirmId: JI, vendorId: VENDOR, from: JI_BANK, amountPaise: 50_000_00, chargesPaise: 10_00, paymentDate: '2026-10-22' });
+    expect(draft.lines).toEqual([
+      { account: 'vendor_payable', amountPaise: 50_000_00, firmId: JI, partyId: VENDOR },
+      { account: 'money', amountPaise: -50_010_00, firmId: JI, moneyAccountId: JI_BANK.id },
+      { account: 'firm_cost', amountPaise: 10_00, firmId: JI, costHead: 'bank_charges' },
+    ]);
+  });
+
   it('refuses a payment from another firm’s account: firms are independent', () => {
     expect(() => vendorPayment({
       billFirmId: AB, vendorId: VENDOR, from: JI_BANK, amountPaise: 20_000_000, paymentDate: '2026-10-22', reference: 'UTR9',

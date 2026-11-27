@@ -37,7 +37,8 @@
     "machines": "AJAX machines",
     "bankbook": "Bankbook",
     "close": "Close a month",
-    "borrowed": "Borrowed money"
+    "borrowed": "Borrowed money",
+    "personal": "Personal expenses"
   },
   "login": {
     "title": "Sign in",
@@ -118,6 +119,7 @@
     "mixes": "Combination works"
   },
   "fields": {
+    "charges": "Bank charges",
     "code": "Short code (2–4 capital letters)",
     "name": "Name",
     "location": "Location",
@@ -357,7 +359,8 @@
     "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
     "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
     "maybe_repeat": "This looks like one already saved",
-    "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks."
+    "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks.",
+    "is_firm": "This is one of our own firms. Its bills and payments go in its account between firms: open it from Parties or Clients, under Our other firms."
   },
   "common": {
     "unsaved": "What you typed is not saved yet. Leave without saving?",
@@ -704,6 +707,10 @@
       "title": "Money between our firms",
       "why": "It is still our money, in another firm’s account. The firm that got it owes it, or has now been paid what it was owed."
     },
+    "firm_bill": {
+      "title": "Bill between our firms",
+      "why": "One of our firms billed another. It is that site’s cost and the biller’s income, with GST and TDS in both books, and no money moves until it is paid."
+    },
     "labour_supplied": {
       "title": "Labour supplied",
       "why": "One of our firms gave labour to another’s site. It is that site’s cost and the supplier’s income, and no money moves until it is taken or paid."
@@ -738,7 +745,20 @@
     "empty": "Fill in at least one row first.",
     "fromNew": "Many entries at once? Type them in a sheet"
   },
+  "personal": {
+    "title": "Personal expenses",
+    "lede": "Every rupee the owner took out of a bank or cash for personal use, with what it was spent on. Pick an account or a month to see where the money went.",
+    "total": "Total spent",
+    "totalFrom": "Spent from {account}",
+    "allAccounts": "All accounts",
+    "account": "Paid from",
+    "spentOn": "Spent on",
+    "amount": "Amount",
+    "none": "No personal expenses here.",
+    "noNote": "Not written down"
+  },
   "party": {
+    "withCharges": "{amount} to the party + {charges} bank charges = {total} out of the bank",
     "indexTitle": "{firm} – Parties",
     "indexLede": "Red is what we still have to pay. Green is what we paid extra and will get back.",
     "sr": "Sr.",
@@ -1905,7 +1925,7 @@
   "between": {
     "settled": "Nothing due either way",
     "owes": "{debtor} owes {creditor}",
-    "twice": "{name} is one of our firms and is also kept as a party or client. That is fine when it bills us or we bill it. Put each bill or payment in one place only: on its party or client page, or in the account between firms, not both.",
+    "twice": "{name} is one of our firms and is also kept as a party or client. Put its bills and payments in its account between firms (Add, then sent a bill), so they land in both books, and switch this party off.",
     "openParty": "Open it in Setup",
     "pairTitle": "Account with {firm}",
     "nowTitle": "Now:",
@@ -1918,8 +1938,11 @@
       "took": "{them} gave money to {us}",
       "wePaid": "{us} paid {them}’s party",
       "theyPaid": "{them} paid {us}’s party",
-      "rent": "Machine rent"
+      "rent": "Machine rent",
+      "theyBilled": "{them} sent {us} a bill",
+      "weBilled": "{us} sent {them} a bill"
     },
+    "billFor": "Bill for",
     "outOf": "Out of {firm}’s bank or cash",
     "into": "Into {firm}’s bank or cash",
     "partyOf": "{firm}’s party",

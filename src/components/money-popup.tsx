@@ -97,7 +97,8 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   const withWhom = picked?.lender ? lenders : (picked?.party === 'vendor') === (mode === 'out') ? people : others;
   const named = Boolean(picked?.party || picked?.lender);
   const lender = picked?.lender ? lenders.find((p) => p.id === who) : undefined;
-  const ready = paise > 0 && (moves || Boolean(acct)) && (why !== 'other' || Boolean(picked && (!named || who) && (!picked.note || narration.trim()))) && (why === 'move' ? Boolean(from && to && from !== to) : why === person ? Boolean(who) : why !== 'unknown' || narration.trim() !== '');
+  // A personal expense says what it was spent on, so the Personal expenses page can show where the money went.
+  const ready = paise > 0 && (moves || Boolean(acct)) && (!personal || narration.trim() !== '') && (why !== 'other' || Boolean(picked && (!named || who) && (!picked.note || narration.trim()))) && (why === 'move' ? Boolean(from && to && from !== to) : why === person ? Boolean(who) : why !== 'unknown' || narration.trim() !== '');
 
   const startNext = () => {
     entryId.current = '';
@@ -278,8 +279,8 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
                 <input type="text" autoComplete="off" value={reference} onChange={(e) => setReference(e.target.value)} />
               </label>
               <label>
-                <span>{why === 'unknown' ? t('bankbook.popup.bankSays') : <>{t('party.remarks')} <span className="optional">{t('common.optional')}</span></>}</span>
-                <input type="text" autoComplete="off" required={why === 'unknown' || Boolean(why === 'other' && picked?.note)} value={narration} onChange={(e) => setNarration(e.target.value)} />
+                <span>{why === 'unknown' ? t('bankbook.popup.bankSays') : personal ? t('personal.spentOn') : <>{t('party.remarks')} <span className="optional">{t('common.optional')}</span></>}</span>
+                <input type="text" autoComplete="off" required={personal || why === 'unknown' || Boolean(why === 'other' && picked?.note)} value={narration} onChange={(e) => setNarration(e.target.value)} />
               </label>
             </div>
             {failed && <p role="alert" className="error form-error">{failed}</p>}

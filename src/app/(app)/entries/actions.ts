@@ -89,7 +89,8 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
       checkMethod(s('payment_method'), from);
       return vendorPayment({
         billFirmId: firmId!, vendorId: s('vendor_id'), from,
-        amountPaise: n('amount'), paymentDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
+        amountPaise: n('amount'), chargesPaise: (v.charges as number | null | undefined) ?? 0,
+        paymentDate: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
     }
     case 'client-bill': {

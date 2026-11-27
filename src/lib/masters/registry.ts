@@ -250,7 +250,7 @@ export const ENTRY_FORMS = {
     roles: ['owner', 'office'],
     fields: [
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
-      payMethod, from, amount, date, reference, note,
+      payMethod, from, amount, { name: 'charges', kind: 'rupees' }, date, reference, note,
     ],
   },
   'client-bill': {

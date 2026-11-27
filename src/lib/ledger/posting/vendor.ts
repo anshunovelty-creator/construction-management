@@ -89,6 +89,8 @@ export interface VendorPaymentInput {
   vendorId: string;
   from: MoneyAccountRef;
   amountPaise: Paise;
+  /** What the bank kept on top for sending it (owner decision 2026-11-27): out of the account, a firm cost, not the party's. */
+  chargesPaise?: Paise;
   paymentDate: string;
   /** Cheque number or UTR, when there is one (optional, owner decision 2026-10-31). */
   reference?: string;
@@ -107,6 +109,8 @@ export function vendorPayment(input: VendorPaymentInput): EntryDraft {
     throw new Error('a payment must come from this firm’s own bank or cash account');
   }
   const reference = (input.reference ?? '').trim();
+  const charges = input.chargesPaise ?? 0;
+  if (charges < 0) throw new Error('bank charges cannot be below zero');
   const draft: EntryDraft = {
     id: input.id ?? crypto.randomUUID(),
     entryType: 'vendor_payment',
@@ -117,7 +121,8 @@ export function vendorPayment(input: VendorPaymentInput): EntryDraft {
     narration: input.narration ?? '',
     lines: [
       { account: 'vendor_payable', amountPaise: input.amountPaise, firmId: input.billFirmId, partyId: input.vendorId },
-      { account: 'money', amountPaise: -input.amountPaise, firmId: input.from.firmId, moneyAccountId: input.from.id },
+      { account: 'money', amountPaise: -input.amountPaise - charges, firmId: input.from.firmId, moneyAccountId: input.from.id },
+      ...(charges > 0 ? [{ account: 'firm_cost' as const, amountPaise: charges, firmId: input.from.firmId, costHead: 'bank_charges' as const }] : []),
     ],
   };
   assertBalanced(draft);

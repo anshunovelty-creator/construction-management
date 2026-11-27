@@ -1,7 +1,7 @@
 import { percentOf, assertPaise, type Paise } from '@/lib/money';
 import { assertBalanced, assertDate, assertPositive } from '../balance';
 import { interFirmLines } from '../inter-firm';
-import type { EntryDraft, MoneyAccountRef } from '../types';
+import type { CostHead, EntryDraft, MoneyAccountRef } from '../types';
 
 /** Every entry here is one entry in two firms' books: each firm's own lines add up to zero, and the two dues mirror. */
 
@@ -43,7 +43,9 @@ export function firmTransfer(input: FirmTransferInput): EntryDraft {
 
 export interface FirmSupplyInput {
   id?: string;
-  kind: 'labour_supplied' | 'machine_rent';
+  /** A bill (owner decision 2026-11-27) names its cost head; labour and machine rent are their own. */
+  kind: 'labour_supplied' | 'machine_rent' | 'firm_bill';
+  costHead?: CostHead;
   /** The firm that gave the labour or the machine, and the firm whose site it was at. */
   supplierId: string;
   takerId: string;
@@ -67,7 +69,8 @@ export function firmSupply(input: FirmSupplyInput): EntryDraft {
   assertPositive(input.amountPaise, 'amount');
   twoFirms(input.supplierId, input.takerId);
   const { supplierId, takerId, amountPaise } = input;
-  const costHead = input.kind === 'labour_supplied' ? 'labour' as const : 'machine_hire' as const;
+  const costHead = input.kind === 'firm_bill' ? input.costHead : input.kind === 'labour_supplied' ? 'labour' as const : 'machine_hire' as const;
+  if (!costHead) throw new Error('a bill between firms needs its cost head');
   const gst = percentOf(amountPaise, input.gstBp ?? 0);
   const tds = percentOf(amountPaise, input.tdsBp ?? 0);
   const draft: EntryDraft = {
