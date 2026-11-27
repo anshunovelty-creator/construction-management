@@ -36,7 +36,8 @@
     "labour": "Labour payment",
     "machines": "AJAX machines",
     "bankbook": "Bankbook",
-    "close": "Close a month"
+    "close": "Close a month",
+    "borrowed": "Borrowed money"
   },
   "login": {
     "title": "Sign in",
@@ -193,12 +194,14 @@
       "client": "Client",
       "worker": "Worker",
       "staff": "Staff",
-      "other": "Other"
+      "other": "Other",
+      "lender": "Lender"
     },
     "party_main": {
       "vendor": "Party",
       "client": "Client",
-      "other": "Other"
+      "other": "Other",
+      "lender": "Lender (we borrow money from)"
     },
     "unit_measure": {
       "quantity": "Quantity (Nos, Bags, Kg…)",
@@ -269,7 +272,7 @@
       "retention_back": "Retention released by a client",
       "deposit_back_client": "Security deposit released by a client",
       "party_back": "Cheque returned / money back from a party",
-      "loan_in": "Loan taken",
+      "loan_in": "Money borrowed",
       "deposit_back": "Deposit we gave, returned",
       "gst_refund": "GST refund",
       "tds_refund": "TDS refund",
@@ -280,7 +283,7 @@
       "tds_paid": "TDS paid",
       "pf_paid": "PF paid",
       "interest": "Interest paid",
-      "loan_out": "Loan paid back",
+      "loan_out": "Borrowed money returned",
       "deposit_given": "Deposit given (tender, rent…)",
       "other_cost": "Other cost",
       "client_back": "Cheque returned / money back to a client"
@@ -394,7 +397,7 @@
     "machineRent": "{firm} · machine rent earned",
     "otherIncome": "{firm} · other income",
     "pfPaid": "{firm} · PF paid",
-    "loan": "{firm} · loans to pay back",
+    "loan": "{firm} · borrowed money to return",
     "depositGiven": "{firm} · deposits given",
     "gstPaid": "{firm} · GST paid",
     "tdsPaid": "{firm} · TDS paid",
@@ -687,8 +690,8 @@
       "why": "Every rupee has to come from somewhere. Here it comes from the owner, so it is recorded as the owner’s money in the business."
     },
     "owner_drawing": {
-      "title": "Owner took money out",
-      "why": "Recorded as the owner’s own money going out, so it never looks like a site cost."
+      "title": "Personal expense",
+      "why": "Money the owner took out for personal use. It is not a site or firm cost, so profits stay true."
     },
     "reversal": {
       "title": "Cancelling entry",
@@ -920,7 +923,9 @@
     "otherWeOwe": "Other firm: {us} will owe {them}",
     "otherTheyOwe": "Other firm: {them} will owe {us}",
     "common": "Common",
-    "commonHint": "Owner or supervisor cash: belongs to no firm."
+    "commonHint": "Owner or supervisor cash: belongs to no firm.",
+    "belongsTo": "Labour payment and AJAX machines belong to {firm}. Switch to {firm} at the top right to see them.",
+    "noneRuns": "No firm runs Labour payment and AJAX machines yet. Tick it on one firm in Setup → Firms."
   },
   "items": {
     "title": "Items on the bill",
@@ -1695,7 +1700,7 @@
   },
   "machines": {
     "title": "AJAX machines",
-    "lede": "The machines out on rent, and a record of each service. Add a service when it is done; the next one is worked out from the running hours.",
+    "lede": "The machines out on rent, a record of each service, and their Insurance, PUC and Fitness. Add a service when it is done; the next one is worked out from the running hours.",
     "add": "Add a machine",
     "count": "Machines",
     "totalCost": "Total service cost",
@@ -1729,6 +1734,25 @@
     "hours": "Running hours",
     "cost": "Cost (₹)",
     "note": "Note",
+    "papers": {
+      "title": "Insurance, PUC and Fitness",
+      "add": "Add a paper",
+      "paper": "Paper",
+      "number": "Number",
+      "numberHint": "Policy or certificate number",
+      "company": "Company",
+      "companyHint": "The insurance company, if any",
+      "from": "Valid from",
+      "until": "Valid until",
+      "paidOn": "Date paid",
+      "cost": "Cost (₹)",
+      "none": "No insurance, PUC or fitness recorded yet.",
+      "missing": "Not recorded",
+      "ok": "Valid till {date}",
+      "soon": "Runs out {date} ({days, plural, =0 {today} one {in # day} other {in # days}})",
+      "out": "Ran out {date}",
+      "alert": "{count, plural, one {# paper has run out or runs out within 30 days.} other {# papers have run out or run out within 30 days.}}"
+    },
     "historyTitle": "Services so far",
     "noServices": "No service recorded yet.",
     "errors": {
@@ -1743,6 +1767,8 @@
       "not_deleted": "That could not be deleted. Nothing was changed.",
       "account": "Choose an account of the firm that owns the machines.",
       "no_cash": "There is not enough cash in that account.",
+      "paper": "Please choose Insurance, PUC or Fitness.",
+      "valid": "Please give both dates it is valid. Valid until cannot be before Valid from.",
       "has_paid": "This machine has services paid from an account, so it cannot be deleted. Untick In use instead."
     },
     "delete": {
@@ -1753,8 +1779,6 @@
   "bankbook": {
     "title": "Bankbook of {firm}",
     "lede": "What this firm’s banks and cash have now. Open one to see each rupee in and out.",
-    "allFirms": "All firms",
-    "show": "Show",
     "noFirm": "Shared cash from before (no firm)",
     "empty": "No bank or cash account yet.",
     "held": "Total money",
@@ -1788,16 +1812,17 @@
     "buttons": {
       "in": "Money in",
       "out": "Money out",
-      "move": "Move money",
+      "move": "Bank to bank",
       "opening": "Opening balance",
       "sortOut": "Sort it out",
       "withdraw": "Withdraw cash",
-      "deposit": "Deposit cash"
+      "deposit": "Deposit cash",
+      "personal": "Personal expense"
     },
     "popup": {
       "in": "Money in: {account}",
       "out": "Money out: {account}",
-      "move": "Move money",
+      "move": "Bank to bank",
       "sortOut": "Sort it out",
       "pick": "Choose",
       "why": {
@@ -1813,17 +1838,18 @@
       },
       "outWhy": {
         "party": "A party",
-        "owner": "The owner",
+        "owner": "Personal expense",
         "unknown": "Not yet known",
         "move": "Our other account",
         "other": "Something else"
       },
       "moveWhy": {
-        "move": "Move money"
+        "move": "Bank to bank"
       },
       "who": {
         "in": "Client",
-        "out": "Party"
+        "out": "Party",
+        "lender": "Who lent it"
       },
       "left": {
         "in": "Remaining to receive: {amount}",
@@ -1931,8 +1957,7 @@
     "what": "What",
     "forFirm": "Paid another firm’s party",
     "mismatch": "This does not match the accounts, which hold {amount}. Do not rely on it, and tell us.",
-    "note": "Moves between this firm’s own accounts are left out: they are not money in or out.",
-    "noteAll": "Money that only moved between our accounts or our firms is left out."
+    "note": "Moves between this firm’s own accounts are left out: they are not money in or out."
   },
   "supplied": {
     "refused": "These are not in the books for {month}. The others are; put these right and confirm again.",
@@ -2012,7 +2037,6 @@
     "paid": "Paid",
     "owedShort": "GST on our bills",
     "claimShort": "GST to claim",
-    "notNetted": "What is to pay and the credit left over are never set against each other across firms: one firm’s credit cannot pay another’s GST. GST between our own firms is counted, as it is really paid.",
     "tdsKept": "TDS we kept",
     "tdsLeft": "Left to deposit",
     "tdsCut": "Cut from us",
@@ -2201,7 +2225,8 @@
       "costs": "Costs not paid yet",
       "service": "Machine services not paid yet",
       "allSites": "all sites",
-      "allFirms": "all firms together"
+      "allFirms": "all firms together",
+      "borrowed": "Borrowed money"
     }
   },
   "cash": {
@@ -2214,6 +2239,27 @@
     "withdrawn": "Cash withdrawn",
     "deposited": "Cash deposited",
     "noCash": "This firm has no Cash yet. Add it first.",
-    "noBank": "This firm has no bank account yet. Add a bank first."
+    "noBank": "This firm has no bank account yet. Add a bank first.",
+    "twoBanks": "Bank to bank needs two banks of this firm. Add another bank first."
+  },
+  "borrowed": {
+    "title": "Borrowed money",
+    "lede": "Money a friend or helper lent this firm, and what we have given back. Each person is kept in Setup → Parties as a Lender.",
+    "addPerson": "Add a person",
+    "borrow": "Money borrowed",
+    "give": "Return money",
+    "person": "Person",
+    "borrowed": "Borrowed",
+    "returned": "Returned",
+    "left": "Left to return",
+    "extra": "Returned extra",
+    "none": "Nothing borrowed yet.",
+    "noName": "Older loans (no name)",
+    "noAccount": "First add a bank or cash account for this firm.",
+    "what": "What",
+    "back": "Borrowed money",
+    "inMonth": "Borrowed",
+    "outMonth": "Returned",
+    "leftHint": "Left to return: {amount}"
   }
 }

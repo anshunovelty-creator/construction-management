@@ -64,6 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <NavLink href="/" section="/party"><Icon name="parties" /><span>{t('nav.parties')}</span></NavLink>
               <NavLink href="/clients" section="/client"><Icon name="clients" /><span>{t('nav.clients')}</span></NavLink>
               <NavLink href="/bankbook" section="/bankbook"><Icon name="bank" /><span>{t('nav.bankbook')}</span></NavLink>
+              <NavLink href="/borrowed" section="/borrowed"><Icon name="receive" /><span>{t('nav.borrowed')}</span></NavLink>
               <NavLink href="/entries" exact><Icon name="daybook" /><span>{t('nav.daybook')}</span></NavLink>
               <NavLink href="/ledger" section="/ledger"><Icon name="invoice" /><span>{t('nav.ledger')}</span></NavLink>
               <NavLink href="/tds" section="/tds"><Icon name="tds" /><span>{t('nav.tds')}</span></NavLink>
@@ -77,11 +78,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <NavLink href="/rentals" section="/rentals"><Icon name="rent" /><span>{t('nav.rentals')}</span></NavLink>
               <NavLink href="/salary" section="/salary"><Icon name="payOut" /><span>{t('nav.salary')}</span></NavLink>
             </nav>
-            <nav aria-label={t('nav.groupOther')} className="nav nav-group">
+            {/* Labour payment and the AJAX machines belong to one firm, so they show only while working in it. */}
+            {working?.firm.runs_labour && <nav aria-label={t('nav.groupOther')} className="nav nav-group">
               <p className="nav-heading">{t('nav.groupOther')}</p>
               <NavLink href="/labour" section="/labour"><Icon name="people" /><span>{t('nav.labour')}</span></NavLink>
               <NavLink href="/machines" section="/machines"><Icon name="tool" /><span>{t('nav.machines')}</span></NavLink>
-            </nav>
+            </nav>}
             {owner && (
               <nav aria-label={t('nav.groupAdmin')} className="nav nav-group">
                 <p className="nav-heading">{t('nav.groupAdmin')}</p>

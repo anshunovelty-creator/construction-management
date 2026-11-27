@@ -7,6 +7,7 @@ import { showPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { MoneyPopup } from '@/components/money-popup';
 import { loadAccounts, loadPeople } from '../../bankbook/data';
+import { loadLenders, pickable } from '../../borrowed/data';
 import { cancelEntry, sortOut } from '../actions';
 import { loadNames, showDate, showMoment, todayInIndia } from '../data';
 import { BackLink } from '@/components/back-link';
@@ -76,7 +77,7 @@ export default async function EntryPage({
   const office = profile.role === 'owner' || profile.role === 'office';
   const toSort = office && canCancel && entry.entry_type === 'not_yet_known' && entry.firm_id && money?.money_account_id
     ? { firm: entry.firm_id, account: money.money_account_id, amount: Number(money.amount_paise) } : null;
-  const [accounts, people] = toSort ? await Promise.all([loadAccounts(db), loadPeople(db, toSort.firm)]) : [[], null];
+  const [accounts, people, lenders] = toSort ? await Promise.all([loadAccounts(db), loadPeople(db, toSort.firm), loadLenders(db, toSort.firm)]) : [[], null, []];
 
   return (
     <>
@@ -169,7 +170,7 @@ export default async function EntryPage({
           <div className="quick-buttons sort-out">
             <MoneyPopup mode={toSort.amount > 0 ? 'in' : 'out'} firm={{ id: toSort.firm, name: names.firms.get(toSort.firm) ?? '' }}
               account={toSort.account} accounts={accounts.filter((a) => a.firm_id === toSort.firm && a.is_active)}
-              people={toSort.amount > 0 ? people!.in : people!.out} others={toSort.amount > 0 ? people!.out : people!.in} owner={profile.role === 'owner'} today={todayInIndia()}
+              people={toSort.amount > 0 ? people!.in : people!.out} others={toSort.amount > 0 ? people!.out : people!.in} lenders={pickable(lenders)} owner={profile.role === 'owner'} today={todayInIndia()}
               fixed={{ paise: Math.abs(toSort.amount), date: entry.entry_date, note: entry.narration }} button={t('bankbook.buttons.sortOut')}
               save={sortOut.bind(null, id)} />
           </div>

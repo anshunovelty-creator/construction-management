@@ -14,21 +14,16 @@ import { loadAccounts, type Account, type BankMatch, type MoneyRow } from './dat
 const KINDS = ['bank', 'owner_cash', 'supervisor_cash'] as const;
 const held = (accounts: Account[]) => accounts.reduce((sum, a) => sum + a.balance, 0);
 
-/** Every bank and cash account of the working firm with what it holds; the owner can see all firms together (?firms=all). */
-export default async function BankbooksPage({ searchParams }: { searchParams: Promise<{ firms?: string }> }) {
+/** Every bank and cash account of the working firm with what it holds. Each firm stands alone: no all-firms view (owner decision 2026-11-26). */
+export default async function BankbooksPage() {
   const profile = await requireProfile('owner', 'office');
-  const [working, t, asked] = await Promise.all([getWorkingFirm(), getTranslations(), searchParams]);
+  const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
   const db = await createClient();
   const accounts = await loadAccounts(db);
 
-  const all = profile.role === 'owner' && asked.firms === 'all';
-  const firms = all ? working.firms : [working.firm];
-  // Cash from before each firm had its own shows under All firms, until it is wiped.
-  const groups: { name: string; accounts: Account[] }[] = [
-    ...firms.map((f) => ({ name: f.name, accounts: accounts.filter((a) => a.firm_id === f.id) })),
-      ...(all ? [{ name: t('bankbook.noFirm'), accounts: accounts.filter((a) => a.firm_id === null) }] : [])]
-      .filter((g) => !all || g.accounts.length > 0);
+  const firms = [working.firm];
+  const groups: { name: string; accounts: Account[] }[] = firms.map((f) => ({ name: f.name, accounts: accounts.filter((a) => a.firm_id === f.id) }));
   const shown = groups.flatMap((g) => g.accounts);
   const [unknown, ...lasts] = await Promise.all([
     db.from('money_rows').select('*').eq('entry_type', 'not_yet_known').in('firm_id', firms.map((f) => f.id)).order('entry_date').returns<MoneyRow[]>(),
@@ -62,26 +57,22 @@ export default async function BankbooksPage({ searchParams }: { searchParams: Pr
     <>
       <div className="page-head">
         <div>
-          <h1>{t('bankbook.title', { firm: all ? t('bankbook.allFirms') : working.firm.name })}</h1>
+          <h1>{t('bankbook.title', { firm: working.firm.name })}</h1>
           <p className="lede">{t('bankbook.lede')}</p>
         </div>
-        <Link href={`/bankbook/flow${all ? '?firms=all' : ''}`} className="btn ghost">{t('flow.title')} <Icon name="arrowRight" size={16} /></Link>
-        {profile.role === 'owner' && (
-          <nav className="filters" aria-label={t('bankbook.show')}>
-            <Link href="/bankbook" className={`chip${all ? '' : ' on'}`}>{working.firm.name}</Link>
-            <Link href="/bankbook?firms=all" className={`chip${all ? ' on' : ''}`}>{t('bankbook.allFirms')}</Link>
-          </nav>
-        )}
+        <Link href="/bankbook/flow" className="btn ghost">{t('flow.title')} <Icon name="arrowRight" size={16} /></Link>
       </div>
 
-      {!all && shown.length > 0 && (
+      {shown.length > 0 && (
         <div className="quick-add no-print"><div className="quick-buttons">
           <Link href="/bankbook/receive" className="btn big get"><Icon name="receive" /> {t('payList.client.button')}</Link>
           <Link href="/bankbook/pay" className="btn big pay"><Icon name="payOut" /> {t('payList.party.button')}</Link>
-          {(['withdraw', 'deposit'] as const).map((mode) => (
+          {(['withdraw', 'deposit', 'move'] as const).map((mode) => (
             <MoneyPopup key={mode} mode={mode} firm={working.firm} account="" owner={profile.role === 'owner'} today={today} save={postMoney}
               accounts={shown.filter((a) => a.is_active)} people={[]} />
           ))}
+          {profile.role === 'owner' && <MoneyPopup mode="out" personal button={t('bankbook.buttons.personal')} firm={working.firm} account="" owner today={today} save={postMoney}
+            accounts={shown.filter((a) => a.is_active)} people={[]} />}
           {profile.role === 'owner' && <Link href="/masters/money-accounts#add" className="btn big ghost"><Icon name="bank" /> {t('bankbook.addAccount')}</Link>}
         </div></div>
       )}

@@ -5,7 +5,7 @@ import type { IconName } from '@/components/icons';
 
 /** Choices for enum fields. Mirrors the Postgres enums in supabase/migrations. Keep both in sync. */
 export const ENUMS = {
-  party_kind: ['vendor', 'client', 'worker', 'staff', 'other'],
+  party_kind: ['vendor', 'client', 'worker', 'staff', 'other', 'lender'],
   contract_type: ['item_rate', 'fixed'],
   /** Cash with a person (supervisor_cash) is no longer offered (owner decision 2026-11-24): only Bank and Cash. */
   money_account_kind: ['bank', 'owner_cash'],
@@ -26,7 +26,7 @@ export const ENUMS = {
   /** The same list for a supervisor, who does not see staff: what they are paid is not theirs to see. */
   worker_only: ['worker'],
   /** The kinds added on the Parties screen; workers and staff have their own screen. */
-  party_main: ['vendor', 'client'],
+  party_main: ['vendor', 'client', 'lender'],
   /** Not a database enum (a checked text column): for information only, pay is unaffected. */
   skill_level: ['skilled', 'unskilled'],
   /** Not a database enum (a checked text column): what a material is bought as. See ITEM_KINDS. */
@@ -95,7 +95,7 @@ export const MASTERS: Record<string, MasterDef> = {
     table: 'parties',
     ownerOnly: false,
     // Old "other" parties stay listed so they can still be found and changed to a party or client.
-    kinds: ['vendor', 'client', 'other'],
+    kinds: ['vendor', 'client', 'other', 'lender'],
     list: ['name', 'kind', 'phone', 'gst_number', 'is_active'],
     fields: [
       { name: 'kind', kind: 'enum', enum: 'party_main', required: true },

@@ -87,10 +87,12 @@ export default async function BankbookPage({ params, searchParams }: {
           <div className="quick-buttons">
             <Link href={`/bankbook/receive?account=${id}`} className="btn big get"><Icon name="receive" /> {t('payList.client.button')}</Link>
             <Link href={`/bankbook/pay?account=${id}`} className="btn big pay"><Icon name="payOut" /> {t('payList.party.button')}</Link>
-            {(['withdraw', 'deposit', 'move'] as const).map((mode) => (
+            {(bank ? ['withdraw', 'deposit', 'move'] as const : ['withdraw', 'deposit'] as const).map((mode) => (
               <MoneyPopup key={mode} mode={mode} firm={working!.firm} account={id} owner={profile.role === 'owner'} today={today} save={postMoney}
                 accounts={accounts.filter((a) => a.firm_id === account.firm_id && a.is_active)} people={[]} />
             ))}
+            {profile.role === 'owner' && <MoneyPopup mode="out" personal button={t('bankbook.buttons.personal')} firm={working!.firm} account={id} owner today={today} save={postMoney}
+              accounts={accounts.filter((a) => a.firm_id === account.firm_id && a.is_active)} people={[]} />}
             {bank && <Link href={`/bankbook/${id}/match`} className="btn big ghost">{t('match.button')}</Link>}
             {!bank && <Link href={`/bankbook/${id}/count`} className="btn big ghost">{t('count.button')}</Link>}
             {profile.role === 'owner' && <Link href={`/bankbook/${id}/opening`} className="btn big ghost">{t('bankbook.buttons.opening')}</Link>}

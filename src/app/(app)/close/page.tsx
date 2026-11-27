@@ -49,7 +49,7 @@ export default async function CloseMonthPage({ searchParams }: { searchParams: P
         detail: !c ? t('close.notCounted', { date: showDate(end), amount: showPaise(held) }) : Number(c.counted_paise) === held ? t('close.agrees', { amount: showPaise(held) }) : t('close.changedSince', { amount: showPaise(held) }) };
     }),
     ...used.filter((a) => a.kind !== 'bank' && Number(heldAt.get(a.id)?.balance_paise) < 0).map((a): Check => ({ ok: false, what: t('close.belowZero', { name: a.name }), href: `/bankbook/${a.id}?month=${month}` })),
-    { ok: (unknown ?? []).length === 0, what: t('close.unknown'), detail: (unknown ?? []).length ? t('close.unknownLeft', { count: (unknown ?? []).length }) : undefined, href: '/bankbook?firms=all' },
+    { ok: (unknown ?? []).length === 0, what: t('close.unknown'), detail: (unknown ?? []).length ? t('close.unknownLeft', { count: (unknown ?? []).length }) : undefined, href: '/bankbook' },
     ...firms.flatMap((a, i) => firms.slice(i + 1).map((b): Check => {
       const off = (dues.get(`${a.id}/${b.id}`) ?? 0) + (dues.get(`${b.id}/${a.id}`) ?? 0);
       return { ok: off === 0, what: t('close.pair', { a: a.name, b: b.name }), detail: off ? showPaise(Math.abs(off)) : undefined, href: '/' };

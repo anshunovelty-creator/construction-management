@@ -48,15 +48,17 @@ export function MoneyCell({ paise, strong = false, tone }: { paise: number; stro
 }
 
 /** What is left after a payment, in words and colour. Extra paid to a party also carries a minus sign (owner decision 2026-11-06). */
-export function BalanceCell({ paise: exact, t, side = 'party' }: { paise: number; t: T; side?: 'party' | 'client' }) {
+export function BalanceCell({ paise: exact, t, side = 'party' }: { paise: number; t: T; side?: 'party' | 'client' | 'lender' }) {
   const paise = roundOffSmall(exact);
   if (paise === 0) return <MoneyCell paise={0} />;
-  const weGet = side === 'party' ? paise < 0 : paise > 0;
-  const word = side === 'party' ? (paise > 0 ? 'vendor.cr' : 'vendor.dr') : (paise > 0 ? 'client.dr' : 'client.cr');
+  // A lender is owed like a party: left to return in red, returned extra in green with a minus.
+  const weGet = side === 'client' ? paise > 0 : paise < 0;
+  const word = side === 'lender' ? (paise > 0 ? 'borrowed.left' : 'borrowed.extra')
+    : `ledger.balanceWord.${side === 'party' ? (paise > 0 ? 'vendor.cr' : 'vendor.dr') : (paise > 0 ? 'client.dr' : 'client.cr')}`;
   return (
     <td className={`num strong ${weGet ? 'plus' : 'minus'}`}>
-      {showPaise(side === 'party' ? paise : Math.abs(paise))}
-      <span className="balance-word">{t(`ledger.balanceWord.${word}`)}</span>
+      {showPaise(side === 'client' ? Math.abs(paise) : paise)}
+      <span className="balance-word">{t(word)}</span>
     </td>
   );
 }

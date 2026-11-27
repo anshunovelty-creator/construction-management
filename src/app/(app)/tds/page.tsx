@@ -29,15 +29,13 @@ interface TdsRow {
  * The TDS record for the working firm: every bill with TDS, with its rate, section and the amount.
  * TDS we deducted from vendors is owed to the government; TDS clients deducted from our bills can be claimed back.
  */
-export default async function TdsPage({ searchParams }: { searchParams: Promise<{ firms?: string; taxError?: string }> }) {
+export default async function TdsPage({ searchParams }: { searchParams: Promise<{ taxError?: string }> }) {
   const profile = await requireProfile('owner', 'office');
   const [working, t, asked] = await Promise.all([getWorkingFirm(), getTranslations(), searchParams]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
-  const all = profile.role === 'owner' && asked.firms === 'all';
   const db = await createClient();
   const today = todayInIndia();
-  let query = db.from('tds_rows').select('*');
-  if (!all) query = query.eq('firm_id', working.firm.id);
+  const query = db.from('tds_rows').select('*').eq('firm_id', working.firm.id);
   const [{ data }, { data: taxes }, names, accounts] = await Promise.all([
     query.order('entry_date').order('serial').returns<TdsRow[]>(),
     db.from('tax_rows').select('firm_id, account, amount_paise').in('account', ['tds_paid', 'tds_claimed']).returns<{ firm_id: string; account: string; amount_paise: number | string }[]>(),
@@ -45,33 +43,27 @@ export default async function TdsPage({ searchParams }: { searchParams: Promise<
     payAccounts(db, profile.role, working.firm.id),
   ]);
   const rows = data ?? [];
-  const firms = (all ? working.firms : [working.firm]).map((f) => {
+  const firms = [working.firm].map((f) => {
     const total = (type: TdsRow['entry_type']) => rows.filter((r) => r.firm_id === f.id && r.entry_type === type).reduce((sum, r) => sum + Number(r.tds_paise), 0);
     const tax = (account: string) => (taxes ?? []).filter((x) => x.firm_id === f.id && x.account === account).reduce((sum, x) => sum + Number(x.amount_paise), 0);
     const [kept, paid, cut, back] = [total('vendor_bill'), tax('tds_paid'), total('client_bill'), -tax('tds_claimed')];
     return { ...f, kept, paid, left: kept - paid, cut, back, claim: cut - back };
   });
-  const sum = (key: 'kept' | 'paid' | 'left' | 'cut' | 'back' | 'claim') => firms.reduce((n, f) => n + f[key], 0);
 
   return (
     <>
       <h1>{t('tds.title')}</h1>
       <p className="lede">{t('tds.lede')}</p>
       {asked.taxError && <p className="banner bad" role="alert">{asked.taxError}</p>}
-      {profile.role === 'owner' && <nav className="filters no-print" aria-label={t('bankbook.show')}>
-        <Link href="/tds" className={`chip${all ? '' : ' on'}`}>{working.firm.name}</Link>
-        <Link href="/tds?firms=all" className={`chip${all ? ' on' : ''}`}>{t('bankbook.allFirms')}</Link>
-      </nav>}
       <div className="card table-wrap flush">
         <table className="ledger">
           <thead><tr><th>{t('fields.firm_id')}</th><th className="num">{t('tax.tdsKept')}</th><th className="num">{t('tax.paid')}</th><th className="num">{t('tax.tdsLeft')}</th><th className="num">{t('tax.tdsCut')}</th><th className="num">{t('tax.tdsBack')}</th><th className="num">{t('tax.tdsClaim')}</th></tr></thead>
           <tbody>{firms.map((f) => (
             <tr key={f.id}><td>{f.name}</td><MoneyCell paise={f.kept} /><MoneyCell paise={f.paid} /><MoneyCell paise={f.left} strong tone="minus" /><MoneyCell paise={f.cut} /><MoneyCell paise={f.back} /><MoneyCell paise={f.claim} strong tone="plus" /></tr>
           ))}</tbody>
-          {all && <tfoot><tr><td>{t('bankbook.total')}</td><MoneyCell paise={sum('kept')} /><MoneyCell paise={sum('paid')} /><MoneyCell paise={sum('left')} strong tone="minus" /><MoneyCell paise={sum('cut')} /><MoneyCell paise={sum('back')} /><MoneyCell paise={sum('claim')} strong tone="plus" /></tr></tfoot>}
         </table>
       </div>
-      {!all && <TaxPaid reason="tds_paid" month={lastMonth(today.slice(0, 7))} left={firms[0]!.left} accounts={accounts} today={today} back="/tds" />}
+      <TaxPaid reason="tds_paid" month={lastMonth(today.slice(0, 7))} left={firms[0]!.left} accounts={accounts} today={today} back="/tds" />
       {rows.length === 0 ? (
         <p className="empty">{t('tds.none')}</p>
       ) : (
@@ -79,7 +71,7 @@ export default async function TdsPage({ searchParams }: { searchParams: Promise<
           <table>
             <thead>
               <tr>
-                <th>{t('tds.date')}</th>{all && <th>{t('fields.firm_id')}</th>}
+                <th>{t('tds.date')}</th>
                 <th>{t('tds.bill')}</th>
                 <th>{t('tds.party')}</th>
                 <th>{t('tds.direction')}</th>
@@ -92,7 +84,7 @@ export default async function TdsPage({ searchParams }: { searchParams: Promise<
             <tbody>
               {rows.map((r) => (
                 <tr key={`${r.entry_id}${r.firm_id}`}>
-                  <td className="whitespace-nowrap">{showDate(r.entry_date)}</td>{all && <td>{names.firms.get(r.firm_id)}</td>}
+                  <td className="whitespace-nowrap">{showDate(r.entry_date)}</td>
                   <td>
                     <Link href={`/entries/${r.entry_id}`} className="serial underline">{r.serial}</Link>{' '}
                     <span className="muted">{r.reference}</span>

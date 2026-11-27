@@ -1,7 +1,8 @@
 import type { AppRole } from '@/lib/auth';
 import { FIRM_FORMS, type Choice, type Field } from '@/lib/masters/registry';
 
-export type Firm = { id: string; name: string };
+/** runs_labour: the one firm that runs Labour payment and owns the AJAX machines (Setup → Firms). */
+export type Firm = { id: string; name: string; runs_labour?: boolean };
 
 /** The firms someone may work in: the owner every firm, office staff their assigned ones, supervisors none. */
 export function allowedFirms(role: AppRole, firms: Firm[], assignedFirmIds: string[]): Firm[] {

@@ -32,7 +32,7 @@ const ICON: Record<MoneyMode, IconName> = { in: 'receive', out: 'payOut', move: 
  * A bankbook's pop-up for one account: money in, money out or a move. With `fixed` it sorts out money not yet known:
  * the account, amount and date are already there, and only who and why are asked.
  */
-export function MoneyPopup({ mode, firm, account, accounts, people, others = [], owner, today, fixed, listed = false, button, save }: {
+export function MoneyPopup({ mode, firm, account, accounts, people, others = [], lenders = [], owner, today, fixed, listed = false, preset, personal = false, button, save }: {
   mode: MoneyMode;
   firm: { id: string; name: string };
   /** The account it was opened from; '' on the Bankbook's own page, where both accounts of a move are asked. */
@@ -42,11 +42,17 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   people: PopupPerson[];
   /** The other list: parties on money in (one may give money back), clients on money out (a cheque returned). */
   others?: PopupPerson[];
+  /** Who the firm borrowed from, with what is left to return. */
+  lenders?: PopupPerson[];
   owner: boolean;
   today: string;
   fixed?: { paise: number; date: string; note: string };
   /** Beside the Pay or Receive list, which already has the parties and clients: only the other reasons. */
   listed?: boolean;
+  /** Opened for one reason only (and maybe one person), e.g. money borrowed; with account '', the account is asked. */
+  preset?: { reason: string; who?: string };
+  /** Money out as the owner's personal expense only (an owner drawing); with account '', the account is asked. */
+  personal?: boolean;
   button?: string;
   save: (entryId: string, slug: string, firmId: string, cells: Record<string, string>) => Promise<Saved | FormState>;
 }) {
@@ -56,23 +62,24 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   const entryId = useRef('');
   const person: Why = mode === 'in' ? 'client' : 'party';
   const moves = mode !== 'in' && mode !== 'out';
-  // Cash leaves a bank for a cash account, or the other way round; any other move is free.
-  const fits = (end: 'from' | 'to') => accounts.filter((a) => mode === 'move' || !moves || (a.kind === 'bank') === ((mode === 'withdraw') === (end === 'from')));
+  // Cash leaves a bank for a cash account, or the other way round; a move goes from one of the firm's banks to another.
+  const fits = (end: 'from' | 'to') => accounts.filter((a) => mode === 'move' ? a.kind === 'bank' : !moves || (a.kind === 'bank') === ((mode === 'withdraw') === (end === 'from')));
   const start = (end: 'from' | 'to') => {
     const of = fits(end);
     if (!moves) return (mode === 'in') === (end === 'to') ? account : '';
     if (of.some((a) => a.id === account) && (mode !== 'move' || end === 'from')) return account;
     return mode !== 'move' && of.length === 1 ? of[0]!.id : '';
   };
-  const whys: Why[] = moves ? ['move'] : [...(listed ? [] : [person]), 'other', ...(owner ? ['owner' as const] : []), fixed ? 'move' : 'unknown'];
+  const whys: Why[] = personal ? ['owner'] : preset ? ['other'] : moves ? ['move'] : [...(listed ? [] : [person]), 'other', ...(owner ? ['owner' as const] : []), fixed ? 'move' : 'unknown'];
 
   const [why, setWhy] = useState<Why>(whys[0]!);
   const [text, setText] = useState(fixed ? groupRupees(String(fixed.paise / 100)) : '');
   const [date, setDate] = useState(fixed?.date ?? today);
-  const [who, setWho] = useState('');
+  const [who, setWho] = useState(preset?.who ?? '');
+  const [acct, setAcct] = useState(account);
   const [from, setFrom] = useState(start('from'));
   const [to, setTo] = useState(start('to'));
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState(preset?.reason ?? '');
   const [month, setMonth] = useState(lastMonth(today.slice(0, 7)));
   const [reference, setReference] = useState('');
   const [narration, setNarration] = useState(fixed?.note ?? '');
@@ -84,18 +91,20 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   const [pending, startSaving] = useTransition();
 
   const paise = fixed?.paise ?? toPaise(text);
-  const here = accounts.find((a) => a.id === account);
+  const here = accounts.find((a) => a.id === acct);
   const chosen = people.find((p) => p.id === who);
   const picked = reasonOf(reason);
-  const withWhom = (picked?.party === 'vendor') === (mode === 'out') ? people : others;
-  const ready = paise > 0 && (why !== 'other' || Boolean(picked && (!picked.party || who) && (!picked.note || narration.trim()))) && (why === 'move' ? Boolean(from && to && from !== to) : why === person ? Boolean(who) : why !== 'unknown' || narration.trim() !== '');
+  const withWhom = picked?.lender ? lenders : (picked?.party === 'vendor') === (mode === 'out') ? people : others;
+  const named = Boolean(picked?.party || picked?.lender);
+  const lender = picked?.lender ? lenders.find((p) => p.id === who) : undefined;
+  const ready = paise > 0 && (moves || Boolean(acct)) && (why !== 'other' || Boolean(picked && (!named || who) && (!picked.note || narration.trim()))) && (why === 'move' ? Boolean(from && to && from !== to) : why === person ? Boolean(who) : why !== 'unknown' || narration.trim() !== '');
 
   const startNext = () => {
     entryId.current = '';
     setText('');
     setReference('');
     setNarration('');
-    setWho('');
+    setWho(preset?.who ?? '');
     setFailed(null);
     setSaved(null);
   };
@@ -112,9 +121,9 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
     setAsking(null);
     if (!answered) {
       // Money being sorted out has moved already, so only what is left to the person is compared.
-      const leaves = fixed || mode === 'in' ? undefined : accounts.find((a) => a.id === (why === 'move' ? from : account));
+      const leaves = fixed || mode === 'in' ? undefined : accounts.find((a) => a.id === (why === 'move' ? from : acct));
       const bank = leaves?.kind === 'bank' ? leaves : undefined;
-      const left = why === person ? chosen?.left : undefined;
+      const left = why === person ? chosen?.left : mode === 'out' ? lender?.left : undefined;
       const found = amountDoubts({ paise, left, before: bank?.balance, after: bank && bank.balance - paise });
       if (found.length > 0) {
         setAsking({ about: 'doubt', of: asked });
@@ -127,11 +136,11 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
     // Kept per entry, so a retry after a lost connection cannot save it twice.
     entryId.current ||= crypto.randomUUID();
     const cells: Record<string, string> = { entry_date: date, amount: text, reference, narration, ...(anyway ? {} : { check: '1' }) };
-    if (why === 'client') Object.assign(cells, { client_id: who, to_account_id: account });
-    else if (why === 'party') Object.assign(cells, { vendor_id: who, from_account_id: account });
-    else if (why === 'other') Object.assign(cells, { reason, account_id: account, person_id: picked?.party ? who : '', month: picked?.month ? month : '' });
+    if (why === 'client') Object.assign(cells, { client_id: who, to_account_id: acct });
+    else if (why === 'party') Object.assign(cells, { vendor_id: who, from_account_id: acct });
+    else if (why === 'other') Object.assign(cells, { reason, account_id: acct, person_id: named ? who : '', month: picked?.month ? month : '' });
     else if (why === 'move') Object.assign(cells, { from_account_id: from, to_account_id: to });
-    else Object.assign(cells, { direction: mode, account_id: account });
+    else Object.assign(cells, { direction: mode, account_id: acct });
     startSaving(async () => {
       let result: Saved | FormState;
       try {
@@ -149,7 +158,7 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
     });
   };
 
-  const title = t(`bankbook.popup.${fixed ? 'sortOut' : mode}`, { account: here?.name ?? '' });
+  const title = (preset || personal) && button ? button : t(`bankbook.popup.${fixed ? 'sortOut' : mode}`, { account: here?.name ?? '' });
   // Each account of a move, with what it holds before and after.
   const pick = (label: string, end: 'from' | 'to', value: string, set: (id: string) => void, sign: 1 | -1, other: string) => {
     const a = accounts.find((x) => x.id === value);
@@ -221,30 +230,45 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
             )}
             {why === 'other' && !moves && (
               <div className="rcv-notes">
-                <div className="field">
+                {!preset && <div className="field">
                   <label>{t('bankbook.popup.reason')}
                     <select required value={reason} onChange={(e) => { setReason(e.target.value); setWho(''); }}>
                       <option value="">{t('bankbook.popup.pick')}</option>
                       {(mode === 'in' ? IN_REASONS : OUT_REASONS).map((r) => <option key={r} value={r}>{t(`options.money_reason.${r}`)}</option>)}
                     </select>
                   </label>
-                </div>
+                </div>}
                 {picked?.month && <div className="field"><label>{t('tax.month')}<input type="month" required value={month} max={today.slice(0, 7)} onChange={(e) => setMonth(e.target.value)} /></label></div>}
-                {picked?.party && (
+                {named && (
                   <div className="field">
-                    <label htmlFor={`with-${mode}`}>{t(picked.party === 'client' ? 'bankbook.popup.who.in' : 'bankbook.popup.who.out')}</label>
-                    <SearchSelect key={picked.party} id={`with-${mode}`} value={who} onChange={setWho} required options={withWhom.map((p) => ({ value: p.id, label: p.name }))} />
+                    <label htmlFor={`with-${mode}`}>{t(picked!.lender ? 'bankbook.popup.who.lender' : picked!.party === 'client' ? 'bankbook.popup.who.in' : 'bankbook.popup.who.out')}</label>
+                    <SearchSelect key={picked!.party ?? 'lender'} id={`with-${mode}`} value={who} onChange={setWho} required options={withWhom.map((p) => ({ value: p.id, label: p.name }))} />
+                    {lender && lender.left > 0 && <p className="hint minus">{t('borrowed.leftHint', { amount: showPaise(lender.left) })}</p>}
+                    {picked!.lender && <p className="hint"><Link href="/masters/parties#add" className="underline">{t('borrowed.addPerson')}</Link></p>}
                   </div>
                 )}
               </div>
             )}
-            {moves && mode !== 'move' && (['from', 'to'] as const).some((end) => fits(end).length === 0) && (
-              <p className="banner bad">{t(fits(mode === 'withdraw' ? 'to' : 'from').length === 0 ? 'cash.noCash' : 'cash.noBank')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link></p>
+            {!account && !moves && (
+              <div className="rcv-notes">
+                <div className="field">
+                  <label>{t(mode === 'in' ? 'client.receivedIn' : 'party.paidFrom')}
+                    <select required value={acct} onChange={(e) => setAcct(e.target.value)}>
+                      <option value="">{t('bankbook.popup.pick')}</option>
+                      <AccountOptions accounts={accounts.map(({ id, name, kind }) => ({ id, name, kind }))} />
+                    </select>
+                  </label>
+                  {here && <p className="hint">{showPaise(here.balance)}</p>}
+                </div>
+              </div>
+            )}
+            {moves && (mode === 'move' ? fits('from').length < 2 : (['from', 'to'] as const).some((end) => fits(end).length === 0)) && (
+              <p className="banner bad">{t(mode === 'move' ? 'cash.twoBanks' : fits(mode === 'withdraw' ? 'to' : 'from').length === 0 ? 'cash.noCash' : 'cash.noBank')} <Link href="/masters/money-accounts" className="underline">{t('party.goSetup')}</Link></p>
             )}
             {why === 'move' && (
               <div className="rcv-notes">
-                {pick(t(mode === 'withdraw' ? 'cash.fromBank' : mode === 'deposit' ? 'cash.fromCash' : 'fields.from_account_id'), 'from', from, setFrom, -1, to)}
-                {pick(t(mode === 'withdraw' ? 'cash.intoCash' : mode === 'deposit' ? 'cash.intoBank' : 'fields.to_account_id'), 'to', to, setTo, 1, from)}
+                {pick(t(mode === 'deposit' ? 'cash.fromCash' : 'cash.fromBank'), 'from', from, setFrom, -1, to)}
+                {pick(t(mode === 'withdraw' ? 'cash.intoCash' : 'cash.intoBank'), 'to', to, setTo, 1, from)}
               </div>
             )}
             {!fixed && <DateBox date={date} setDate={setDate} today={today} label={t('fields.entry_date')} />}

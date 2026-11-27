@@ -13,6 +13,7 @@ import { showDate, todayInIndia } from '../entries/data';
 import { labourFirm } from '../pay/data';
 import { Stat } from '../party/shared';
 import { loadAccounts, loadOtherDues, loadPayList, loadUnpaid } from './data';
+import { loadLenders, pickable } from '../borrowed/data';
 
 interface Also { name: string; note?: string; amount: number; href: string }
 
@@ -26,9 +27,9 @@ export async function PayListPage({ side, account: asked }: { side: 'party' | 'c
   const path = pay ? '/bankbook/pay' : '/bankbook/receive';
   const db = await createClient();
   const today = todayInIndia();
-  const [everything, lists, dues, firms, labour, mine, unpaid] = await Promise.all([
+  const [everything, lists, dues, firms, labour, mine, unpaid, lenders] = await Promise.all([
     loadAccounts(db), loadPayList(db, firm.id), loadDues(db), loadFirms(db),
-    labourFirm(db), pay ? loadOtherDues(db, firm.id, today) : null, pay ? loadUnpaid(db) : [],
+    labourFirm(db), pay ? loadOtherDues(db, firm.id, today) : null, pay ? loadUnpaid(db) : [], loadLenders(db, firm.id),
   ]);
   const accounts = everything.filter((a) => a.firm_id === firm.id && a.is_active)
     .sort((a, b) => Number(b.kind === 'bank') - Number(a.kind === 'bank'));
@@ -53,6 +54,7 @@ export async function PayListPage({ side, account: asked }: { side: 'party' | 'c
       { name: t('payList.also.gst'), amount: mine.gst, href: '/gst' },
       { name: t('payList.also.tds'), amount: mine.tds, href: '/tds' },
       { name: t('payList.also.pf'), note: t('payList.also.allFirms'), amount: mine.pf, href: '/salary' },
+      { name: t('payList.also.borrowed'), amount: lenders.reduce((s, l) => s + Math.max(l.left, 0), 0), href: '/borrowed' },
     ] : []),
     ...others.filter((f) => !both.includes(f)).map((f) => ({ name: f.name, amount: (dues.get(`${firm.id}/${f.id}`) ?? 0) * (pay ? -1 : 1), href: `/between/${f.id}` })),
   ].filter((a) => a.amount > 0);
@@ -105,7 +107,7 @@ export async function PayListPage({ side, account: asked }: { side: 'party' | 'c
         <section className="mt-6">
           <p className="hint">{t(`payList.${side}.otherHint`)}</p>
           <MoneyPopup key={account.id} mode={pay ? 'out' : 'in'} listed firm={firm} account={account.id} owner={profile.role === 'owner'} today={today} save={postMoney}
-            accounts={accounts} people={lists[side]} others={lists[pay ? 'client' : 'party']} button={t(`payList.${side}.other`)} />
+            accounts={accounts} people={lists[side]} others={lists[pay ? 'client' : 'party']} lenders={pickable(lenders)} button={t(`payList.${side}.other`)} />
         </section>
       ) : accounts.length > 0 && <p className="hint mt-6">{t(`payList.${side}.pickFirst`)}</p>}
     </>

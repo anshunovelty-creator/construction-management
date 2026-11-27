@@ -1,4 +1,5 @@
 import type { ListPerson } from '@/components/pay-list';
+import { PAPER_NAMES, type MachineService } from '@/lib/machines';
 import type { PopupAccount, PopupPerson } from '@/components/money-popup';
 import type { Names } from '@/lib/ledger/plain';
 import type { createClient } from '@/lib/supabase/server';
@@ -126,15 +127,15 @@ export async function loadUnpaid(db: Db): Promise<Unpaid[]> {
     db.from('other_cost').select('id, work_date, description, cost_head, amount_paise, on_bill, site:sites(id, name)').is('entry_id', null).gt('amount_paise', 0)
       .order('work_date', { ascending: false }).limit(1000)
       .returns<{ id: string; work_date: string; description: string; cost_head: string; amount_paise: number | string; on_bill: boolean | null; site: { id: string; name: string } | null }[]>(),
-    db.from('machine_services').select('id, service_date, note, cost_paise, on_bill, machine:machines(id, name)').is('entry_id', null).gt('cost_paise', 0)
+    db.from('machine_services').select('id, service_date, note, cost_paise, on_bill, kind, paper_no, machine:machines(id, name)').is('entry_id', null).gt('cost_paise', 0)
       .order('service_date', { ascending: false }).limit(1000)
-      .returns<{ id: string; service_date: string; note: string; cost_paise: number | string; on_bill: boolean | null; machine: { id: string; name: string } | null }[]>(),
+      .returns<{ id: string; service_date: string; note: string; cost_paise: number | string; on_bill: boolean | null; kind: MachineService['kind']; paper_no: string | null; machine: { id: string; name: string } | null }[]>(),
   ]);
   const error = costs.error ?? services.error;
   if (error) throw new Error(error.message);
   return [
     ...(costs.data ?? []).map((r) => ({ kind: 'cost' as const, id: r.id, date: r.work_date, placeId: r.site?.id ?? '', place: r.site?.name ?? '', what: r.description, head: r.cost_head, amount: Number(r.amount_paise), onBill: r.on_bill === true })),
-    ...(services.data ?? []).map((r) => ({ kind: 'service' as const, id: r.id, date: r.service_date, placeId: r.machine?.id ?? '', place: r.machine?.name ?? '', what: r.note, amount: Number(r.cost_paise), onBill: r.on_bill === true })),
+    ...(services.data ?? []).map((r) => ({ kind: 'service' as const, id: r.id, date: r.service_date, placeId: r.machine?.id ?? '', place: r.machine?.name ?? '', what: [r.kind && r.kind !== 'service' ? `${PAPER_NAMES[r.kind]} ${r.paper_no ?? ''}`.trim() : '', r.note].filter(Boolean).join(' · '), amount: Number(r.cost_paise), onBill: r.on_bill === true })),
   ].sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -157,7 +158,8 @@ type T = (key: string) => string;
 export function lineName(r: MoneyRow, names: Names, t: T): string {
   if (r.entry_type === 'opening') return t('ledger.openingBalance');
   if (r.entry_type === 'not_yet_known') return t('entryTypes.not_yet_known.title');
-  if (r.entry_type === 'owner_capital' || r.entry_type === 'owner_drawing') return t('bankbook.owner');
+  if (r.entry_type === 'owner_drawing') return t('entryTypes.owner_drawing.title');
+  if (r.entry_type === 'owner_capital') return t('bankbook.owner');
   if (r.entry_type === 'wages_paid') return t('bankbook.people');
   if (r.entry_type === 'cash_close_difference') return t('entryTypes.cash_close_difference.title');
   if (r.reason && (r.entry_type === 'other_in' || r.entry_type === 'other_out') && !r.party_id) return t(`bankbook.reasons.${r.reason}`);

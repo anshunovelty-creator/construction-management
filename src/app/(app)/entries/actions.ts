@@ -136,6 +136,11 @@ async function buildDraft(slug: EntryFormSlug, v: Record<string, Value>, firmId:
         amountPaise: n('amount'), date: s('entry_date'), reference: s('reference'), narration: s('narration'),
       });
     case 'other-money':
+      // Borrowed money names one of the lenders, never a party or client.
+      if (reasonOf(s('reason'))?.lender && s('person_id')) {
+        const { data } = await db.from('parties').select('kind').eq('id', s('person_id')).maybeSingle();
+        if (data?.kind !== 'lender') throw new Error('choose who lent it');
+      }
       return otherMoney({
         reason: s('reason'), account: await moneyAccount(db, s('account_id')), amountPaise: n('amount'), date: s('entry_date'),
         partyId: s('person_id') || undefined, month: s('month'), reference: s('reference'), narration: s('narration'),

@@ -7,6 +7,8 @@ interface Reason {
   head?: CostHead;
   /** Who it is with, for money a client held or a party gives back. */
   party?: 'client' | 'vendor';
+  /** Borrowed money: the lender is named on the entry (the loan line keeps no party). */
+  lender?: true;
   /** Tax: the month it is for. */
   month?: boolean;
   /** A note is needed to know later what it was. */
@@ -20,7 +22,7 @@ export const REASONS = {
     retention_back: { account: 'retention_held', party: 'client' },
     deposit_back_client: { account: 'security_deposit_held', party: 'client' },
     party_back: { account: 'vendor_payable', party: 'vendor' },
-    loan_in: { account: 'loan', note: true },
+    loan_in: { account: 'loan', lender: true },
     deposit_back: { account: 'deposit_given', note: true },
     gst_refund: { account: 'gst_paid', month: true },
     tds_refund: { account: 'tds_claimed' },
@@ -33,7 +35,7 @@ export const REASONS = {
     tds_paid: { account: 'tds_paid', month: true },
     pf_paid: { account: 'pf_paid', month: true },
     interest: { account: 'firm_cost', head: 'interest' },
-    loan_out: { account: 'loan', note: true },
+    loan_out: { account: 'loan', lender: true },
     deposit_given: { account: 'deposit_given', note: true },
     client_back: { account: 'client_receivable', party: 'client', note: true },
     other_cost: { account: 'firm_cost', head: 'other', note: true },
@@ -69,7 +71,7 @@ export function otherMoney(input: OtherMoneyInput): EntryDraft {
   if (!reason) throw new Error('choose what it was for');
   const narration = (input.narration ?? '').trim();
   if (reason.note && narration === '') throw new Error('say what it was for');
-  if (reason.party && !input.partyId) throw new Error('choose who it was with');
+  if ((reason.party || reason.lender) && !input.partyId) throw new Error('choose who it was with');
   if (reason.month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(input.month ?? '')) throw new Error('choose the month it is for');
   const amount = reason.direction === 'in' ? input.amountPaise : -input.amountPaise;
   const firmId = input.account.firmId;
@@ -84,7 +86,7 @@ export function otherMoney(input: OtherMoneyInput): EntryDraft {
     entryType: reason.account === 'vendor_payable' ? 'vendor_payment' : reason.account === 'client_receivable' ? 'client_receipt' : reason.direction === 'in' ? 'other_in' : 'other_out',
     entryDate: input.date,
     firmId,
-    ...(reason.party ? { partyId: input.partyId } : {}),
+    ...(reason.party || reason.lender ? { partyId: input.partyId } : {}),
     reference: reason.month ? input.month! : (input.reference ?? '').trim(),
     narration: [narration, reason.month && (input.reference ?? '').trim()].filter(Boolean).join(' · '),
     lines: [{ account: 'money', amountPaise: amount, firmId, moneyAccountId: input.account.id }, line],

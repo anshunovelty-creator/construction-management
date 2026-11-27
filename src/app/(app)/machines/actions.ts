@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireProfile } from '@/lib/auth';
 import { machineService } from '@/lib/ledger/posting/other';
+import { PAPER_NAMES, PAPERS, type Paper } from '@/lib/machines';
 import { rupeesToPaise } from '@/lib/money';
 import { sameName } from '@/lib/delete';
 import { moveToBin } from '@/lib/bin';
@@ -69,6 +70,47 @@ export async function addService(machineId: string, data: FormData): Promise<voi
   }
   revalidatePath('/machines', 'layout');
   redirect(page);
+}
+
+/**
+ * Records a paper (Insurance, PUC or Fitness): its number, company, the days it is valid, and what it cost, paid from a
+ * bank or cash of the firm that owns the machines, or not paid yet. The date paid is the bankbook's date.
+ */
+export async function addPaper(machineId: string, data: FormData): Promise<void> {
+  await requireProfile('owner', 'office');
+  const page = `/machines/${machineId}`;
+  const fail = (error: string): never => redirect(`${page}?error=${error}#papers`);
+  const paper = text(data, 'paper') as Paper;
+  if (!PAPERS.includes(paper)) fail('paper');
+  const [from, until, paid] = [text(data, 'valid_from'), text(data, 'valid_until'), text(data, 'paid_on')];
+  const day = /^\d{4}-\d{2}-\d{2}$/;
+  if (!day.test(from) || !day.test(until) || until < from) fail('valid');
+  if (!day.test(paid) || paid > todayInIndia()) fail('date');
+  let cost = -1;
+  try {
+    cost = rupeesToPaise(text(data, 'cost') || '0');
+  } catch {
+    // stays below zero, refused next
+  }
+  if (cost < 0) fail('cost');
+  const details = { kind: paper, paper_no: text(data, 'paper_no'), company: text(data, 'company'), valid_from: from, valid_until: until };
+  const note = text(data, 'note');
+  const db = await createClient();
+  if (!text(data, 'account')) {
+    const { error } = await db.from('machine_services').insert({ machine_id: machineId, service_date: paid, running_hours: null, cost_paise: cost, note, ...details });
+    if (error) fail('not_saved');
+  } else {
+    if (cost === 0) fail('cost');
+    const [account, { data: machine }] = await Promise.all([payAccount(db, text(data, 'account')), db.from('machines').select('name').eq('id', machineId).maybeSingle()]);
+    if (!account || !machine) return fail('account');
+    const entry = machineService({ account, amountPaise: cost, date: paid, narration: [`${PAPER_NAMES[paper]} ${details.paper_no}`.trim(), machine.name, note].filter(Boolean).join(' · ') });
+    const line = { source: 'machine', id: machineId, hours: null, amountPaise: cost, note, paper, paperNo: details.paper_no, company: details.company, validFrom: from, validUntil: until };
+    const { error } = await db.rpc('app_pay', { p_batches: [{ entry, lines: [line] }] });
+    if (error) fail(error.message.includes('not enough cash') ? 'no_cash' : 'not_saved');
+    revalidatePath('/', 'layout');
+  }
+  revalidatePath('/machines', 'layout');
+  redirect(`${page}#papers`);
 }
 
 /** The owner deletes a machine, with its service record, into the recycle bin. The name must be typed first. */

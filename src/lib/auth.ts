@@ -47,7 +47,7 @@ export const getWorkingFirm = cache(async (): Promise<WorkingFirm | null> => {
   // Asked for alongside the profile, not after it: one trip to the database instead of two on every page.
   const [profile, { data: firms }, { data: assigned }, { data: saved }] = await Promise.all([
     getProfile(),
-    db.from('firms').select('id, name').order('name').returns<Firm[]>(),
+    db.from('firms').select('id, name, runs_labour').order('name').returns<Firm[]>(),
     db.from('user_firms').select('firm_id').eq('user_id', userId),
     db.from('working_firms').select('firm_id').eq('user_id', userId).maybeSingle(),
   ]);
@@ -56,6 +56,17 @@ export const getWorkingFirm = cache(async (): Promise<WorkingFirm | null> => {
   const firm = pickWorkingFirm(allowed, saved?.firm_id as string | undefined);
   return firm ? { firms: allowed, firm } : null;
 });
+
+/**
+ * Labour payment and the AJAX machines belong to one firm (Setup → Firms, runs_labour) and show only while working in it
+ * (owner decision 2026-11-26). Null when they may be shown here; else the name of that firm ('' when none is ticked).
+ */
+export async function labourFirmElsewhere(): Promise<string | null> {
+  const working = await getWorkingFirm();
+  if (!working || working.firm.runs_labour) return null;
+  const { data } = await (await createClient()).from('firms').select('name').eq('runs_labour', true).maybeSingle();
+  return (data?.name as string | undefined) ?? '';
+}
 
 /**
  * Sends signed-out users to /login, and users without one of `roles` to the home page. A Labour login belongs to the

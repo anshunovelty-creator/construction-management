@@ -8,6 +8,7 @@ import { machineService, otherMoney, REASONS, reasonOf, wagesPaid } from '@/lib/
 import { vendorBill } from '@/lib/ledger/posting/vendor';
 import { postEntry } from '@/lib/ledger/repo';
 import type { EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
+import { lendersOf, type LoanRow } from '@/app/(app)/borrowed/data';
 import { asUser, balanceOf, createMigratedDb, createUser, OWNER, seedBasics, type Seed } from './harness';
 
 let template: PGlite;
@@ -218,6 +219,21 @@ describe('machine service', () => {
   });
 });
 
+describe('money borrowed', () => {
+  it('names the lender on the entry, never on the loan line, and adds up per lender', async () => {
+    const friend = (await db.query<{ id: string }>(`insert into parties (kind, name) values ('lender', 'Ramesh') returning id`)).rows[0]!.id;
+    expect(() => otherMoney({ reason: 'loan_in', account: seed.jayrajBank, amountPaise: 1_00, date: '2026-11-20' })).toThrow('choose who');
+    await postEntry(db, otherMoney({ reason: 'loan_in', account: seed.jayrajBank, amountPaise: 50_000_00, date: '2026-11-10', partyId: friend }), OWNER);
+    await postEntry(db, otherMoney({ reason: 'loan_out', account: seed.jayrajBank, amountPaise: 20_000_00, date: '2026-11-20', partyId: friend }), OWNER);
+    expect((await db.query(`select count(*)::int as n from entry_lines where account = 'loan' and party_id is not null`)).rows).toEqual([{ n: 0 }]);
+    const { rows } = await db.query<LoanRow>(`select entry_id, serial, entry_date::text, party_id, money_account_id, reference, narration, amount_paise
+      from money_rows where reason = 'loan' order by entry_date`);
+    const [l] = lendersOf(rows, [{ id: friend, name: 'Ramesh', is_active: true }]);
+    expect(l).toMatchObject({ id: friend, borrowed: 50_000_00, returned: 20_000_00, left: 30_000_00 });
+    expect(await balanceOf(db, 'loan')).toBe(-30_000_00);
+  });
+});
+
 describe('every other reason', () => {
   it('moves the account, balances in the firm, and lands where it belongs', async () => {
     await postEntry(db, clientBill({ client: seed.client, billDate: '2026-11-01', billNo: 'RA-1', grossPaise: 1_00_000_00, gstPaise: 18_000_00, deductions: { retentionPaise: 5_000_00, securityDepositPaise: 2_000_00 } }), OWNER);
@@ -227,7 +243,7 @@ describe('every other reason', () => {
       const r = reasonOf(reason)!;
       await postEntry(db, otherMoney({
         reason, account: seed.jayrajBank, amountPaise: 1_000_00, date: '2026-11-20', month: '2026-10', narration: 'x',
-        partyId: r.party === 'client' ? seed.svgClient : r.party ? seed.ansari : undefined,
+        partyId: r.party === 'client' ? seed.svgClient : r.party || r.lender ? seed.ansari : undefined,
       }), OWNER);
       expect((await held(seed.jayrajBank)) - before, reason).toBe(r.direction === 'in' ? 1_000_00 : -1_000_00);
     }
