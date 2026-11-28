@@ -23,8 +23,8 @@ export interface LineState {
 
 export interface LabourLine {
   partyId: string;
-  /** P present, A absent, empty not marked yet. */
-  mark: 'P' | 'A' | '';
+  /** P present, H half day (workers only), A absent, empty not marked yet. */
+  mark: 'P' | 'H' | 'A' | '';
   /** Overtime hours past the 8-hour day, for those present. */
   ot: string;
 }
@@ -81,16 +81,17 @@ function Problem({ state, t }: { state: LineState; t: ReturnType<typeof useTrans
 
 /** The day's amount as marked, or null while unmarked, without a rate, or with OT that is not a number yet. */
 function pay(p: Person, line: LabourLine): number | null {
-  if (!line.mark || (line.mark === 'P' && p.dayPay === null)) return null;
+  const present = line.mark === 'P' || line.mark === 'H';
+  if (!line.mark || (present && p.dayPay === null)) return null;
   try {
-    return dayAmount(line.mark === 'P', line.mark === 'P' ? otCenti(line.ot) : 0, p.dayPay ?? 0);
+    return dayAmount(present, present ? otCenti(line.ot) : 0, p.dayPay ?? 0, line.mark === 'H');
   } catch {
     return null;
   }
 }
 
 /**
- * Who came today: staff first, then workers, like the site sheet. Tap P or A for each, and type OT hours past the
+ * Who came today: staff first, then workers, like the site sheet. Tap P, H (half day) or A for each, and type OT hours past the
  * 8-hour day for those present. The pay comes from the rate in Setup. People left unmarked are not saved.
  */
 export function LabourForm({ people, action }: { people: Person[]; action: Action }) {
@@ -109,7 +110,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
   const amounts = people.map((p, l) => pay(p, lines[l]!));
   const total = amounts.reduce<number>((sum, a) => sum + (a ?? 0), 0);
   useUnsaved(() => lines.some((x) => x.mark));
-  const count = (mark: 'P' | 'A') => lines.filter((x) => x.mark === mark).length;
+  const count = (mark: 'P' | 'H' | 'A') => lines.filter((x) => x.mark === mark).length;
 
   return (
     <form action={formAction} className="card work-builder">
@@ -144,7 +145,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                 const line = lines[l]!;
                 if (!shows(p, l)) return null;
                 return (
-                  <tr key={p.id} className={[state.line === l && 'wrong', line.mark !== 'P' && 'unmarked', p.kind === 'staff' && 'staff', p.hidden && 'unpaid-staff'].filter(Boolean).join(' ') || undefined}>
+                  <tr key={p.id} className={[state.line === l && 'wrong', line.mark !== 'P' && line.mark !== 'H' && 'unmarked', p.kind === 'staff' && 'staff', p.hidden && 'unpaid-staff'].filter(Boolean).join(' ') || undefined}>
                     <td className="box muted line-no">{l + 1}</td>
                     <td className="wide" data-label={t('labour.name')}>
                       <strong>{p.name}</strong>
@@ -153,12 +154,12 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                     </td>
                     <td className="mark" data-label={t('labour.attendance')}>
                       <span className="quick-time">
-                        {(['P', 'A'] as const).map((mark) => (
+                        {(p.kind === 'staff' ? ['P', 'A'] as const : ['P', 'H', 'A'] as const).map((mark) => (
                           <button
                             key={mark}
                             type="button"
                             className={`chip mark-${mark}${line.mark === mark ? ' on' : ''}`}
-                            disabled={mark === 'P' && p.elsewhere}
+                            disabled={mark !== 'A' && p.elsewhere}
                             aria-pressed={line.mark === mark}
                             aria-label={`${p.name}: ${t(`labour.mark.${mark}`)}`}
                             title={t(`labour.mark.${mark}`)}
@@ -173,7 +174,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                         <input
                           value={line.ot}
                           onChange={(e) => change(l, { ot: e.target.value })}
-                          disabled={line.mark !== 'P'}
+                          disabled={line.mark !== 'P' && line.mark !== 'H'}
                           inputMode="decimal"
                           className="num"
                           placeholder="0"
@@ -201,7 +202,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
       </div>
 
       <div className="work-total-bar">
-        <span>{t('labour.marked', { p: count('P'), a: count('A') })} · {t('labour.dayTotal')} <strong>{showPaise(total)}</strong></span>
+        <span>{t('labour.marked', { p: count('P'), h: count('H'), a: count('A') })} · {t('labour.dayTotal')} <strong>{showPaise(total)}</strong></span>
         <button type="submit" className="btn" disabled={pending}>{pending ? t('saving') : t('labour.save')}</button>
       </div>
     </form>
@@ -323,6 +324,36 @@ export function OtherCostForm({ action, accounts }: { action: Action; accounts: 
       <div className="work-total-bar">
         <span>{t('other.dayTotal')} <strong>{showPaise(total)}</strong></span>
         <button type="submit" className="btn" disabled={pending}>{pending ? t('saving') : t('other.save')}</button>
+      </div>
+    </form>
+  );
+}
+
+/** One note for the day: what kind of work was done, any extra work. Saved over the last one; saved empty, it goes. */
+export function NoteForm({ note, action }: { note: string; action: Action }) {
+  const t = useTranslations('report');
+  const [state, formAction, pending] = useActionState(action, {});
+  const [text, setText] = useState(note);
+  // The page sends the saved note again after a save, so this clears by itself.
+  const changed = text.trim() !== note;
+  useUnsaved(() => changed);
+
+  return (
+    <form action={formAction} className="card work-builder">
+      <Problem state={state} t={t} />
+      <textarea
+        name="note"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={4}
+        maxLength={4000}
+        className="report-note"
+        placeholder={t('note.example')}
+        aria-label={t('noteHeading')}
+      />
+      <div className="work-total-bar">
+        <span className="muted">{changed ? t('note.notSaved') : note ? t('note.saved') : ''}</span>
+        <button type="submit" className="btn" disabled={pending || !changed}>{pending ? t('saving') : t('note.save')}</button>
       </div>
     </form>
   );

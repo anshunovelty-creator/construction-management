@@ -37,10 +37,19 @@ it('lets a supervisor mark P or A with OT at their own site, once a day, paying 
   await expect(mark(seed.svgSite, roshani, false, '2', 20_000)).rejects.toThrow('check constraint'); // no OT when absent
   await expect(mark(seed.svgSite, roshani, true, '0', 70_000)).rejects.toThrow('check constraint'); // not the day's pay
 
+  // Half day: half the day's pay, OT still a day ÷ 8; only when present, and only for workers.
+  const half = (partyId: string, present: boolean, ot: string, amount: number) => asUser(db, ramesh, (tx) => tx.query(
+    `insert into labour_day (site_id, work_date, party_id, present, half_day, ot_hours, day_pay_paise, amount_paise)
+     values ($1, '2026-10-19', $2, $3, true, $4, 80001, $5)`, [seed.svgSite, partyId, present, ot, amount]));
+  await expect(half(roshani, true, '0', 80_001)).rejects.toThrow('check constraint'); // a full day's pay
+  await expect(half(roshani, false, '0', 0)).rejects.toThrow('check constraint'); // a half day is present
+  await half(roshani, true, '1', 50_001); // 40,000.5 rounds to 40,001, + 10,000
+
   // Staff have a fixed salary: marked present or absent, never OT.
   const sunil = (await db.query<{ id: string }>(`insert into parties (kind, name) values ('staff', 'Sunil') returning id`)).rows[0]!.id;
   await expect(mark(seed.svgSite, sunil, true, '1', 90_000)).rejects.toThrow('no OT');
   await mark(seed.svgSite, sunil, true, '0', 80_000);
+  await expect(half(sunil, true, '0', 40_001)).rejects.toThrow('no half day');
 });
 
 it('keeps other site costs, but not material, which comes from stock', async () => {
@@ -85,4 +94,17 @@ it('marks a cost as on a bill, by the office only and not once it is paid', asyn
   await mark(office);
   expect((await db.query(`select on_bill from other_cost where id = $1`, [cost])).rows).toEqual([{ on_bill: true }]);
   await expect(asUser(db, office, (tx) => tx.query(`select app_mark_on_bill('cost', $1, true)`, [margub]))).rejects.toThrow('already paid or removed');
+});
+
+it('keeps one note per site and day, written over by anyone with the site, and no one else', async () => {
+  const other = (await db.query<{ id: string }>(`insert into sites (name) values ('Other site') returning id`)).rows[0]!.id;
+  const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
+  const write = (user: string, siteId: string, note: string) => asUser(db, user, (tx) => tx.query(
+    `insert into report_note (site_id, work_date, note) values ($1, '2026-10-18', $2)
+     on conflict (site_id, work_date) do update set note = excluded.note`, [siteId, note]));
+  await write(ramesh, seed.svgSite, 'Slab shuttering');
+  await write(ramesh, seed.svgSite, 'Slab shuttering. Extra: drain cleared');
+  expect((await db.query(`select note from report_note`)).rows).toEqual([{ note: 'Slab shuttering. Extra: drain cleared' }]);
+  await expect(write(ramesh, other, 'Not mine')).rejects.toThrow('row-level security');
+  await expect(write(ramesh, seed.svgSite, '  ')).rejects.toThrow('check constraint');
 });

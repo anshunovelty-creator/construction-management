@@ -7,6 +7,8 @@ it('pays a worker 8 hours a day with OT at a day ÷ 8; staff cost a site a day\'
   expect(dayPay('staff', 2_000_000, '2026-11-02')).toBe(66_667); // ₹20,000 ÷ 30 days
   expect(dayPay('staff', 2_000_000, '2026-02-10')).toBe(71_429); // ÷ 28
   expect(dayAmount(false, 0, 52_000)).toBe(0);
+  expect(dayAmount(true, 0, 52_001, true)).toBe(26_001); // half day, rounded like the database
+  expect(dayAmount(true, otCenti('1'), 52_000, true)).toBe(32_500); // OT stays a full day ÷ 8
   expect(otCenti('')).toBe(0);
   expect(() => otCenti('17')).toThrow();
   expect(() => otCenti('abc')).toThrow();

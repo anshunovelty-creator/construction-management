@@ -33,11 +33,11 @@ export const staffSalary = (monthlyPaise: number, from: string, to: string): num
     total + Math.round((monthlyPaise * (Number(b.slice(8)) - Number(a.slice(8)) + 1)) / daysInMonth(a)), 0);
 
 /**
- * The day's amount: a full day's pay when present, plus each OT hour at a day's pay ÷ 8. Whole numbers until the last
- * step, so it matches the database's check to the paisa.
+ * The day's amount: a full day's pay when present (half of it, to the paisa, on a half day), plus each OT hour at a day's
+ * pay ÷ 8. Whole numbers until the last step, so it matches the database's check to the paisa.
  */
-export const dayAmount = (present: boolean, otCenti: number, dayPayPaise: number): number =>
-  (present ? dayPayPaise : 0) + Math.round((otCenti * dayPayPaise) / 800);
+export const dayAmount = (present: boolean, otCenti: number, dayPayPaise: number, half = false): number =>
+  (present ? (half ? Math.round(dayPayPaise / 2) : dayPayPaise) : 0) + Math.round((otCenti * dayPayPaise) / 800);
 
 /** OT hours as typed ("2", "1.5"), in hundredths of an hour; empty is none. Throws when not 0–16 with 2 decimals at most. */
 export function otCenti(text: string): number {

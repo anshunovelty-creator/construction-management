@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { AccountOptions } from '@/components/account-options';
-import { LabourForm, OtherCostForm, type Person } from '@/components/labour-form';
+import { LabourForm, NoteForm, OtherCostForm, type Person } from '@/components/labour-form';
 import { MaterialUseForm } from '@/components/material-use-form';
 import { SearchSelect } from '@/components/search-select';
 import { WorkDoneForm } from '@/components/work-done-form';
@@ -14,7 +14,7 @@ import { dayPay } from '@/lib/wages';
 import { payAccounts } from '../pay/data';
 import { Stat } from '../party/shared';
 import { showDate, todayInIndia } from '../entries/data';
-import { addLabour, addMaterialUse, addOtherCost, addWorkDone, payCost, removeReportLine } from './actions';
+import { addLabour, addMaterialUse, addOtherCost, addWorkDone, payCost, removeReportLine, saveReportNote } from './actions';
 import { Icon } from '@/components/icons';
 import { AutoForm } from '@/components/auto-form';
 import { PrintButton } from '@/components/print-button';
@@ -46,6 +46,7 @@ interface LabourRow {
   id: string;
   party_id: string;
   present: boolean;
+  half_day: boolean;
   ot_hours: number | string;
   day_pay_paise: number | string;
   amount_paise: number | string;
@@ -102,7 +103,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const unitOf = (id: string) => material.get(id)?.unit?.name ?? '';
   const unitName = new Map((units ?? []).map((u) => [u.id as string, u.name as string]));
 
-  const [{ data: used }, { data: bought }, { data: work }, { data: listed }, { data: siteStaff }, { data: marks }, { data: recent }, { data: away }, { data: other }, { data: mixes }] = await Promise.all([
+  const [{ data: used }, { data: bought }, { data: work }, { data: listed }, { data: siteStaff }, { data: marks }, { data: recent }, { data: away }, { data: other }, { data: mixes }, { data: noteRow }] = await Promise.all([
     db.from('material_use').select('id, site_id, material_id, use_date, quantity, rate_paise, remark, mix_name, created_by')
       .eq('site_id', site.id).lte('use_date', date).order('created_at').returns<UseRow[]>(),
     db.from('stock_in_rows').select('site_id, material_id, entry_date, quantity, amount_paise')
@@ -114,7 +115,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       .order('kind', { ascending: false }).order('name').returns<PersonRow[]>(),
     // A supervisor gets the staff by name only: what they are paid is for the owner and office.
     office ? Promise.resolve({ data: null }) : db.rpc('app_site_staff'),
-    db.from('labour_day').select('id, party_id, present, ot_hours, day_pay_paise, amount_paise, created_by, staff:labour_day_staff(day_pay_paise, amount_paise)')
+    db.from('labour_day').select('id, party_id, present, half_day, ot_hours, day_pay_paise, amount_paise, created_by, staff:labour_day_staff(day_pay_paise, amount_paise)')
       .eq('site_id', site.id).eq('work_date', date).returns<(LabourRow & { staff: Pick<LabourRow, 'day_pay_paise' | 'amount_paise'> | null })[]>(),
     // Who works here: marked present at this site in the last two weeks. Anyone present at another site today is named.
     db.from('labour_day').select('party_id').eq('site_id', site.id).eq('present', true).gte('work_date', shiftDate(date, -14)).lte('work_date', date).returns<{ party_id: string }[]>(),
@@ -123,7 +124,9 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       .eq('site_id', site.id).eq('work_date', date).order('created_at').returns<OtherRow[]>(),
     db.from('mixes').select('id, name, unit:units(name), items:mix_items(material_id, quantity, position)').eq('is_active', true).order('name')
       .returns<{ id: string; name: string; unit: { name: string } | null; items: { material_id: string; quantity: number | string; position: number }[] }[]>(),
+    db.from('report_note').select('note').eq('site_id', site.id).eq('work_date', date).maybeSingle<{ note: string }>(),
   ]);
+  const note = noteRow?.note ?? '';
   const stock = new Map(stockLines(bought ?? [], used ?? [], date).map((s) => [s.material_id, s]));
   const usedToday = (used ?? []).filter((r) => r.use_date === date);
   // The rate the supervisor gave the line, else the site's average.
@@ -153,7 +156,9 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     .map((p) => ({ id: p.id, name: p.name, kind: p.kind, hidden: !office && p.kind === 'staff', here: p.site_id === site.id || here.has(p.id), elsewhere: elsewhere.has(p.id), rate: p.rate_paise === null ? null : Number(p.rate_paise),
       dayPay: p.rate_paise === null ? null : dayPay(p.kind, Number(p.rate_paise), date) }));
   const isStaff = (r: LabourRow) => person.get(r.party_id)?.kind === 'staff';
-  const presentCount = labourRows.filter((r) => r.present).length;
+  const markOf = (r: LabourRow) => (!r.present ? 'A' : r.half_day ? 'H' : 'P');
+  const attended = { P: 0, H: 0, A: 0 };
+  for (const r of labourRows) attended[markOf(r)] += 1;
   const staffTotal = sum(labourRows.filter(isStaff));
   const labourTotal = sum(labourRows) - staffTotal;
   const otherRows = other ?? [];
@@ -209,10 +214,11 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       return { id: r.id, name: material.get(r.material_id)?.name ?? '', quantity: Number(r.quantity), unit: unitOf(r.material_id),
         rate: rateOf(r), amount: amount(r), left: s ? `${QTY.format(s.left)} ${unitOf(r.material_id)}` : '', remark: r.remark ?? '' };
     }) })),
-    labour: labourRows.map((r) => ({ id: r.id, name: person.get(r.party_id)?.name ?? '', staff: isStaff(r), present: r.present,
+    labour: labourRows.map((r) => ({ id: r.id, name: person.get(r.party_id)?.name ?? '', staff: isStaff(r), present: r.present, mark: markOf(r),
       ot: Number(r.ot_hours), dayPay: Number(r.day_pay_paise), amount: Number(r.amount_paise) })),
     other: otherRows.map((r) => ({ id: r.id, description: r.description, head: t(`options.cost_head.${r.cost_head}`),
       quantity: Number(r.quantity), rate: Number(r.rate_paise), amount: Number(r.amount_paise) })),
+    note,
     staffPay: office,
     totals: { work: workTotal, material: materialTotal, labour: labourTotal, staff: staffTotal, other: otherTotal, cost: costTotal, profit },
   };
@@ -389,7 +395,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           <span className="sr-badge" aria-hidden="true">3</span>
           <div>
             <h2 id="labour-title">{t('report.labourHeading')}</h2>
-            <p className="muted">{t('report.labourNote', { p: presentCount, a: labourRows.length - presentCount })}</p>
+            <p className="muted">{t('report.labourNote', { p: attended.P, h: attended.H, a: attended.A })}</p>
           </div>
           <span className="section-total">{showPaise(labourTotal + staffTotal)}</span>
         </header>
@@ -421,7 +427,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                         <strong>{p?.name}</strong>
                         {kind === 'staff' && <span className="pill common small-pill">{t('report.labour.staff')}</span>}
                       </td>
-                      <td className="s-meta"><span className={`pill ${r.present ? 'verified' : 'pending'}`}>{t(`report.labour.mark.${r.present ? 'P' : 'A'}`)}</span></td>
+                      <td className="s-meta"><span className={`pill ${{ P: 'verified', H: 'part', A: 'pending' }[markOf(r)]}`}>{t(`report.labour.mark.${markOf(r)}`)}</span></td>
                       <td className={Number(r.ot_hours) > 0 ? 'num s-meta' : 'num s-hide'}>{Number(r.ot_hours) > 0 ? t('report.labour.otHours', { n: Number(r.ot_hours) }) : '–'}</td>
                       <td className="num s-hide">{r.present && (office || kind !== 'staff') ? showPaise(Number(r.day_pay_paise)) : '–'}</td>
                       <td className="num s-amt">{office || kind !== 'staff' ? showPaise(Number(r.amount_paise)) : '–'}</td>
@@ -502,10 +508,22 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
         <OtherCostForm key={`${site.id}/${date}`} accounts={accounts} action={addOtherCost.bind(null, site.id, date)} />
       </section>
         ) },
+        { key: 'note', name: t('report.parts.note'), done: note !== '', panel: (
+      <section className="report-section" aria-labelledby="note-title">
+        <header className="report-head">
+          <span className="sr-badge" aria-hidden="true">5</span>
+          <div>
+            <h2 id="note-title">{t('report.noteHeading')}</h2>
+            <p className="muted">{t('report.note.hint')}</p>
+          </div>
+        </header>
+        <NoteForm key={`${site.id}/${date}`} note={note} action={saveReportNote.bind(null, site.id, date)} />
+      </section>
+        ) },
         { key: 'profit', name: t('report.parts.profit'), done: false, panel: (
       <section className="report-section" aria-labelledby="profit-title">
         <header className="report-head">
-          <span className="sr-badge" aria-hidden="true">5</span>
+          <span className="sr-badge" aria-hidden="true">6</span>
           <div>
             <h2 id="profit-title">{t('report.profitHeading')}</h2>
             <p className="muted">{site.name} · {showDate(date)}</p>

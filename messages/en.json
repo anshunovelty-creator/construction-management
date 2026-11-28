@@ -1116,6 +1116,8 @@
       "bad_ot": "Type OT hours as a number from 0 to 16, like 2 or 1.5.",
       "ot_absent": "OT can only be given on a day the person was present.",
       "staff_no_ot": "Staff have a fixed monthly salary, so no OT.",
+      "staff_no_half": "Staff have a fixed monthly salary, so no half day.",
+      "note_long": "The note is too long: 4000 letters at most.",
       "no_rate": "This person has no rate in Setup → Workers and staff. Add it there first.",
       "bad_account": "Choose an account you can pay from.",
       "future_paid": "Money cannot be paid on a day that has not come."
@@ -1125,7 +1127,7 @@
     "profit": "Profit or loss",
     "profitNote": "Work done less the day’s costs",
     "labourHeading": "Labour and staff",
-    "labourNote": "{p} present · {a} absent. A worker’s day is 8 hours, OT paid per hour on top; staff are on a fixed monthly salary",
+    "labourNote": "{p} present · {h, plural, =0 {} one {# half day · } other {# half days · }}{a} absent. A worker’s day is 8 hours, OT paid per hour on top; staff are on a fixed monthly salary",
     "noLabour": "Nobody marked for this day yet. Mark who came below.",
     "noWorkers": "No workers or staff on the list for this site yet.",
     "allMarked": "Everyone on the list is marked for this day.",
@@ -1139,16 +1141,25 @@
       "material": "Material",
       "labour": "People",
       "other": "Costs",
+      "note": "Notes",
       "profit": "Total"
     },
     "noStaffPay": "Staff salaries are not counted here.",
+    "noteHeading": "Notes",
+    "note": {
+      "hint": "What kind of work was done today, any extra work, anything the owner should know.",
+      "example": "e.g. Slab shuttering on 2nd floor. Extra: cleared the drain near the gate.",
+      "save": "Save note",
+      "saved": "Saved",
+      "notSaved": "Not saved yet"
+    },
     "otherHeading": "Other costs",
     "otherNote": "Tractor, labour colony, room, light, petrol: anything else the site cost today",
     "profitHeading": "Day’s profit or loss",
     "less": "Less: {what}",
     "labour": {
       "addTitle": "Mark attendance",
-      "addHint": "Tap P (present) or A (absent) for each person, and type OT hours worked past the 8-hour day. A worker’s day is 8 hours at their hourly rate in Setup, and each OT hour pays a day ÷ 8. Staff have a fixed monthly salary: no OT, nothing cut for leave; a day present counts a day’s share of it in this site’s costs. Anyone not marked is not saved.",
+      "addHint": "Tap P (present), H (half day: half the day's pay) or A (absent) for each person, and type OT hours worked past the 8-hour day. A worker’s day is 8 hours at their hourly rate in Setup, and each OT hour pays a day ÷ 8. Staff have a fixed monthly salary: no OT, nothing cut for leave; a day present counts a day’s share of it in this site’s costs. Anyone not marked is not saved.",
       "staffFixed": "Staff have a fixed salary: no OT",
       "name": "Name",
       "rate": "Rate",
@@ -1170,11 +1181,12 @@
       "dayPay": "Day’s pay",
       "mark": {
         "P": "Present",
+        "H": "Half day",
         "A": "Absent"
       },
       "otHours": "{n, plural, one {# hr} other {# hrs}}",
       "noRate": "No rate in Setup",
-      "marked": "{p} present · {a} absent"
+      "marked": "{p} present · {h, plural, =0 {} one {# half day · } other {# half days · }}{a} absent"
     },
     "other": {
       "addTitle": "Add other costs",

@@ -49,7 +49,7 @@ async function insertLines(table: Table, rows: object[]): Promise<LineState> {
 }
 
 /**
- * Who came to a site on a day: P or A for each worker and staff member, with OT hours for those present. The pay is
+ * Who came to a site on a day: P, H (half day, workers only) or A for each worker and staff member, with OT hours for those present. The pay is
  * worked out here from the rate in Setup (see src/lib/wages.ts), never from the screen. People left unmarked are not saved.
  */
 export async function addLabour(siteId: string, date: string, _state: LineState, data: FormData): Promise<LineState> {
@@ -68,10 +68,11 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
   ]);
   const rows = [];
   for (const [i, line] of lines.entries()) {
-    if (line.mark !== 'P' && line.mark !== 'A') continue;
+    if (line.mark !== 'P' && line.mark !== 'H' && line.mark !== 'A') continue;
     const p = person.get(line.partyId);
     if (!p) return { error: 'save_failed', line: i };
-    const present = line.mark === 'P';
+    const present = line.mark !== 'A';
+    const half = line.mark === 'H';
     let ot: number;
     try {
       ot = otCenti(line.ot ?? '');
@@ -80,10 +81,11 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
     }
     if (!present && ot > 0) return { error: 'ot_absent', line: i };
     if (p.kind === 'staff' && ot > 0) return { error: 'staff_no_ot', line: i };
+    if (p.kind === 'staff' && half) return { error: 'staff_no_half', line: i };
     if (present && p.rate === null) return { error: 'no_rate', line: i };
     const pay = dayPay(p.kind, p.rate ?? 0, date);
     rows.push({
-      site_id: siteId, work_date: date, party_id: p.id, present, ot_hours: ot / 100, day_pay_paise: pay, amount_paise: dayAmount(present, ot, pay),
+      site_id: siteId, work_date: date, party_id: p.id, present, half_day: half, ot_hours: ot / 100, day_pay_paise: pay, amount_paise: dayAmount(present, ot, pay, half),
     });
   }
   return insertLines('labour_day', rows);
@@ -264,4 +266,21 @@ export async function removeReportLine(table: Table, id: string, siteId: string,
   revalidatePath('/stock');
   revalidatePath('/salary', 'layout');
   back();
+}
+
+/**
+ * The day's note for a site: what work was done, any extra work. One per site and day, written over when saved again;
+ * saved empty, it is taken off. The change log keeps who wrote each version.
+ */
+export async function saveReportNote(siteId: string, date: string, _state: LineState, data: FormData): Promise<LineState> {
+  await requireProfile('owner', 'office', 'supervisor');
+  const note = String(data.get('note') ?? '').trim();
+  if (note.length > 4000) return { error: 'note_long' };
+  const db = await createClient();
+  const { error } = note
+    ? await db.from('report_note').upsert({ site_id: siteId, work_date: date, note }, { onConflict: 'site_id,work_date' })
+    : await db.from('report_note').delete().eq('site_id', siteId).eq('work_date', date);
+  if (error) return { error: 'save_failed', detail: error.message };
+  revalidatePath('/report');
+  return { saved: Date.now() };
 }

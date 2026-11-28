@@ -14,8 +14,10 @@ export interface SheetData {
   /** Grouped under each combination work; name '' is the materials on their own. */
   material: { name: string; total: number;
     rows: { id: string; name: string; quantity: number; unit: string; rate: number | null; amount: number; left: string; remark: string }[] }[];
-  labour: { id: string; name: string; staff: boolean; present: boolean; ot: number; dayPay: number; amount: number }[];
+  labour: { id: string; name: string; staff: boolean; present: boolean; mark: 'P' | 'H' | 'A'; ot: number; dayPay: number; amount: number }[];
   other: { id: string; description: string; head: string; quantity: number; rate: number; amount: number }[];
+  /** The supervisor's note for the day; empty when none. */
+  note: string;
   /** Whether what staff are paid may be shown: not to a supervisor. */
   staffPay: boolean;
   totals: { work: number; material: number; labour: number; staff: number; other: number; cost: number; profit: number };
@@ -27,7 +29,7 @@ export interface SheetData {
  */
 export async function PrintSheet({ d }: { d: SheetData }) {
   const t = await getTranslations('report');
-  const present = d.labour.filter((l) => l.present).length;
+  const count = (mark: 'P' | 'H' | 'A') => d.labour.filter((l) => l.mark === mark).length;
   const nil = (cols: number) => <tr><td colSpan={cols} className="nil">{t('sheet.nil')}</td></tr>;
 
   let materialNo = 0;
@@ -49,7 +51,7 @@ export async function PrintSheet({ d }: { d: SheetData }) {
         <div><span>{t('workTotal')}</span><strong>{showPaise(d.totals.work)}</strong></div>
         <div><span>{t('costTotal')}</span><strong>{showPaise(d.totals.cost)}</strong></div>
         <div className={d.totals.profit < 0 ? 'minus' : 'plus'}><span>{t('profit')}</span><strong>{showPaise(d.totals.profit)}</strong></div>
-        <div><span>{t('labourHeading')}</span><strong>{t('labour.marked', { p: present, a: d.labour.length - present })}</strong></div>
+        <div><span>{t('labourHeading')}</span><strong>{t('labour.marked', { p: count('P'), h: count('H'), a: count('A') })}</strong></div>
       </div>
 
       <h2>1. {t('workHeading')}</h2>
@@ -119,7 +121,7 @@ export async function PrintSheet({ d }: { d: SheetData }) {
             <tr key={r.id} className={r.present ? undefined : 'absent'}>
               <td className="n">{i + 1}</td>
               <td><strong>{r.name}</strong>{r.staff && <span className="tag">{t('labour.staff')}</span>}</td>
-              <td>{t(`labour.mark.${r.present ? 'P' : 'A'}`)}</td>
+              <td>{t(`labour.mark.${r.mark}`)}</td>
               <td className="num">{r.ot > 0 ? t('labour.otHours', { n: r.ot }) : '—'}</td>
               <td className="num">{r.present && (d.staffPay || !r.staff) ? showPaise(r.dayPay) : '—'}</td>
               <td className="num">{d.staffPay || !r.staff ? showPaise(r.amount) : '—'}</td>
@@ -151,7 +153,10 @@ export async function PrintSheet({ d }: { d: SheetData }) {
         <tfoot><tr><td /><td colSpan={4}>{t('sheet.total')}</td><td className="num">{showPaise(d.totals.other)}</td></tr></tfoot>
       </table>
 
-      <h2>5. {t('profitHeading')}</h2>
+      <h2>5. {t('noteHeading')}</h2>
+      <p className="sheet-note">{d.note || t('sheet.nil')}</p>
+
+      <h2>6. {t('profitHeading')}</h2>
       <table className="sheet-table sheet-summary">
         <tbody>
           <tr><td><strong>{t('workTotal')}</strong></td><td className="num"><strong>{showPaise(d.totals.work)}</strong></td></tr>

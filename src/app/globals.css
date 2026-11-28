@@ -395,6 +395,9 @@ table.saved-work tr.in-group td:first-child { padding-left: 28px; }
 .quick-time { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .quick-time .chip { min-width: 44px; min-height: 38px; justify-content: center; padding: 0 10px; cursor: pointer; font-family: var(--font-num); }
 .quick-time .chip.mark-P.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); }
+.report-note { width: 100%; resize: vertical; min-height: 6rem; font: inherit; }
+.sheet-note { white-space: pre-wrap; }
+.quick-time .chip.mark-H.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); border-style: dashed; }
 .quick-time .chip.mark-A.on { background: var(--minus-soft); border-color: var(--minus); color: var(--minus); }
 .labour-table .qty-with-unit input { width: 4.5rem; }
 /* The labour payment section: forms, and the month's sheet. */
