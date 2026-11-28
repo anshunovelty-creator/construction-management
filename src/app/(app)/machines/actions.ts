@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireProfile } from '@/lib/auth';
-import { machineService } from '@/lib/ledger/posting/other';
+import { machineService, typedCharges, withBankCharges } from '@/lib/ledger/posting/other';
 import { PAPER_NAMES, PAPERS, type Paper } from '@/lib/machines';
 import { rupeesToPaise } from '@/lib/money';
 import { sameName } from '@/lib/delete';
@@ -63,7 +63,8 @@ export async function addService(machineId: string, data: FormData): Promise<voi
     if (cost === 0) fail('cost');
     const [account, { data: machine }] = await Promise.all([payAccount(db, text(data, 'account')), db.from('machines').select('name').eq('id', machineId).maybeSingle()]);
     if (!account || !machine) return fail('account');
-    const entry = machineService({ account, amountPaise: cost, date, narration: [machine.name, note].filter(Boolean).join(' · ') });
+    let entry = machineService({ account, amountPaise: cost, date, narration: [machine.name, note].filter(Boolean).join(' · ') });
+    try { entry = withBankCharges(entry, account, typedCharges(data.get('charges'))); } catch { fail('charges'); }
     const { error } = await db.rpc('app_pay', { p_batches: [{ entry, lines: [{ source: 'machine', id: machineId, hours: Number(hours), amountPaise: cost, note }] }] });
     if (error) fail(error.message.includes('not enough cash') ? 'no_cash' : 'not_saved');
     revalidatePath('/', 'layout');
@@ -103,7 +104,8 @@ export async function addPaper(machineId: string, data: FormData): Promise<void>
     if (cost === 0) fail('cost');
     const [account, { data: machine }] = await Promise.all([payAccount(db, text(data, 'account')), db.from('machines').select('name').eq('id', machineId).maybeSingle()]);
     if (!account || !machine) return fail('account');
-    const entry = machineService({ account, amountPaise: cost, date: paid, narration: [`${PAPER_NAMES[paper]} ${details.paper_no}`.trim(), machine.name, note].filter(Boolean).join(' · ') });
+    let entry = machineService({ account, amountPaise: cost, date: paid, narration: [`${PAPER_NAMES[paper]} ${details.paper_no}`.trim(), machine.name, note].filter(Boolean).join(' · ') });
+    try { entry = withBankCharges(entry, account, typedCharges(data.get('charges'))); } catch { fail('charges'); }
     const line = { source: 'machine', id: machineId, hours: null, amountPaise: cost, note, paper, paperNo: details.paper_no, company: details.company, validFrom: from, validUntil: until };
     const { error } = await db.rpc('app_pay', { p_batches: [{ entry, lines: [line] }] });
     if (error) fail(error.message.includes('not enough cash') ? 'no_cash' : 'not_saved');

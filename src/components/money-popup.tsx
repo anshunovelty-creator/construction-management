@@ -83,6 +83,8 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   const [month, setMonth] = useState(lastMonth(today.slice(0, 7)));
   const [reference, setReference] = useState('');
   const [narration, setNarration] = useState(fixed?.note ?? '');
+  // What the bank kept on top (owner decision 2026-11-28).
+  const [charges, setCharges] = useState('');
   const [failed, setFailed] = useState<string | null>(null);
   // Asked before saving: it looks like one already there, or the amount looks wrong. Saving anyway answers it.
   // The answer is only for what was asked: anything changed is asked about again.
@@ -97,6 +99,11 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
   const withWhom = picked?.lender ? lenders : (picked?.party === 'vendor') === (mode === 'out') ? people : others;
   const named = Boolean(picked?.party || picked?.lender);
   const lender = picked?.lender ? lenders.find((p) => p.id === who) : undefined;
+  // The bank that keeps the charges: the one money leaves, else (Deposit cash) the one it goes into. Not on money in,
+  // money not yet known, or a bank charge itself.
+  const bankSide = [why === 'move' ? from : acct, why === 'move' ? to : ''].map((id) => accounts.find((a) => a.id === id)).find((a) => a?.kind === 'bank');
+  const chargeable = !fixed && mode !== 'in' && why !== 'unknown' && reason !== 'bank_charges' && bankSide !== undefined;
+  const chargePaise = chargeable ? toPaise(charges) : 0;
   // A personal expense says what it was spent on, so the Personal expenses page can show where the money went.
   const ready = paise > 0 && (moves || Boolean(acct)) && (!personal || narration.trim() !== '') && (why !== 'other' || Boolean(picked && (!named || who) && (!picked.note || narration.trim()))) && (why === 'move' ? Boolean(from && to && from !== to) : why === person ? Boolean(who) : why !== 'unknown' || narration.trim() !== '');
 
@@ -105,6 +112,7 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
     setText('');
     setReference('');
     setNarration('');
+    setCharges('');
     setWho(preset?.who ?? '');
     setFailed(null);
     setSaved(null);
@@ -113,7 +121,7 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
     if (saved) startNext();
     dialog.current?.showModal();
   };
-  const asked = `${paise}|${who}|${why}|${from}|${to}`;
+  const asked = `${paise}|${who}|${why}|${from}|${to}|${charges}`;
   const ask = asking?.of === asked ? asking.about : null;
   const submit = (e: React.SyntheticEvent, answered: 'repeat' | 'doubt' | null = null) => {
     e.preventDefault();
@@ -125,18 +133,18 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
       const leaves = fixed || mode === 'in' ? undefined : accounts.find((a) => a.id === (why === 'move' ? from : acct));
       const bank = leaves?.kind === 'bank' ? leaves : undefined;
       const left = why === person ? chosen?.left : mode === 'out' ? lender?.left : undefined;
-      const found = amountDoubts({ paise, left, before: bank?.balance, after: bank && bank.balance - paise });
+      const found = amountDoubts({ paise, left, before: bank?.balance, after: bank && bank.balance - paise - chargePaise });
       if (found.length > 0) {
         setAsking({ about: 'doubt', of: asked });
         setFailed([...found.map((d) => (d === 'more' ? t('doubts.more', { amount: showPaise(paise - left!), left: showPaise(left!) })
-          : t('doubts.overdrawn', { account: bank!.name, amount: showPaise(bank!.balance - paise) }))), t('doubts.check')].join(' '));
+          : t('doubts.overdrawn', { account: bank!.name, amount: showPaise(bank!.balance - paise - chargePaise) }))), t('doubts.check')].join(' '));
         return;
       }
     }
     const anyway = answered === 'repeat';
     // Kept per entry, so a retry after a lost connection cannot save it twice.
     entryId.current ||= crypto.randomUUID();
-    const cells: Record<string, string> = { entry_date: date, amount: text, reference, narration, ...(anyway ? {} : { check: '1' }) };
+    const cells: Record<string, string> = { entry_date: date, amount: text, reference, narration, ...(chargeable && { charges }), ...(anyway ? {} : { check: '1' }) };
     if (why === 'client') Object.assign(cells, { client_id: who, to_account_id: acct });
     else if (why === 'party') Object.assign(cells, { vendor_id: who, from_account_id: acct });
     else if (why === 'other') Object.assign(cells, { reason, account_id: acct, person_id: named ? who : '', month: picked?.month ? month : '' });
@@ -270,6 +278,15 @@ export function MoneyPopup({ mode, firm, account, accounts, people, others = [],
               <div className="rcv-notes">
                 {pick(t(mode === 'deposit' ? 'cash.fromCash' : 'cash.fromBank'), 'from', from, setFrom, -1, to)}
                 {pick(t(mode === 'withdraw' ? 'cash.intoCash' : 'cash.intoBank'), 'to', to, setTo, 1, from)}
+              </div>
+            )}
+            {chargeable && (
+              <div className="field">
+                <label>
+                  <span>{t('fields.charges')} <span className="optional">{t('common.optional')}</span></span>
+                  <input type="text" inputMode="decimal" autoComplete="off" value={charges} onChange={(e) => setCharges(e.target.value)} />
+                </label>
+                {chargePaise > 0 && paise > 0 && <p className="hint">{t('bankbook.popup.withCharges', { bank: bankSide!.name, charges: showPaise(chargePaise) })}</p>}
               </div>
             )}
             {!fixed && <DateBox date={date} setDate={setDate} today={today} label={t('fields.entry_date')} />}

@@ -8,6 +8,7 @@ import type { WorkActivity, WorkState } from '@/components/work-done-form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { quantityToMilli } from '@/lib/ledger/bill-items';
 import { siteCashExpense } from '@/lib/ledger/posting/cash';
+import { typedCharges, withBankCharges } from '@/lib/ledger/posting/other';
 import { COST_HEADS, type CostHead, type EntryDraft } from '@/lib/ledger/types';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
@@ -57,14 +58,14 @@ export async function addLabour(siteId: string, date: string, _state: LineState,
   const lines = parseLines<LabourLine>(data);
   if (!lines) return { error: 'nothing' };
   const db = await createClient();
-  // Staff come without their salary, which a supervisor does not see: the database works out what their day comes to.
+  // Staff are not in a supervisor's parties list: they come from app_site_staff, and the database works out their day.
   const [{ data: workers }, { data: staff }] = await Promise.all([
     db.from('parties').select('id, rate_paise').eq('kind', 'worker').in('id', lines.map((l) => l.partyId)),
     db.rpc('app_site_staff'),
   ]);
   const person = new Map<string, { id: string; kind: 'worker' | 'staff'; rate: number | null }>([
     ...(workers ?? []).map((p) => [p.id as string, { id: p.id as string, kind: 'worker' as const, rate: p.rate_paise === null ? null : Number(p.rate_paise) }] as const),
-    ...((staff ?? []) as { id: string; has_rate: boolean }[]).map((p) => [p.id, { id: p.id, kind: 'staff' as const, rate: p.has_rate ? 0 : null }] as const),
+    ...((staff ?? []) as { id: string; rate_paise: number | string | null }[]).map((p) => [p.id, { id: p.id, kind: 'staff' as const, rate: p.rate_paise === null ? null : 0 }] as const),
   ]);
   const rows = [];
   for (const [i, line] of lines.entries()) {
@@ -155,6 +156,11 @@ export async function payCost(id: string, entryId: string, siteId: string, date:
     entry = siteCashExpense({ id: entryId, from, siteId, costHead: cost.cost_head as CostHead, amountPaise: Number(cost.amount_paise), expenseDate: paidOn, narration: cost.description as string });
   } catch (error) {
     return fail((error as Error).message);
+  }
+  try {
+    entry = withBankCharges(entry, from, typedCharges(data.get('charges')));
+  } catch {
+    return fail('Bank charges must be a rupee amount, and come out of a bank.');
   }
   const { error } = await db.rpc('app_pay_cost', { p_cost: id, p_entry: entry });
   if (error) return fail(error.message);

@@ -113,7 +113,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     // Staff first, then workers, by name: the order of the site sheet.
     db.from('parties').select('id, name, kind, rate_paise, site_id').in('kind', ['staff', 'worker']).eq('is_active', true)
       .order('kind', { ascending: false }).order('name').returns<PersonRow[]>(),
-    // A supervisor gets the staff by name only: what they are paid is for the owner and office.
+    // A supervisor cannot read staff in parties: they come with their salary from app_site_staff.
     office ? Promise.resolve({ data: null }) : db.rpc('app_site_staff'),
     db.from('labour_day').select('id, party_id, present, half_day, ot_hours, day_pay_paise, amount_paise, created_by, staff:labour_day_staff(day_pay_paise, amount_paise)')
       .eq('site_id', site.id).eq('work_date', date).returns<(LabourRow & { staff: Pick<LabourRow, 'day_pay_paise' | 'amount_paise'> | null })[]>(),
@@ -138,7 +138,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const workTotal = sum(workRows);
 
   const workers: PersonRow[] = [
-    ...((siteStaff ?? []) as { id: string; name: string; site_id: string | null }[]).map((p) => ({ ...p, kind: 'staff' as const, rate_paise: null }))
+    ...((siteStaff ?? []) as { id: string; name: string; site_id: string | null; rate_paise: number | string | null }[]).map((p) => ({ ...p, kind: 'staff' as const, rate_paise: p.rate_paise === null ? null : Number(p.rate_paise) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
     ...(listed ?? []),
   ];
@@ -153,7 +153,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const here = new Set((recent ?? []).map((x) => x.party_id));
   const elsewhere = new Set(((away ?? []) as { party_id: string }[]).map((x) => x.party_id));
   const unmarked: Person[] = workers.filter((p) => !marked.has(p.id) && (!p.site_id || p.site_id === site.id))
-    .map((p) => ({ id: p.id, name: p.name, kind: p.kind, hidden: !office && p.kind === 'staff', here: p.site_id === site.id || here.has(p.id), elsewhere: elsewhere.has(p.id), rate: p.rate_paise === null ? null : Number(p.rate_paise),
+    .map((p) => ({ id: p.id, name: p.name, kind: p.kind, here: p.site_id === site.id || here.has(p.id), elsewhere: elsewhere.has(p.id), rate: p.rate_paise === null ? null : Number(p.rate_paise),
       dayPay: p.rate_paise === null ? null : dayPay(p.kind, Number(p.rate_paise), date) }));
   const isStaff = (r: LabourRow) => person.get(r.party_id)?.kind === 'staff';
   const markOf = (r: LabourRow) => (!r.present ? 'A' : r.half_day ? 'H' : 'P');
@@ -219,7 +219,6 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     other: otherRows.map((r) => ({ id: r.id, description: r.description, head: t(`options.cost_head.${r.cost_head}`),
       quantity: Number(r.quantity), rate: Number(r.rate_paise), amount: Number(r.amount_paise) })),
     note,
-    staffPay: office,
     totals: { work: workTotal, material: materialTotal, labour: labourTotal, staff: staffTotal, other: otherTotal, cost: costTotal, profit },
   };
 
@@ -429,8 +428,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                       </td>
                       <td className="s-meta"><span className={`pill ${{ P: 'verified', H: 'part', A: 'pending' }[markOf(r)]}`}>{t(`report.labour.mark.${markOf(r)}`)}</span></td>
                       <td className={Number(r.ot_hours) > 0 ? 'num s-meta' : 'num s-hide'}>{Number(r.ot_hours) > 0 ? t('report.labour.otHours', { n: Number(r.ot_hours) }) : '–'}</td>
-                      <td className="num s-hide">{r.present && (office || kind !== 'staff') ? showPaise(Number(r.day_pay_paise)) : '–'}</td>
-                      <td className="num s-amt">{office || kind !== 'staff' ? showPaise(Number(r.amount_paise)) : '–'}</td>
+                      <td className="num s-hide">{r.present ? showPaise(Number(r.day_pay_paise)) : '–'}</td>
+                      <td className="num s-amt">{showPaise(Number(r.amount_paise))}</td>
                       <td className="s-x">{canRemove(r.created_by) && remove('labour_day', r.id)}</td>
                     </tr>
                   );
@@ -438,7 +437,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
               </tbody>
               <tfoot>
                 <tr><td /><td colSpan={4}>{t('report.labourTotal')}</td><td className="num">{showPaise(labourTotal)}</td><td /></tr>
-                {office && <tr><td /><td colSpan={4}>{t('report.staffTotal')}</td><td className="num">{showPaise(staffTotal)}</td><td /></tr>}
+                <tr><td /><td colSpan={4}>{t('report.staffTotal')}</td><td className="num">{showPaise(staffTotal)}</td><td /></tr>
               </tfoot>
             </table>
           </div>
@@ -488,6 +487,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                           <summary className="btn ghost small">{t('report.other.payNow')}</summary>
                           <form action={payCost.bind(null, r.id, crypto.randomUUID(), site.id, date)}>
                             <select name="account" required defaultValue="" aria-label={t('report.other.paidFrom')}><option value="">{t('bankbook.popup.pick')}</option><AccountOptions accounts={accounts} /></select>
+                            <input name="charges" inputMode="decimal" autoComplete="off" placeholder={t('fields.charges')} aria-label={t('fields.charges')} className="charges-box" />
                             <input type="date" name="date" required defaultValue={today} max={today} aria-label={t('fields.entry_date')} />
                             <button type="submit" className="btn small">{t('payList.party.button')}</button>
                           </form>
@@ -535,8 +535,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
               <tr><td><strong>{t('report.workTotal')}</strong></td><td className="num"><strong>{showPaise(workTotal)}</strong></td></tr>
               <tr><td>{t('report.less', { what: t('report.materialHeading') })}</td><td className="num">{showPaise(materialTotal)}</td></tr>
               <tr><td>{t('report.less', { what: t('report.labourTotal') })}</td><td className="num">{showPaise(labourTotal)}</td></tr>
-              {office ? <tr><td>{t('report.less', { what: t('report.staffTotal') })}</td><td className="num">{showPaise(staffTotal)}</td></tr>
-                : <tr><td colSpan={2} className="muted">{t('report.noStaffPay')}</td></tr>}
+              <tr><td>{t('report.less', { what: t('report.staffTotal') })}</td><td className="num">{showPaise(staffTotal)}</td></tr>
               <tr><td>{t('report.less', { what: t('report.otherHeading') })}</td><td className="num">{showPaise(otherTotal)}</td></tr>
             </tbody>
             <tfoot>

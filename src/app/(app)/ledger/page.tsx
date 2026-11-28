@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { ListLink } from '@/components/list-link';
 import { SearchSelect } from '@/components/search-select';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
-import { buildStatement, tallyFoot } from '@/lib/ledger/statement';
+import { buildStatement } from '@/lib/ledger/statement';
 import { showPaise, roundOffSmall } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { loadNames, showDate, todayInIndia } from '../entries/data';
@@ -49,17 +49,18 @@ function monthOf(date: string, shift = 0): { from: string; to: string } {
 }
 
 /**
- * One vendor's, client's or site's statement in the working firm, like a bank statement:
- * date, entry, particulars, debit, credit and the running balance. ?of=party:<id> or site:<id>, &from, &to.
+ * One vendor's, client's or site's statement in the working firm, laid out like a bank statement (owner decision
+ * 2026-11-28, replacing the Tally-style month): a heading, the period's opening, totals and closing, then one row per
+ * transaction with the balance after it. Every transaction unless dates are given. Only the statement is printed.
+ * ?of=party:<id> or site:<id>, &from, &to.
  */
 export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ of?: string; from?: string; to?: string }> }) {
   await requireProfile('owner', 'office');
   const params = await searchParams;
   const of = params.of ?? '';
-  // Like Tally, a ledger is read a month at a time: this month unless dates are given.
-  const given = DATE.test(params.from ?? '') || DATE.test(params.to ?? '');
-  const from = given ? (DATE.test(params.from ?? '') ? params.from! : '') : monthOf(todayInIndia()).from;
-  const to = given ? (DATE.test(params.to ?? '') ? params.to! : '') : monthOf(todayInIndia()).to;
+  // Every transaction, like a full statement, unless dates are given.
+  const from = DATE.test(params.from ?? '') ? params.from! : '';
+  const to = DATE.test(params.to ?? '') ? params.to! : '';
   const [kind, id = ''] = of.split(':');
   const [working, t] = await Promise.all([getWorkingFirm(), getTranslations()]);
   if (!working) return <p className="empty">{t('party.noFirm')}</p>;
@@ -132,7 +133,6 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
   }
 
   const s = buildStatement(rows, from, to);
-  const foot = tallyFoot(s);
   const monthLink = (shift: number) => {
     const m = monthOf(from || todayInIndia(), shift);
     return `/ledger?of=${encodeURIComponent(of)}&from=${m.from}&to=${m.to}`;
@@ -157,15 +157,13 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
     ? t('ledger.period', { from: from ? showDate(from) : t('ledger.start'), to: showDate(to || todayInIndia()) })
     : t('ledger.allEntries', { to: showDate(todayInIndia()) });
 
+  const fileName = subject ? `${t('ledger.titleOf', { name: subject })} - ${firm.name}` : undefined;
+
   return (
     <>
-      <div className="ledger-head">
-        <div>
-          <p className="muted ledger-firm">{firm.name}</p>
-          <h1>{subject ? t('ledger.titleOf', { name: subject }) : t('ledger.title')}</h1>
-          {subject && <p className="muted">{period}</p>}
-        </div>
-        {subject && <PrintButton label={t('ledger.print')} />}
+      <div className="ledger-head no-print">
+        <h1>{t('ledger.title')}</h1>
+        {subject && <PrintButton label={t('ledger.print')} title={fileName} />}
       </div>
 
       <form className="card ledger-filters no-print" method="get">
@@ -187,6 +185,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         <button type="submit" className="btn">{t('ledger.show')}</button>
         {of && (
           <div className="day-picker">
+            {(from || to) && <Link href={`/ledger?of=${encodeURIComponent(of)}`} className="btn ghost">{t('ledger.allTransactions')}</Link>}
             <Link href={monthLink(-1)} className="btn ghost" aria-label={t('ledger.prevMonth')}><Icon name="chevronLeft" /> {t('ledger.prevMonth')}</Link>
             <Link href={monthLink(1)} className="btn ghost" aria-label={t('ledger.nextMonth')}>{t('ledger.nextMonth')} <Icon name="chevronRight" /></Link>
           </div>
@@ -196,10 +195,24 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
       {!subject ? (
         <p className="card empty">{of ? t('ledger.notFound') : t('ledger.hint')}</p>
       ) : (
-        <>
-          <p className={`banner${closingGood ? '' : ' bad'}`}>
-            <span><strong>{t('ledger.closingTitle', { date: showDate(to || todayInIndia()) })}</strong> {closingWords}</span>
-          </p>
+        <article className="ledger-paper">
+          <header className="paper-head">
+            <div>
+              <p className="ledger-firm">{firm.name}</p>
+              <h2>{t('ledger.statementOf', { name: subject })}</h2>
+              <p className="muted">{period}</p>
+            </div>
+            <p className="muted ledger-printed">{t('ledger.printedOn', { date: showDate(todayInIndia()) })}</p>
+          </header>
+
+          <dl className="paper-summary">
+            <div><dt>{t('ledger.openingBalance')}</dt><dd>{balanceCell(s.opening)}</dd></div>
+            <div><dt>{t(`ledger.debit.${side}`)}</dt><dd>{showPaise(s.debit)}</dd></div>
+            <div><dt>{t(`ledger.credit.${side}`)}</dt><dd>{showPaise(s.credit)}</dd></div>
+            <div className={closingGood ? 'plus' : 'minus'}><dt>{t('ledger.closingBalance')}</dt><dd>{balanceCell(s.closing)}</dd></div>
+          </dl>
+          <p className={`paper-words ${closingGood ? 'plus' : 'minus'}`}>{closingWords}</p>
+
           <div className="card table-wrap flush">
             <table className="ledger statement">
               <thead>
@@ -217,8 +230,8 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                   <td className="nowrap">{from ? showDate(from) : ''}</td>
                   <td><strong>{t('ledger.openingBalance')}</strong></td>
                   <td />
-                  <td className="num">{s.opening > 0 ? showPaise(s.opening) : ''}</td>
-                  <td className="num">{s.opening < 0 ? showPaise(-s.opening) : ''}</td>
+                  <td className="num" />
+                  <td className="num" />
                   <td className="num strong">{balanceCell(s.opening)}</td>
                 </tr>
                 {s.lines.length === 0 && (
@@ -245,34 +258,18 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                   </tr>
                 ))}
               </tbody>
-              {/* Tally's foot: the current totals (with the opening balance), the closing balance on the other side,
-                  then both columns on the same total. */}
               <tfoot>
                 <tr>
-                  <td colSpan={3}>{t('ledger.currentTotal')}</td>
-                  <td className="num">{showPaise(foot.debit)}</td>
-                  <td className="num">{showPaise(foot.credit)}</td>
-                  <td />
-                </tr>
-                <tr>
                   <td className="nowrap">{showDate(to || todayInIndia())}</td>
-                  <td><strong>{t('ledger.closingBalance')}</strong></td>
-                  <td />
-                  <td className="num">{foot.closingDebit ? showPaise(foot.closingDebit) : ''}</td>
-                  <td className="num">{foot.closingCredit ? showPaise(foot.closingCredit) : ''}</td>
+                  <td colSpan={2}><strong>{t('ledger.closingBalance')}</strong></td>
+                  <td className="num">{showPaise(s.debit)}</td>
+                  <td className="num">{showPaise(s.credit)}</td>
                   <td className="num strong">{balanceCell(s.closing)}</td>
-                </tr>
-                <tr className="ledger-grand">
-                  <td colSpan={3} />
-                  <td className="num">{showPaise(foot.total)}</td>
-                  <td className="num">{showPaise(foot.total)}</td>
-                  <td />
                 </tr>
               </tfoot>
             </table>
           </div>
-          <p className="muted ledger-printed">{t('ledger.printedOn', { date: showDate(todayInIndia()) })}</p>
-        </>
+        </article>
       )}
     </>
   );

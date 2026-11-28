@@ -74,6 +74,10 @@ export default async function MachinePage({ params, searchParams }: { params: Pr
             <AccountOptions accounts={accounts} /></select>
         </div>
         <div className="field">
+          <label htmlFor="s-charges">{t('fields.charges')} <span className="optional">{t('common.optional')}</span></label>
+          <input id="s-charges" name="charges" inputMode="decimal" autoComplete="off" />
+        </div>
+        <div className="field">
           <label htmlFor="s-note">{t('machines.note')}</label>
           <input id="s-note" name="note" />
         </div>
@@ -161,6 +165,10 @@ export default async function MachinePage({ params, searchParams }: { params: Pr
           <label htmlFor="p-account">{t('pay.from')}</label>
           <select id="p-account" name="account" defaultValue=""><option value="">{t('report.other.notPaid')}</option>
             <AccountOptions accounts={accounts} /></select>
+        </div>
+        <div className="field">
+          <label htmlFor="p-charges">{t('fields.charges')} <span className="optional">{t('common.optional')}</span></label>
+          <input id="p-charges" name="charges" inputMode="decimal" autoComplete="off" />
         </div>
         <div className="field">
           <label htmlFor="p-paid">{t('machines.papers.paidOn')}</label>

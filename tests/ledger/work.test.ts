@@ -33,3 +33,9 @@ it('numbers measurements of the same work 1.1, 1.2 …, and a single one as the 
   expect([0, 1, 2].map((l) => lineSerial(2, l, 3))).toEqual(['2.1', '2.2', '2.3']);
   expect(lineSerial(4, 0, 1)).toBe('4');
 });
+
+it('multiplies No. and four boxes for a unit measured by 4 boxes', () => {
+  expect(quantityMilli('factors', { count: '2', a: '12', b: '6.5', c: '1', d: '0.888' })).toBe(138_528);
+  expect(measurementText('factors', { count: '2', a: '12', b: '6.5', c: '1', d: '0.888' })).toBe('2 × 12 × 6.5 × 1 × 0.888');
+  expect(() => quantityMilli('factors', { a: '12', b: '6.5', c: '1' })).toThrow('d');
+});

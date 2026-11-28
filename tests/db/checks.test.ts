@@ -122,3 +122,20 @@ describe('counting cash', () => {
     await expect(count(owner, seed.ownerCash.id, '2026-11-05', 1)).rejects.toThrow('locked');
   });
 });
+
+describe('bank charges in one place', () => {
+  it('lists a charge typed with a party payment and one on its own, with their bank, and drops a cancelled one', async () => {
+    const bank = seed.jayrajBank;
+    await post(openingMoneyBalance({ account: bank, amountPaise: 1_00_000_00, asOf: '2026-11-01' }));
+    const paid = await post(vendorPayment({ billFirmId: seed.jayraj, vendorId: seed.ansari, from: bank, amountPaise: 50_000_00, chargesPaise: 10_00, paymentDate: '2026-11-05' }));
+    await post(otherMoney({ reason: 'bank_charges', account: bank, amountPaise: 590_00, date: '2026-11-06' }));
+    const wrong = await post(otherMoney({ reason: 'bank_charges', account: bank, amountPaise: 5_00, date: '2026-11-07' }));
+    await reverseEntry(db, wrong.id, OWNER, 'typed twice');
+    const rows = await run(owner, `select entry_id, party_id is not null as with_party, charges_paise::int as charges, money_account_id
+      from bank_charge_rows where firm_id = $1 order by entry_date`, [seed.jayraj]);
+    expect(rows).toEqual([
+      { entry_id: paid.id, with_party: true, charges: 10_00, money_account_id: bank.id },
+      { entry_id: expect.any(String), with_party: false, charges: 590_00, money_account_id: bank.id },
+    ]);
+  });
+});

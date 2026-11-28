@@ -18,8 +18,6 @@ export interface SheetData {
   other: { id: string; description: string; head: string; quantity: number; rate: number; amount: number }[];
   /** The supervisor's note for the day; empty when none. */
   note: string;
-  /** Whether what staff are paid may be shown: not to a supervisor. */
-  staffPay: boolean;
   totals: { work: number; material: number; labour: number; staff: number; other: number; cost: number; profit: number };
 }
 
@@ -123,14 +121,14 @@ export async function PrintSheet({ d }: { d: SheetData }) {
               <td><strong>{r.name}</strong>{r.staff && <span className="tag">{t('labour.staff')}</span>}</td>
               <td>{t(`labour.mark.${r.mark}`)}</td>
               <td className="num">{r.ot > 0 ? t('labour.otHours', { n: r.ot }) : '—'}</td>
-              <td className="num">{r.present && (d.staffPay || !r.staff) ? showPaise(r.dayPay) : '—'}</td>
-              <td className="num">{d.staffPay || !r.staff ? showPaise(r.amount) : '—'}</td>
+              <td className="num">{r.present ? showPaise(r.dayPay) : '—'}</td>
+              <td className="num">{showPaise(r.amount)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr><td /><td colSpan={4}>{t('labourTotal')}</td><td className="num">{showPaise(d.totals.labour)}</td></tr>
-          {d.staffPay && <tr><td /><td colSpan={4}>{t('staffTotal')}</td><td className="num">{showPaise(d.totals.staff)}</td></tr>}
+          <tr><td /><td colSpan={4}>{t('staffTotal')}</td><td className="num">{showPaise(d.totals.staff)}</td></tr>
         </tfoot>
       </table>
 
@@ -162,8 +160,7 @@ export async function PrintSheet({ d }: { d: SheetData }) {
           <tr><td><strong>{t('workTotal')}</strong></td><td className="num"><strong>{showPaise(d.totals.work)}</strong></td></tr>
           <tr><td>{t('less', { what: t('materialHeading') })}</td><td className="num">{showPaise(d.totals.material)}</td></tr>
           <tr><td>{t('less', { what: t('labourTotal') })}</td><td className="num">{showPaise(d.totals.labour)}</td></tr>
-          {d.staffPay ? <tr><td>{t('less', { what: t('staffTotal') })}</td><td className="num">{showPaise(d.totals.staff)}</td></tr>
-            : <tr><td colSpan={2}>{t('noStaffPay')}</td></tr>}
+          <tr><td>{t('less', { what: t('staffTotal') })}</td><td className="num">{showPaise(d.totals.staff)}</td></tr>
           <tr><td>{t('less', { what: t('otherHeading') })}</td><td className="num">{showPaise(d.totals.other)}</td></tr>
         </tbody>
         <tfoot>

@@ -167,6 +167,14 @@ export function FirmPopup({ us, them, sites, gstRates, tdsRates, machines, rentT
                   {select('from', t('between.outOf', { firm: payer.name }), payer.accounts, true)}
                   {transfer && select('to', t('between.into', { firm: other.name }), other.accounts, true)}
                 </div>
+                {payer.accounts.find((a) => a.id === cells.from)?.kind === 'bank' && (
+                  <div className="field">
+                    <label>
+                      <span>{t('fields.charges')} <span className="optional">{t('common.optional')}</span></span>
+                      <input type="text" inputMode="decimal" autoComplete="off" value={cells.charges ?? ''} onChange={(e) => set('charges', e.target.value)} />
+                    </label>
+                  </div>
+                )}
               </>
             )}
             <DateBox date={date} setDate={setDate} today={today} label={t('fields.entry_date')} />

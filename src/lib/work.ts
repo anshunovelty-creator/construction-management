@@ -1,17 +1,21 @@
 import { ENUMS } from '@/lib/masters/registry';
 
-/** How a unit is measured (Setup → Units): by its quantity, or by length, length × width, or length × width × height. */
+/**
+ * How a unit is measured (Setup → Units): by its quantity, or by length, length × width, length × width × height, or
+ * four boxes of any meaning (A × B × C × D, owner decision 2026-11-28).
+ */
 export type Measure = (typeof ENUMS.unit_measure)[number];
 
 /** The boxes a measurement line has for each kind of unit, after "No." (how many alike). */
-export const DIMENSIONS: Record<Measure, readonly ('length' | 'width' | 'height' | 'quantity')[]> = {
+export const DIMENSIONS: Record<Measure, readonly ('length' | 'width' | 'height' | 'quantity' | 'a' | 'b' | 'c' | 'd')[]> = {
   quantity: ['quantity'],
   length: ['length'],
   area: ['length', 'width'],
   volume: ['length', 'width', 'height'],
+  factors: ['a', 'b', 'c', 'd'],
 };
 
-export type MeasurementLine = Partial<Record<'count' | 'length' | 'width' | 'height' | 'quantity', string>>;
+export type MeasurementLine = Partial<Record<'count' | (typeof DIMENSIONS)[Measure][number], string>>;
 
 const NUMBER = /^(\d+(\.\d*)?|\.\d+)$/;
 

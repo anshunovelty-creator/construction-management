@@ -4,7 +4,7 @@ import { reverseEntry } from '@/lib/ledger/lifecycle';
 import { siteCashExpense } from '@/lib/ledger/posting/cash';
 import { clientBill } from '@/lib/ledger/posting/client';
 import { openingMoneyBalance } from '@/lib/ledger/posting/opening';
-import { machineService, otherMoney, REASONS, reasonOf, wagesPaid } from '@/lib/ledger/posting/other';
+import { machineService, otherMoney, REASONS, reasonOf, wagesPaid, withBankCharges } from '@/lib/ledger/posting/other';
 import { vendorBill } from '@/lib/ledger/posting/vendor';
 import { postEntry } from '@/lib/ledger/repo';
 import type { EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
@@ -269,5 +269,26 @@ describe('every other reason', () => {
     expect(() => otherMoney({ ...base, reason: 'retention_back' })).toThrow('who it was with');
     expect(() => otherMoney({ ...base, reason: 'gst_paid' })).toThrow('month');
     expect(() => otherMoney({ ...base, reason: 'nonsense' })).toThrow('choose');
+  });
+});
+
+describe('bank charges on a payment', () => {
+  it('pays salaries and a machine service with what the bank kept on top, and still checks the lines add up', async () => {
+    await postEntry(db, openingMoneyBalance({ account: seed.jayrajBank, amountPaise: 1_00_000_00, asOf: '2026-11-01' }), OWNER);
+    await payAs(owner, { entry: withBankCharges(wages(seed.jayrajBank, 20_000_00), seed.jayrajBank, 10_00), lines: [salary(sita, 20_000_00)] });
+    expect(await held(seed.jayrajBank)).toBe(79_990_00);
+    expect((await db.query(`select charges_paise::int as c from bank_charge_rows`)).rows).toEqual([{ c: 10_00 }]);
+    await expect(payAs(owner, { entry: withBankCharges(wages(seed.jayrajBank, 20_000_00), seed.jayrajBank, 10_00), lines: [salary(sita, 19_990_00)] }))
+      .rejects.toThrow('add up');
+
+    const bank: MoneyAccountRef = { id: (await db.query<{ id: string }>(`insert into money_accounts (kind, name, firm_id) values ('bank', 'Ansari Bank', $1) returning id`, [ansari])).rows[0]!.id, kind: 'bank', firmId: ansari };
+    await postEntry(db, openingMoneyBalance({ account: bank, amountPaise: 50_000_00, asOf: '2026-11-01' }), OWNER);
+    const machine = (await db.query<{ id: string }>(`insert into machines (name) values ('AJAX 1') returning id`)).rows[0]!.id;
+    const id = (await db.query<{ id: string }>(
+      `insert into machine_services (machine_id, service_date, running_hours, cost_paise, created_by) values ($1, '2026-11-01', 500, 1200000, $2) returning id`, [machine, owner])).rows[0]!.id;
+    const entry = withBankCharges(machineService({ account: bank, amountPaise: 12_000_00, date: '2026-11-20', narration: 'AJAX 1' }), bank, 5_00);
+    await asUser(db, owner, (tx) => tx.query(`select app_pay_service($1, $2)`, [id, JSON.stringify(entry)]));
+    expect(await held(bank)).toBe(37_995_00);
+    expect((await db.query(`select cost_paise::int as cost from machine_services`)).rows).toEqual([{ cost: 12_000_00 }]);
   });
 });

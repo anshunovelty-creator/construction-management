@@ -48,8 +48,6 @@ export interface Person {
   kind: PersonKind;
   rate: number | null;
   dayPay: number | null;
-  /** Staff, as a supervisor sees them: marked, but what they are paid is not shown. */
-  hidden?: boolean;
   /** Usually works at this site, so they come first. */
   here?: boolean;
   /** Already present at another site this day. */
@@ -145,7 +143,7 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                 const line = lines[l]!;
                 if (!shows(p, l)) return null;
                 return (
-                  <tr key={p.id} className={[state.line === l && 'wrong', line.mark !== 'P' && line.mark !== 'H' && 'unmarked', p.kind === 'staff' && 'staff', p.hidden && 'unpaid-staff'].filter(Boolean).join(' ') || undefined}>
+                  <tr key={p.id} className={[state.line === l && 'wrong', line.mark !== 'P' && line.mark !== 'H' && 'unmarked', p.kind === 'staff' && 'staff'].filter(Boolean).join(' ') || undefined}>
                     <td className="box muted line-no">{l + 1}</td>
                     <td className="wide" data-label={t('labour.name')}>
                       <strong>{p.name}</strong>
@@ -184,8 +182,8 @@ export function LabourForm({ people, action }: { people: Person[]; action: Actio
                       </span>
                       )}
                     </td>
-                    <td className={p.rate === null && !p.hidden ? 'num rate minus' : 'num rate'} data-label={t('labour.rate')}>
-                      {p.hidden ? '–' : p.rate === null ? t('labour.noRate') : `${showPaise(p.rate)} ${t(`labour.per.${p.kind}`)}`}
+                    <td className={p.rate === null ? 'num rate minus' : 'num rate'} data-label={t('labour.rate')}>
+                      {p.rate === null ? t('labour.noRate') : `${showPaise(p.rate)} ${t(`labour.per.${p.kind}`)}`}
                     </td>
                     <td className="num result" data-label={t('use.amount')}>{amounts[l] == null ? '—' : showPaise(amounts[l])}</td>
                   </tr>

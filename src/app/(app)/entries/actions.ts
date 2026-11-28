@@ -7,7 +7,7 @@ import type { FormState } from '@/components/form';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { firmErrors, firmsForSave } from '@/lib/firm';
 import { cashTransfer, notYetKnown, ownerCapital, ownerDrawing, siteCashExpense } from '@/lib/ledger/posting/cash';
-import { otherMoney, reasonOf } from '@/lib/ledger/posting/other';
+import { otherMoney, reasonOf, withBankCharges } from '@/lib/ledger/posting/other';
 import { clientBill, clientReceipt } from '@/lib/ledger/posting/client';
 import { vendorBill, vendorPayment } from '@/lib/ledger/posting/vendor';
 import type { CostHead, EntryDraft, MoneyAccountRef } from '@/lib/ledger/types';
@@ -222,9 +222,19 @@ async function saveEntry(slug: string, firmId: string | null, data: FormData, db
   let draft: EntryDraft;
   try {
     draft = await buildDraft(slug as EntryFormSlug, parsed.values, firmId, db);
+    // What the bank kept on top (pay-vendor adds its own): from the bank the money leaves, else the bank it goes to.
+    const charges = (parsed.values.charges as number | null | undefined) ?? 0;
+    if (charges && slug !== 'pay-vendor') {
+      const ids = ['from_account_id', 'to_account_id', 'account_id'].map((f) => parsed.values[f]).filter((id): id is string => typeof id === 'string' && id !== '');
+      const accounts = await Promise.all(ids.map((id) => moneyAccount(db, id)));
+      const bank = accounts.find((a) => a.kind === 'bank');
+      if (!bank) throw new Error('charges_bank');
+      draft = withBankCharges(draft, bank, charges);
+    }
   } catch (error) {
     const message = (error as Error).message;
     if (message === 'payment_method') return { errors: { payment_method: 'method_account' }, values };
+    if (message === 'charges_bank') return { errors: { charges: 'charges_bank' }, values };
     return { errors: { _form: 'save_failed' }, detail: message, values };
   }
   if (entryId && UUID.test(entryId)) draft.id = entryId;

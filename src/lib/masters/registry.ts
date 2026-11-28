@@ -20,7 +20,7 @@ export const ENUMS = {
   /** Not a database enum: how a payment or receipt was made. Online and cheque use a bank; cash uses a cash account. */
   payment_method: ['online', 'cash', 'cheque'],
   /** How a unit is measured on the daily report: see src/lib/work.ts. */
-  unit_measure: ['quantity', 'length', 'area', 'volume'],
+  unit_measure: ['quantity', 'length', 'area', 'volume', 'factors'],
   /** The party kinds kept on the Workers and staff list: a worker is paid by the hour, staff a fixed salary per month. */
   worker_kind: ['worker', 'staff'],
   /** The same list for a supervisor, who does not see staff: what they are paid is not theirs to see. */
@@ -210,6 +210,8 @@ export const NEW_USER_FIELDS: Field[] = [
 export const EDIT_USER_FIELDS: Field[] = [...userFields, active, { name: 'password', kind: 'password' }];
 
 const amount: Field = { name: 'amount', kind: 'rupees', required: true };
+/** What the bank kept on top of the money (owner decision 2026-11-28); left empty, none. */
+const charges: Field = { name: 'charges', kind: 'rupees' };
 const date: Field = { name: 'entry_date', kind: 'date', required: true };
 const note: Field = { name: 'narration', kind: 'text' };
 const reference: Field = { name: 'reference', kind: 'text' };
@@ -250,7 +252,7 @@ export const ENTRY_FORMS = {
     roles: ['owner', 'office'],
     fields: [
       { name: 'vendor_id', kind: 'ref', ref: 'vendors', required: true },
-      payMethod, from, amount, { name: 'charges', kind: 'rupees' }, date, reference, note,
+      payMethod, from, amount, charges, date, reference, note,
     ],
   },
   'client-bill': {
@@ -283,7 +285,7 @@ export const ENTRY_FORMS = {
       from,
       { name: 'site_id', kind: 'ref', ref: 'sites', required: true },
       { name: 'material_id', kind: 'ref', ref: 'materials' },
-      { ...costHead, required: false }, amount,
+      { ...costHead, required: false }, amount, charges,
       { name: 'narration', kind: 'text', required: true },
       { name: 'paid_to_id', kind: 'ref', ref: 'parties' },
       date,
@@ -292,7 +294,7 @@ export const ENTRY_FORMS = {
   'move-money': {
     icon: 'arrowRight' as IconName,
     roles: ['owner', 'office'],
-    fields: [from, account('to_account_id'), amount, date, reference, note],
+    fields: [from, account('to_account_id'), amount, charges, date, reference, note],
   },
   'not-yet-known': {
     icon: 'calc' as IconName,
@@ -308,7 +310,7 @@ export const ENTRY_FORMS = {
     roles: ['owner', 'office'],
     fields: [
       { name: 'reason', kind: 'enum', enum: 'money_reason', required: true },
-      account('account_id'), amount, date,
+      account('account_id'), amount, charges, date,
       { name: 'person_id', kind: 'ref', ref: 'parties' },
       { name: 'month', kind: 'text' },
       reference, note,
@@ -320,7 +322,7 @@ export const ENTRY_FORMS = {
     fields: [
       { name: 'direction', kind: 'enum', enum: 'owner_money', required: true },
       account('account_id'),
-      amount, date, note,
+      amount, charges, date, note,
     ],
   },
 } satisfies Record<string, { icon: IconName; roles: AppRole[]; fields: Field[] }>;

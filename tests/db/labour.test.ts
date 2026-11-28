@@ -61,20 +61,23 @@ it('keeps other site costs, but not material, which comes from stock', async () 
   await expect(add('material')).rejects.toThrow('check constraint');
 });
 
-it('keeps what staff are paid from a supervisor, who still marks them', async () => {
+it('shows a supervisor what staff cost the site a day, but keeps staff out of their Setup', async () => {
   const ramesh = await createUser(db, 'supervisor', 'Ramesh', { sites: [seed.svgSite] });
   const office = await createUser(db, 'office', 'Priya', { firms: [seed.jayraj] });
   const sunil = (await db.query<{ id: string }>(`insert into parties (kind, name, rate_paise) values ('staff', 'Sunil', 3100000) returning id`)).rows[0]!.id;
   await asUser(db, ramesh, async (tx) => {
     expect((await tx.query(`select id from parties where kind = 'staff'`)).rows).toEqual([]);
-    expect((await tx.query(`select * from app_site_staff()`)).rows).toEqual([{ id: sunil, name: 'Sunil', site_id: null, has_rate: true }]);
+    expect((await tx.query(`select id, name, site_id, rate_paise::int as rate_paise from app_site_staff()`)).rows).toEqual([{ id: sunil, name: 'Sunil', site_id: null, rate_paise: 3100000 }]);
     // Whatever amount is sent, the database works out the day: 31,000 ÷ 31 days.
     await tx.query(`insert into labour_day (site_id, work_date, party_id, present, day_pay_paise, amount_paise) values ($1, '2026-10-18', $2, true, 7, 7)`, [seed.svgSite, sunil]);
     expect((await tx.query(`select day_pay_paise::int, amount_paise::int from labour_day`)).rows).toEqual([{ day_pay_paise: 0, amount_paise: 0 }]);
-    expect((await tx.query(`select * from labour_day_staff`)).rows).toEqual([]);
+    expect((await tx.query(`select day_pay_paise::int, amount_paise::int from labour_day_staff`)).rows).toEqual([{ day_pay_paise: 100000, amount_paise: 100000 }]);
     expect((await tx.query(`update parties set rate_paise = 1 where id = $1 returning id`, [sunil])).rows).toEqual([]);
   });
   await expect(asUser(db, ramesh, (tx) => tx.query(`insert into parties (kind, name) values ('staff', 'Extra')`))).rejects.toThrow('row-level security');
+  const away = (await db.query<{ id: string }>(`insert into sites (name) values ('Away site') returning id`)).rows[0]!.id;
+  const suresh = await createUser(db, 'supervisor', 'Suresh', { sites: [away] });
+  expect((await asUser(db, suresh, (tx) => tx.query(`select * from labour_day_staff`))).rows).toEqual([]); // not his site
   await asUser(db, office, async (tx) => {
     expect((await tx.query(`select day_pay_paise::int, amount_paise::int from labour_day_staff`)).rows).toEqual([{ day_pay_paise: 100000, amount_paise: 100000 }]);
   });

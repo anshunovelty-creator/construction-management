@@ -38,7 +38,8 @@
     "bankbook": "Bankbook",
     "close": "Close a month",
     "borrowed": "Borrowed money",
-    "personal": "Personal expenses"
+    "personal": "Personal expenses",
+    "charges": "Bank charges"
   },
   "login": {
     "title": "Sign in",
@@ -209,7 +210,8 @@
       "quantity": "Quantity (Nos, Bags, Kg…)",
       "length": "Length",
       "area": "Length × width",
-      "volume": "Length × width × height"
+      "volume": "Length × width × height",
+      "factors": "4 boxes (A × B × C × D)"
     },
     "contract_type": {
       "item_rate": "Item rate",
@@ -358,6 +360,7 @@
     "same_account": "Choose two different accounts.",
     "invalid_gstin": "A GST number has 15 characters, like 27AAAAA0000A1Z5. Check it against the paper.",
     "method_account": "Online and cheque come from a bank account. Cash comes from a cash account.",
+    "charges_bank": "Bank charges come out of a bank: pick a bank account.",
     "maybe_repeat": "This looks like one already saved",
     "one_cash": "This firm already has its Cash. A firm has one Cash and any number of banks.",
     "is_firm": "This is one of our own firms. Its bills and payments go in its account between firms: open it from Parties or Clients, under Our other firms."
@@ -745,6 +748,19 @@
     "empty": "Fill in at least one row first.",
     "fromNew": "Many entries at once? Type them in a sheet"
   },
+  "charges": {
+    "title": "Bank charges",
+    "lede": "Every charge the bank took: the ones typed with a payment to a party (the Bank charges box on Pay), and any added here on their own, like a monthly SMS or card fee. Pick a bank or a month to see what each one charged.",
+    "add": "Add bank charges",
+    "total": "Total charges",
+    "totalFrom": "Charged by {account}",
+    "account": "Bank",
+    "for": "For",
+    "amount": "Charges",
+    "paying": "Paying {name}",
+    "onItsOwn": "Bank charges",
+    "none": "No bank charges here."
+  },
   "personal": {
     "title": "Personal expenses",
     "lede": "Every rupee the owner took out of a bank or cash for personal use, with what it was spent on. Pick an account or a month to see where the money went.",
@@ -1053,7 +1069,7 @@
     },
     "work": {
       "addTitle": "Add work done",
-      "addHint": "One block per activity. Write what was done and where on the site, pick the unit and type the rate. The measurement boxes follow the unit: M3 asks length × width × height, M2 length × width, Nos just the quantity. Use No. for how many alike (two walls: No. 2).",
+      "addHint": "One block per activity. Write what was done and where on the site, pick the unit and type the rate. The measurement boxes follow the unit: M3 asks length × width × height, M2 length × width, Nos just the quantity, and a unit set to 4 boxes asks A × B × C × D (for steel, say members × bars × length × kg per metre). Use No. for how many alike (two walls: No. 2).",
       "activityNo": "Activity {n}",
       "description": "Activity description",
       "descriptionExample": "e.g. Plaster on building walls",
@@ -1068,7 +1084,11 @@
         "length": "Length",
         "width": "Width",
         "height": "Height",
-        "quantity": "Quantity"
+        "quantity": "Quantity",
+        "a": "A",
+        "b": "B",
+        "c": "C",
+        "d": "D"
       },
       "quantity": "Quantity ({unit})",
       "amount": "Amount",
@@ -1105,6 +1125,10 @@
       "bad_length": "Type the length, a number above zero like 4.3.",
       "bad_width": "Type the width, a number above zero like 0.45.",
       "bad_height": "Type the height, a number above zero like 2.8.",
+      "bad_a": "Type box A, a number above zero.",
+      "bad_b": "Type box B, a number above zero.",
+      "bad_c": "Type box C, a number above zero.",
+      "bad_d": "Type box D, a number above zero.",
       "save_failed": "Could not save.",
       "need_activity": "Write what work was done.",
       "pick_unit": "Pick the unit.",
@@ -1144,7 +1168,6 @@
       "note": "Notes",
       "profit": "Total"
     },
-    "noStaffPay": "Staff salaries are not counted here.",
     "noteHeading": "Notes",
     "note": {
       "hint": "What kind of work was done today, any extra work, anything the owner should know.",
@@ -1314,6 +1337,8 @@
   "ledger": {
     "title": "Ledger",
     "titleOf": "Ledger of {name}",
+    "statementOf": "Statement of {name}",
+    "allTransactions": "All transactions",
     "of": "Ledger of",
     "pick": "Pick a vendor, client or site",
     "groups": {
@@ -1347,7 +1372,6 @@
     "cr": "Cr",
     "none": "No entries in this period.",
     "common": "Common",
-    "closingTitle": "Closing balance on {date}:",
     "balanceWord": {
       "vendor": {
         "dr": "Extra paid",
@@ -1380,7 +1404,6 @@
       "cut": "− cut by client {amount}"
     },
     "openingBalance": "Opening Balance",
-    "currentTotal": "Current Total",
     "closingBalance": "Closing Balance",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
@@ -1655,7 +1678,8 @@
       "place_exists": "That place is already on the list.",
       "account": "Choose one of the accounts it can be paid from.",
       "paid_together": "This was paid together with others in one entry. Cancel that entry instead.",
-      "paid_twice": "Already given the same amount on this day"
+      "paid_twice": "Already given the same amount on this day",
+      "charges": "Bank charges must be a rupee amount, and come out of a bank"
     },
     "delete": {
       "title": "Delete this worker",
@@ -1800,7 +1824,8 @@
       "no_cash": "There is not enough cash in that account.",
       "paper": "Please choose Insurance, PUC or Fitness.",
       "valid": "Please give both dates it is valid. Valid until cannot be before Valid from.",
-      "has_paid": "This machine has services paid from an account, so it cannot be deleted. Untick In use instead."
+      "has_paid": "This machine has services paid from an account, so it cannot be deleted. Untick In use instead.",
+      "charges": "Bank charges must be a rupee amount, and come out of a bank."
     },
     "delete": {
       "title": "Delete this machine",
@@ -1851,6 +1876,7 @@
       "personal": "Personal expense"
     },
     "popup": {
+      "withCharges": "{charges} bank charges also come out of {bank}, and go on the Bank charges page.",
       "in": "Money in: {account}",
       "out": "Money out: {account}",
       "move": "Bank to bank",

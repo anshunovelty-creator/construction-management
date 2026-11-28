@@ -6,6 +6,7 @@ import {
   ownerDrawing,
   siteCashExpense,
 } from '@/lib/ledger/posting/cash';
+import { withBankCharges } from '@/lib/ledger/posting/other';
 import { AB_BANK, JI, JI_BANK, OWNER_CASH, RAMESH, SVG } from './fixtures';
 
 describe('siteCashExpense', () => {
@@ -74,5 +75,18 @@ describe('owner money', () => {
       { account: 'owner_capital', amountPaise: 100, firmId: JI },
       { account: 'money', amountPaise: -100, firmId: JI, moneyAccountId: OWNER_CASH.id },
     ]);
+  });
+});
+
+describe('withBankCharges', () => {
+  it('takes the charges with the money from the bank, as the firm’s bank charges, and only from a bank in the entry', () => {
+    const draft = cashTransfer({ from: JI_BANK, to: OWNER_CASH, amountPaise: 10_000_00, transferDate: '2026-11-05' });
+    const charged = withBankCharges(draft, JI_BANK, 10_00);
+    expect(charged.lines).toEqual([
+      ...draft.lines.map((l) => (l.moneyAccountId === JI_BANK.id ? { ...l, amountPaise: -10_010_00 } : l)),
+      { account: 'firm_cost', amountPaise: 10_00, firmId: JI_BANK.firmId, costHead: 'bank_charges' },
+    ]);
+    expect(withBankCharges(draft, JI_BANK, 0)).toBe(draft);
+    expect(() => withBankCharges(draft, OWNER_CASH, 10_00)).toThrow('charges_bank');
   });
 });

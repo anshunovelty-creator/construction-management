@@ -395,6 +395,7 @@ table.saved-work tr.in-group td:first-child { padding-left: 28px; }
 .quick-time { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .quick-time .chip { min-width: 44px; min-height: 38px; justify-content: center; padding: 0 10px; cursor: pointer; font-family: var(--font-num); }
 .quick-time .chip.mark-P.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); }
+.pay-cost .charges-box { width: 8rem; }
 .report-note { width: 100%; resize: vertical; min-height: 6rem; font: inherit; }
 .sheet-note { white-space: pre-wrap; }
 .quick-time .chip.mark-H.on { background: var(--plus-soft); border-color: var(--plus); color: var(--plus); border-style: dashed; }
@@ -584,7 +585,7 @@ tr.extra-month td, table.ledger tbody tr.extra-month td { background: var(--plus
   .measure-table.labour-table .result { grid-area: 3 / 1 / 4 / 3; text-align: right; }
   .measure-table.labour-table td.box::before { display: none; }
   .measure-table.labour-table .unit-tag { display: inline; min-width: 0; }
-  .measure-table.labour-table tr.unpaid-staff .rate, .measure-table.labour-table tr.unpaid-staff .result, .measure-table.labour-table tr.staff td.box,
+  .measure-table.labour-table tr.staff td.box,
   .measure-table.labour-table tr.unmarked td.box, .measure-table.labour-table tr.unmarked .result { display: none; }
   .measure-table.labour-table .result::before { display: none !important; }
   .measure-table.labour-table .chip { min-height: 44px; min-width: 48px; }
@@ -1105,12 +1106,22 @@ table.skill-sheet tr { scroll-margin-top: 80px; }
 .ledger-filters .field:first-child { flex: 1 1 18rem; }
 .ledger-filters select, .ledger-filters input, .ledger-filters .btn { min-height: 44px; }
 table.statement td.particulars { white-space: normal; min-width: 18rem; max-width: 34rem; }
-/* Tally's last line: both columns on the same total, under a double rule. */
-table.statement tr.ledger-grand td { border-top: 3px double var(--rule-strong); font-weight: 700; }
+table.statement tfoot td { border-top: 2px solid var(--rule-strong); font-weight: 700; }
+/* The statement itself, like a bank's: heading, the period's figures, then the transactions. The only part printed. */
+.paper-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 24px; margin-bottom: 14px; }
+.paper-head h2 { margin: 2px 0 4px; }
+.paper-head p { margin: 0; }
+.paper-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); margin: 0 0 8px; border: 1px solid var(--rule); border-radius: 8px; }
+.paper-summary > div { padding: 10px 14px; border-left: 1px solid var(--rule); }
+.paper-summary > div:first-child { border-left: 0; }
+.paper-summary dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.paper-summary dd { margin: 4px 0 0; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.paper-summary .balance-word { font-size: 12px; }
+.paper-words { margin: 0 0 14px; font-weight: 600; }
 table.statement .pill { margin-left: 6px; }
 .ledger-note { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
 .balance-word { display: block; font-size: 12px; font-weight: 500; }
-.ledger-printed { margin: 16px 0 0; font-size: 12.5px; }
+.ledger-printed { font-size: 12.5px; }
 
 @media print {
   @page { size: A4; margin: 12mm; }
@@ -1127,6 +1138,19 @@ table.statement .pill { margin-left: 6px; }
   table.statement tr { break-inside: avoid; }
   table.statement thead { display: table-header-group; }
   table.statement a { color: inherit; text-decoration: none; }
+  /* Fixed ink colours, so a dark screen theme never reaches the PDF. */
+  .ledger-paper { color: #111827; background: #fff; }
+  .ledger-paper .muted, .ledger-paper .ledger-note, .paper-summary dt { color: #5b6475; }
+  .ledger-paper .plus { color: #0b7a4e; }
+  .ledger-paper .minus { color: #c4321f; }
+  .paper-head { border-bottom: 3px solid #3a56d4; padding-bottom: 8px; }
+  .paper-head .ledger-firm { color: #3a56d4; }
+  .paper-summary, .paper-summary > div { border-color: #d5d9e0; }
+  .paper-summary dd { font-size: 13px; }
+  .ledger-paper .card { border: 0; background: #fff; }
+  table.statement th { background: #eef1f8; color: #374151; }
+  table.statement th, table.statement td { border-color: #d5d9e0; }
+  nextjs-portal { display: none !important; }
 }
 
 /* Daily report on paper (print-sheet.tsx): a document of its own, in fixed ink colours so a dark screen theme never

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { openingMoneyBalance } from '@/lib/ledger/posting/opening';
-import { machineService } from '@/lib/ledger/posting/other';
+import { machineService, typedCharges, withBankCharges } from '@/lib/ledger/posting/other';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
@@ -89,6 +89,7 @@ export async function countCash(accountId: string, countId: string, data: FormDa
 }
 
 const unpaidFail = (error: string): never => redirect(`/bankbook/unpaid?error=${encodeURIComponent(error)}`);
+const CHARGES_BAD = 'Bank charges must be a rupee amount, and come out of a bank.';
 
 /** A cost not paid yet came on a party's bill (so it is paid there), or did not after all. */
 export async function markOnBill(kind: 'cost' | 'service', id: string, on: boolean): Promise<void> {
@@ -111,7 +112,8 @@ export async function payService(id: string, entryId: string, data: FormData): P
   ]);
   if (!service) return unpaidFail('This cost is already paid or removed.');
   if (!account || account.firmId !== working?.firm.id) return unpaidFail('Choose one of this firm’s accounts.');
-  const entry = machineService({ id: entryId, account, amountPaise: Number(service.cost_paise), date: paidOn, narration: [service.machine?.name, service.note].filter(Boolean).join(' · ') });
+  let entry = machineService({ id: entryId, account, amountPaise: Number(service.cost_paise), date: paidOn, narration: [service.machine?.name, service.note].filter(Boolean).join(' · ') });
+  try { entry = withBankCharges(entry, account, typedCharges(data.get('charges'))); } catch { return unpaidFail(CHARGES_BAD); }
   const { error } = await db.rpc('app_pay_service', { p_service: id, p_entry: entry });
   if (error) unpaidFail(error.message);
   revalidatePath('/', 'layout');

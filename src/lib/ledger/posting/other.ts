@@ -1,4 +1,4 @@
-import type { Paise } from '@/lib/money';
+import { rupeesToPaise, type Paise } from '@/lib/money';
 import { assertBalanced, assertDate, assertPositive } from '../balance';
 import type { CostHead, EntryDraft, LedgerAccount, LineDraft, MoneyAccountRef } from '../types';
 
@@ -126,3 +126,25 @@ export function machineService(input: { id?: string; account: MoneyAccountRef; a
   assertBalanced(draft);
   return draft;
 }
+
+/**
+ * What the bank kept on top of a payment (owner decision 2026-11-28, on every screen that pays from a bank): the bank's
+ * line in the draft moves by the charges, and the charges are that firm's bank_charges cost, in the same entry, so the
+ * bankbook matches the bank statement. Nothing changes for 0. Throws 'charges_bank' when the account is not a bank or
+ * is not in the draft.
+ */
+export function withBankCharges(draft: EntryDraft, bank: MoneyAccountRef, chargesPaise: Paise): EntryDraft {
+  if (!chargesPaise) return draft;
+  if (!Number.isSafeInteger(chargesPaise) || chargesPaise < 0) throw new Error('bank charges cannot be below zero');
+  const at = draft.lines.findIndex((l) => l.account === 'money' && l.moneyAccountId === bank.id);
+  if (bank.kind !== 'bank' || at < 0) throw new Error('charges_bank');
+  const line = draft.lines[at]!;
+  const lines: LineDraft[] = draft.lines.map((l, i) => (i === at ? { ...l, amountPaise: l.amountPaise - chargesPaise } : l));
+  lines.push({ account: 'firm_cost', amountPaise: chargesPaise, firmId: line.firmId, costHead: 'bank_charges' });
+  const out = { ...draft, lines };
+  assertBalanced(out);
+  return out;
+}
+
+/** Bank charges as typed in a form's charges box: empty is none. Throws when it is not a rupee amount. */
+export const typedCharges = (text: FormDataEntryValue | null | undefined): Paise => (String(text ?? '').trim() ? rupeesToPaise(String(text)) : 0);

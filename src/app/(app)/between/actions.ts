@@ -6,6 +6,7 @@ import type { FormState } from '@/components/form';
 import type { BetweenKind } from '@/components/firm-popup';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
 import { firmSupply, firmTransfer, openingFirms, paidForFirm } from '@/lib/ledger/posting/firms';
+import { withBankCharges } from '@/lib/ledger/posting/other';
 import { COST_HEADS, type EntryDraft, type MoneyAccountRef } from '@/lib/ledger/types';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
@@ -68,9 +69,13 @@ export async function postBetween(firmId: string, counterId: string, entryId: st
         if (!cells.party) return refuse('required');
         draft = paidForFirm({ id: entryId, from, billFirmId: otherId, vendorId: cells.party, amountPaise, date, ...note });
       }
+      // What the bank kept on top, out of the paying firm's bank.
+      if (cells.charges?.trim()) draft = withBankCharges(draft, from, rupeesToPaise(cells.charges));
     }
   } catch (error) {
-    return { errors: { _form: 'save_failed' }, detail: (error as Error).message };
+    const message = (error as Error).message;
+    if (message === 'charges_bank') return refuse('charges_bank');
+    return { errors: { _form: 'save_failed' }, detail: message };
   }
   const { data, error } = await db.rpc('app_post_entry', { p_entry: draft });
   if (error) return { errors: { _form: 'save_failed' }, detail: error.message };

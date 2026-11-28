@@ -174,7 +174,7 @@ export function ReceiveMoney({ side = 'client', name, firm, total, received, bal
     </button>
   );
   const chosen = accounts.find((a) => a.value === account);
-  const chargeable = side === 'party' && !other && chosen?.kind === 'bank';
+  const chargeable = side === 'party' && chosen?.kind === 'bank';
   const chargePaise = chargeable ? toPaise(charges) : 0;
   const after = chosen?.balance === undefined ? 0 : chosen.balance + (side === 'client' ? paise : -paise - chargePaise);
 

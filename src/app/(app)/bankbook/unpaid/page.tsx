@@ -40,6 +40,7 @@ export default async function UnpaidPage({ searchParams }: { searchParams: Promi
               <form action={r.kind === 'cost' ? payCost.bind(null, r.id, crypto.randomUUID(), r.placeId, r.date) : payService.bind(null, r.id, crypto.randomUUID())}>
                 <input type="hidden" name="back" value="unpaid" />
                 <select name="account" required defaultValue="" aria-label={t('report.other.paidFrom')}><option value="">{t('bankbook.popup.pick')}</option><AccountOptions accounts={accounts} /></select>
+                <input name="charges" inputMode="decimal" autoComplete="off" placeholder={t('fields.charges')} aria-label={t('fields.charges')} className="charges-box" />
                 <input type="date" name="date" required defaultValue={today} max={today} aria-label={t('fields.entry_date')} />
                 <button type="submit" className="btn small">{t('payList.party.button')}</button>
               </form>

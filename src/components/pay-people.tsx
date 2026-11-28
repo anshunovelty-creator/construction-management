@@ -27,6 +27,8 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
   const [kind, setKind] = useState<PayKind>('payment');
   const [date, setDate] = useState(today);
   const [note, setNote] = useState('');
+  // What the bank kept on top (owner decision 2026-11-28): once for the whole payment, not per person.
+  const [charges, setCharges] = useState('');
   const [message, setMessage] = useState<{ bad: boolean; text: string } | null>(null);
   // Asked before saving: someone looks paid already, or an amount looks wrong. Saving anyway answers it.
   // The answer is only for what was asked: anything changed is asked about again.
@@ -35,9 +37,11 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
   const total = rows.reduce((s, r) => s + toPaise(amounts[r.id] ?? ''), 0);
   const people = rows.filter((r) => toPaise(amounts[r.id] ?? '') > 0).length;
   const chosen = accounts.find((a) => a.id === account);
-  const after = chosen ? chosen.balance + (kind === 'returned' ? total : -total) : 0;
+  const chargeable = chosen?.kind === 'bank' && kind !== 'returned';
+  const chargePaise = chargeable ? toPaise(charges) : 0;
+  const after = chosen ? chosen.balance + (kind === 'returned' ? total : -total) - chargePaise : 0;
 
-  const asked = `${JSON.stringify(amounts)}|${account}|${kind}`;
+  const asked = `${JSON.stringify(amounts)}|${account}|${kind}|${charges}`;
   const ask = asking?.of === asked ? asking.about : null;
   const submit = (e: React.SyntheticEvent, answered: 'repeat' | 'doubt' | null = null) => {
     e.preventDefault();
@@ -65,7 +69,7 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
     start(async () => {
       let result: PayResult;
       try {
-        result = await save({ entryId: entryId.current, accountId: account, date, kind, note, anyway, lines: rows.flatMap((r) => (toPaise(amounts[r.id] ?? '') > 0 ? [{ id: r.id, amount: amounts[r.id]! }] : [])) });
+        result = await save({ entryId: entryId.current, accountId: account, date, kind, note, anyway, charges: chargeable ? charges : '', lines: rows.flatMap((r) => (toPaise(amounts[r.id] ?? '') > 0 ? [{ id: r.id, amount: amounts[r.id]! }] : [])) });
       } catch {
         result = { error: 'not_saved' };
       }
@@ -74,6 +78,7 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
           entryId.current = '';
           setAmounts({});
           setNote('');
+          setCharges('');
           setMessage({ bad: false, text: t('pay.saved', { amount: showPaise(total), serial: result.serial }) });
         } else {
           setAsking(result.error === 'paid_twice' ? { about: 'repeat', of: asked } : null);
@@ -103,6 +108,11 @@ export function PayPeople({ rows, accounts, today, save, single = false }: {
         <label className="field"><span>{t('party.remarks')} <span className="optional">{t('common.optional')}</span></span>
           <input value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
+        {chargeable && (
+          <label className="field"><span>{t('fields.charges')} <span className="optional">{t('common.optional')}</span></span>
+            <input inputMode="decimal" autoComplete="off" value={charges} onChange={(e) => setCharges(e.target.value)} />
+          </label>
+        )}
       </div>
       <DateBox date={date} setDate={setDate} today={today} label={t('fields.entry_date')} />
       <div className="table-wrap">

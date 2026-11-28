@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getWorkingFirm, requireProfile } from '@/lib/auth';
-import { wagesPaid } from '@/lib/ledger/posting/other';
+import { wagesPaid, withBankCharges } from '@/lib/ledger/posting/other';
 import { rupeesToPaise } from '@/lib/money';
 import { createClient } from '@/lib/supabase/server';
 import { todayInIndia } from '../entries/data';
@@ -12,7 +12,7 @@ const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type PayKind = 'payment' | 'advance' | 'returned';
-export interface PayInput { entryId: string; accountId: string; date: string; kind: PayKind; note: string; lines: { id: string; amount: string }[]; /** Saved even though someone was given the same amount that day. */ anyway?: boolean }
+export interface PayInput { entryId: string; accountId: string; date: string; kind: PayKind; note: string; lines: { id: string; amount: string }[]; /** Saved even though someone was given the same amount that day. */ anyway?: boolean; /** What the bank kept on top, once for the whole payment; empty for none. */ charges?: string }
 export type PayResult = { error: string; detail?: string } | { serial: string };
 
 /**
@@ -50,10 +50,17 @@ export async function payPeople(source: 'salary' | 'labour', input: PayInput): P
   const names = await db.from(source === 'salary' ? 'parties' : 'labour_workers').select('id, name').in('id', lines.slice(0, 3).map((l) => l.id));
   const who = (names.data ?? []).map((n) => n.name as string).join(', ') + (lines.length > 3 ? ` +${lines.length - 3}` : '');
   const total = lines.reduce((s, l) => s + l.amountPaise, 0);
-  const entry = wagesPaid({
+  let entry = wagesPaid({
     id: input.entryId, account, amountPaise: input.kind === 'returned' ? -total : total, date: input.date,
     narration: [who, input.note.trim()].filter(Boolean).join(' · '),
   });
+  if (input.charges?.trim()) {
+    try {
+      entry = withBankCharges(entry, account, rupeesToPaise(input.charges));
+    } catch {
+      return { error: 'charges' };
+    }
+  }
   const { data, error } = await db.rpc('app_pay', { p_batches: [{ entry, lines }] });
   if (error) return { error: 'not_saved', detail: error.message };
   revalidatePath('/', 'layout');
